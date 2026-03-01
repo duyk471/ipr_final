@@ -1,4 +1,4 @@
-# Một dự án
+# Dự án
 
 ## Cấu trúc thư mục của một dự án
 
@@ -131,6 +131,6 @@ File này được thiết kế để tương thích tốt nhất với **Fabric
 5.  **`viewportTransform`:**
     - Lưu lại vị trí người dùng đang zoom hoặc pan (trượt) màn hình, giúp khi họ mở lại, trạng thái nhìn y hệt lúc họ tắt đi.
 
-## Danh sách các tính năng khác cho dự án
+## Danh sách các tính năng khác cho dự án (Để làm sau)
 
 Tích hợp thêm tính năng **"Lịch sử chỉnh sửa" (Undo/Redo)** lưu vào file luôn hay chỉ lưu trong bộ nhớ tạm khi đang mở tab thôi? (Thường thì Canva chỉ lưu trong phiên làm việc hiện tại).

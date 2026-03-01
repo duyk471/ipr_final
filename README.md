@@ -19,7 +19,7 @@
   - *Image Processing:* `sharp` (Để tạo ảnh preview/thumbnail tự động).
   - *Upload:* `multer` (Xử lý ảnh người dùng tải lên).
 - *AI Integration:*
-  - *API:* Google Gemini SDK (`@google/generative-ai`). Chưa thống nhất hoàn toàn về vấn đề này
+  - *API:* Google Gemini SDK (`@google/generative-ai`). Chưa thống nhất hoàn toàn về vấn đề này (Để AI chọn)
   - *Flow:* Backend gọi Gemini -> Tải ảnh từ URL của Gemini về -> Lưu vào folder `assets/` cục bộ -> Trả về đường dẫn nội bộ cho Frontend.
 - *Storage:*
   - Hệ thống thư mục phân cấp trên Server/Máy host.

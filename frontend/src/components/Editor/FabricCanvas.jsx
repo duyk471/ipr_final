@@ -1,0 +1,354 @@
+import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
+import * as fabric from 'fabric';
+import { Trash2 } from 'lucide-react';
+import useCanvasStore from '../../store/useCanvasStore';
+import { api } from '../../store/useCanvasStore';
+
+const FabricCanvas = forwardRef(({ projectId }, ref) => {
+    const canvasEl = useRef(null);
+    const fabricCanvas = useRef(null);
+    const containerRef = useRef(null);
+    const { canvasData, currentProject, setCanvasData, saveProjectState, setSelectedObject } = useCanvasStore();
+
+    const isInitializing = useRef(true);
+    const saveTimeout = useRef(null);
+
+    // Selection UI State
+    const [toolbarPos, setToolbarPos] = useState(null);
+
+    // Undo/Redo Stacks
+    const undoStack = useRef([]);
+    const redoStack = useRef([]);
+    const isActionInProgress = useRef(false);
+
+    const pushToUndo = () => {
+        if (isActionInProgress.current || !fabricCanvas.current) return;
+        const json = fabricCanvas.current.toObject(['id', 'metadata']);
+        undoStack.current.push(JSON.stringify(json));
+        if (undoStack.current.length > 50) undoStack.current.shift(); // Limit history
+        redoStack.current = []; // Clear redo on new action
+    };
+
+    const deleteActiveObject = () => {
+        if (!fabricCanvas.current) return;
+        const activeObjects = fabricCanvas.current.getActiveObjects();
+        if (activeObjects.length > 0) {
+            fabricCanvas.current.remove(...activeObjects);
+            fabricCanvas.current.discardActiveObject();
+            fabricCanvas.current.renderAll();
+            queueSave();
+        }
+    };
+
+    useImperativeHandle(ref, () => ({
+        canvas: fabricCanvas.current,
+        addText: () => {
+            if (!fabricCanvas.current) return;
+            const text = new fabric.IText('Hello World', {
+                left: 100,
+                top: 100,
+                fontFamily: 'Inter',
+                fill: '#000000',
+                fontSize: 40
+            });
+            fabricCanvas.current.add(text);
+            fabricCanvas.current.setActiveObject(text);
+            fabricCanvas.current.renderAll();
+        },
+        addShape: (type) => {
+            if (!fabricCanvas.current) return;
+            let shape;
+            if (type === 'rect') {
+                shape = new fabric.Rect({ left: 100, top: 100, fill: '#FF5733', width: 100, height: 100, rx: 0, ry: 0 });
+            } else if (type === 'circle') {
+                shape = new fabric.Circle({ left: 100, top: 100, fill: '#33FF57', radius: 50 });
+            } else if (type === 'triangle') {
+                shape = new fabric.Triangle({ left: 100, top: 100, fill: '#3357FF', width: 100, height: 100 });
+            }
+            if (shape) {
+                fabricCanvas.current.add(shape);
+                fabricCanvas.current.setActiveObject(shape);
+                fabricCanvas.current.renderAll();
+            }
+        },
+        addImage: async (url, metadata = null) => {
+            if (!fabricCanvas.current) return;
+            try {
+                const fullUrl = `http://localhost:5000${url}?t=${Date.now()}`;
+                const img = await fabric.FabricImage.fromURL(fullUrl, { crossOrigin: 'anonymous' });
+
+                // Add without scaling to keep intact, but center it
+                img.set({
+                    left: (fabricCanvas.current.width - img.getScaledWidth()) / 2,
+                    top: (fabricCanvas.current.height - img.getScaledHeight()) / 2
+                });
+
+                if (metadata) {
+                    img.set('metadata', metadata);
+                }
+                fabricCanvas.current.add(img);
+                fabricCanvas.current.setActiveObject(img);
+                fabricCanvas.current.renderAll();
+                queueSave();
+            } catch (err) {
+                console.error('Error adding image:', err);
+            }
+        },
+        updateObject: (props) => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject) {
+                activeObject.set(props);
+                fabricCanvas.current.renderAll();
+                updateSelectedState();
+                queueSave();
+            }
+        },
+        bringToFront: () => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject) {
+                activeObject.bringToFront();
+                fabricCanvas.current.renderAll();
+                queueSave();
+            }
+        },
+        sendToBack: () => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject) {
+                activeObject.sendToBack();
+                fabricCanvas.current.renderAll();
+                queueSave();
+            }
+        },
+        exportImage: (format) => {
+            if (!fabricCanvas.current) return;
+            const dataUrl = fabricCanvas.current.toDataURL({
+                format: format,
+                quality: 1,
+                multiplier: 2
+            });
+            const link = document.createElement('a');
+            link.download = `${currentProject.name}.${format}`;
+            link.href = dataUrl;
+            link.click();
+        },
+        handleUndo: async () => {
+            if (undoStack.current.length <= 1) return;
+            isActionInProgress.current = true;
+
+            const currentState = undoStack.current.pop();
+            redoStack.current.push(currentState);
+
+            const prevState = undoStack.current[undoStack.current.length - 1];
+            await fabricCanvas.current.loadFromJSON(JSON.parse(prevState));
+            fabricCanvas.current.renderAll();
+
+            isActionInProgress.current = false;
+            updateSelectedState();
+            queueSave(true);
+        },
+        handleRedo: async () => {
+            if (redoStack.current.length === 0) return;
+            isActionInProgress.current = true;
+
+            const nextState = redoStack.current.pop();
+            undoStack.current.push(nextState);
+
+            await fabricCanvas.current.loadFromJSON(JSON.parse(nextState));
+            fabricCanvas.current.renderAll();
+
+            isActionInProgress.current = false;
+            updateSelectedState();
+            queueSave(true);
+        },
+        deleteActiveObject,
+        getDesignSnapshot: () => {
+            if (!fabricCanvas.current) return null;
+            return {
+                screenshot: fabricCanvas.current.toDataURL({ format: 'png', quality: 1, multiplier: 1 }),
+                json: fabricCanvas.current.toObject(['id', 'metadata'])
+            };
+        },
+        loadDesign: async (json) => {
+            if (!fabricCanvas.current) return;
+            isActionInProgress.current = true;
+            await fabricCanvas.current.loadFromJSON(json);
+            fabricCanvas.current.renderAll();
+            isActionInProgress.current = false;
+            pushToUndo(); // Push the new AI-fixed state to undo
+            queueSave(true);
+        }
+    }));
+
+    const queueSave = (skipHistory = false) => {
+        if (isInitializing.current || !fabricCanvas.current) return;
+
+        if (!skipHistory) {
+            pushToUndo();
+        }
+
+        clearTimeout(saveTimeout.current);
+        saveTimeout.current = setTimeout(async () => {
+            const json = fabricCanvas.current.toObject(['id', 'metadata']);
+            const dataUrl = fabricCanvas.current.toDataURL({ format: 'png', quality: 0.5, multiplier: 0.5 });
+
+            setCanvasData({
+                ...canvasData,
+                canvas: {
+                    width: fabricCanvas.current.width,
+                    height: fabricCanvas.current.height,
+                    backgroundColor: fabricCanvas.current.backgroundColor,
+                },
+                layers: json.objects
+            });
+            await saveProjectState(dataUrl);
+        }, 1000);
+    };
+
+    const updateSelectedState = () => {
+        if (!fabricCanvas.current) return;
+        const activeObject = fabricCanvas.current.getActiveObject();
+        if (activeObject) {
+            setSelectedObject({
+                type: activeObject.type,
+                fill: activeObject.fill,
+                fontSize: activeObject.fontSize,
+                text: activeObject.text,
+                fontFamily: activeObject.fontFamily,
+                opacity: activeObject.opacity,
+            });
+
+            // Update floating toolbar position
+            const bound = activeObject.getBoundingRect();
+            setToolbarPos({
+                left: bound.left + bound.width / 2,
+                top: bound.top - 40
+            });
+        } else {
+            setSelectedObject(null);
+            setToolbarPos(null);
+        }
+    };
+
+    useEffect(() => {
+        if (!canvasEl.current || fabricCanvas.current) return;
+
+        const initCanvas = async () => {
+            const width = canvasData?.canvas?.width || 1080;
+            const height = canvasData?.canvas?.height || 1080;
+
+            fabricCanvas.current = new fabric.Canvas(canvasEl.current, {
+                width: width,
+                height: height,
+                backgroundColor: canvasData?.canvas?.backgroundColor || '#ffffff',
+                uniformScaling: false
+            });
+
+            // Keyboard Listeners
+            const handleKeyDown = (e) => {
+                if (e.key === 'Control') {
+                    fabricCanvas.current.uniformScaling = true;
+                }
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    // Check if not typing in text object
+                    const activeObject = fabricCanvas.current.getActiveObject();
+                    if (activeObject && activeObject.type !== 'i-text' || (activeObject.type === 'i-text' && !activeObject.isEditing)) {
+                        deleteActiveObject();
+                    }
+                }
+            };
+            const handleKeyUp = (e) => {
+                if (e.key === 'Control') {
+                    fabricCanvas.current.uniformScaling = false;
+                }
+            };
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+
+            // Events
+            fabricCanvas.current.on('selection:created', updateSelectedState);
+            fabricCanvas.current.on('selection:updated', updateSelectedState);
+            fabricCanvas.current.on('selection:cleared', updateSelectedState);
+            fabricCanvas.current.on('object:scaling', updateSelectedState);
+            fabricCanvas.current.on('object:moving', updateSelectedState);
+            fabricCanvas.current.on('object:modified', () => { updateSelectedState(); queueSave(); });
+            fabricCanvas.current.on('object:added', () => queueSave());
+            fabricCanvas.current.on('object:removed', () => queueSave());
+
+            if (canvasData?.layers?.length > 0) {
+                await fabricCanvas.current.loadFromJSON({
+                    objects: canvasData.layers,
+                    background: (canvasData.canvas && canvasData.canvas.backgroundColor) || '#ffffff'
+                });
+                fabricCanvas.current.renderAll();
+            }
+
+            // Push initial state to undo
+            const initialJson = fabricCanvas.current.toObject(['id', 'metadata']);
+            undoStack.current = [JSON.stringify(initialJson)];
+
+            isInitializing.current = false;
+            resize();
+
+            return () => {
+                window.removeEventListener('keydown', handleKeyDown);
+                window.removeEventListener('keyup', handleKeyUp);
+            };
+        };
+
+        initCanvas();
+
+        return () => {
+            if (fabricCanvas.current) {
+                fabricCanvas.current.dispose();
+                fabricCanvas.current = null;
+            }
+        };
+    }, []);
+
+    const resize = () => {
+        if (containerRef.current && fabricCanvas.current) {
+            const parent = containerRef.current.parentElement;
+            if (!parent) return;
+            const cw = fabricCanvas.current.width;
+            const ch = fabricCanvas.current.height;
+
+            // Set explicit size to container so the scaling box is correct
+            containerRef.current.style.width = `${cw}px`;
+            containerRef.current.style.height = `${ch}px`;
+
+            const pw = parent.clientWidth - 60;
+            const ph = parent.clientHeight - 60;
+            const scale = Math.min(pw / cw, ph / ch);
+            containerRef.current.style.transform = `scale(${scale})`;
+        }
+    };
+
+    useEffect(() => {
+        window.addEventListener('resize', resize);
+        return () => window.removeEventListener('resize', resize);
+    }, []);
+
+    return (
+        <div ref={containerRef} className="origin-center shadow-2xl bg-white border border-gray-200 relative">
+            <canvas ref={canvasEl} />
+
+            {/* Floating Deletion Toolbar */}
+            {toolbarPos && (
+                <div
+                    className="absolute bg-white rounded-lg shadow-xl border border-gray-100 p-1 flex items-center gap-1 z-[100] -translate-x-1/2"
+                    style={{ left: toolbarPos.left, top: toolbarPos.top }}
+                >
+                    <button
+                        onClick={deleteActiveObject}
+                        className="p-1.5 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded transition-all"
+                        title="Delete"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+});
+
+export default FabricCanvas;
