@@ -1,0 +1,249 @@
+<!DOCTYPE HTML>
+<html lang="vi" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Kiến trúc hệ thống - AI Image Editor Guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">AI Image Editor Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="kiến-trúc-hệ-thống"><a class="header" href="#kiến-trúc-hệ-thống">Kiến trúc hệ thống</a></h1>
+<p>Ứng dụng được xây dựng theo mô hình <strong>Client-Server</strong> truyền thống, nhưng có đặc thù là xử lý đồ họa nặng ở phía Client (Frontend) và xử lý AI ở phía Server (Backend).</p>
+<h2 id="thiết-kế-tổng-thể-design-overview"><a class="header" href="#thiết-kế-tổng-thể-design-overview">Thiết kế tổng thể (Design Overview)</a></h2>
+<ul>
+<li><strong>Frontend (React + Fabric.js)</strong>: Đảm nhận việc vẽ, quản lý layer, tương tác người dùng và chụp ảnh màn hình canvas.</li>
+<li><strong>Backend (Node.js + Express)</strong>: Đảm nhận việc lưu trữ file vật lý, gọi API AI (Gemini/HuggingFace) và xử lý hậu kỳ ảnh (Xóa nền bằng <code>sharp</code>).</li>
+<li><strong>Storage (Local File System)</strong>: Toàn bộ dữ liệu dự án được lưu thành các thư mục riêng biệt thay vì sử dụng Database truyền thống. Điều này giúp dự án cực kỳ dễ dàng để di chuyển (Portable).</li>
+</ul>
+<h2 id="luồng-dữ-liệu-canvas-canvas-state-flow"><a class="header" href="#luồng-dữ-liệu-canvas-canvas-state-flow">Luồng dữ liệu Canvas (Canvas State Flow)</a></h2>
+<h3 id="lưu-trữ-saving"><a class="header" href="#lưu-trữ-saving">Lưu trữ (Saving)</a></h3>
+<ol>
+<li>Người dùng thực hiện thay đổi trên Canvas.</li>
+<li><code>FabricCanvas.jsx</code> sử dụng một <code>saveTimeout</code> (1 giây) để trì hoãn việc lưu (Debounce).</li>
+<li>Khi hết thời gian, nó gọi <code>canvas.toObject(['id', 'metadata'])</code> để lấy JSON và <code>canvas.toDataURL()</code> để lấy ảnh Preview.</li>
+<li>Dữ liệu này được gửi đến <code>api.put('/projects/:id')</code>.</li>
+<li>Backend ghi dữ liệu vào <code>index.json</code> và lưu ảnh vào <code>preview.png</code>.</li>
+</ol>
+<h3 id="nạp-lại-loading"><a class="header" href="#nạp-lại-loading">Nạp lại (Loading)</a></h3>
+<ol>
+<li>Khi mở một dự án, Frontend gọi <code>GET /projects/:id</code>.</li>
+<li>Backend trả về toàn bộ nội dung <code>index.json</code>.</li>
+<li>Frontend sử dụng <code>canvas.loadFromJSON()</code> để khôi phục các layer.</li>
+<li><strong>Lưu ý</strong>: Hệ thống có cơ chế tự động lọc bỏ (Filter) các layer ảnh bị lỗi hoặc mất file vật lý để bảo vệ tính toàn vẹn của Canvas.</li>
+</ol>
+<h2 id="tích-hợp-ai-ai-integration-flow"><a class="header" href="#tích-hợp-ai-ai-integration-flow">Tích hợp AI (AI Integration Flow)</a></h2>
+<h3 id="ai-image-generation"><a class="header" href="#ai-image-generation">AI Image Generation</a></h3>
+<ul>
+<li><strong>Backend</strong>: Sử dụng hệ thống <strong>Multi-Model Fallback</strong> (Flux -&gt; SDXL -&gt; SD 1.5). Nếu một model của HuggingFace bị lỗi hoặc quá tải, hệ thống sẽ tự động chuyển sang model tiếp theo.</li>
+<li><strong>Hậu kỳ</strong>: Nếu người dùng chọn "Transparent Background", Backend sẽ dùng <code>sharp</code> để thực hiện tách nền dựa trên màu trắng (Alpha channel) trước khi lưu ảnh vào đĩa.</li>
+</ul>
+<h3 id="ai-design-assistant-multimodal"><a class="header" href="#ai-design-assistant-multimodal">AI Design Assistant (Multimodal)</a></h3>
+<ol>
+<li>Frontend chụp ảnh màn hình Canvas hiện tại (Base64).</li>
+<li>Gửi cả ảnh này và JSON state hiện tại sang Backend.</li>
+<li>Backend gọi <strong>Gemini 2.0 Flash</strong> với một Prompt chuyên dụng yêu cầu đánh giá bố cục và màu sắc.</li>
+<li>Gemini trả về 3 lời khuyên và một <strong>Updated JSON</strong>.</li>
+<li>Người dùng nhấn "Apply", Frontend nạp Updated JSON này vào <code>loadFromJSON</code> của Fabric.js.</li>
+</ol>
+<h2 id="quản-lý-file--importexport"><a class="header" href="#quản-lý-file--importexport">Quản lý File &amp; Import/Export</a></h2>
+<ul>
+<li><strong>Relative Paths</strong>: Tất cả ảnh trong <code>index.json</code> đều được lưu dưới dạng đường dẫn tương đối để đảm bảo tính di động.</li>
+<li><strong>Project Import</strong>: Khi giải nén một file <code>.zip</code>, Backend sẽ quét toàn bộ JSON để tìm các UUID cũ và thay thế bằng UUID mới của project hiện tại bằng <strong>Regular Expression</strong>.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="api-keys.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="features.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="api-keys.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="features.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

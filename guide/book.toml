@@ -1,0 +1,9 @@
+[book]
+authors = ["AI Designer"]
+language = "vi"
+multilingual = false
+src = "src"
+title = "AI Image Editor Guide"
+
+[build]
+build-dir = "../docs/"

@@ -34,7 +34,6 @@ Thumbs.db
 *.swo
 
 # Project specific
-storage/projects/*/assets/ai_*
-storage/projects/*/previews/
+storage/projects/*/
 # You might want to keep the storage structure but ignore user-generated content
 # storage/projects/

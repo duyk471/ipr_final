@@ -1,5 +1,8 @@
 # AI Image Editor
 
+- 📖 **[Kiến trúc hệ thống](ARCHITECTURE.md)**
+- 📋 **[SRS](srs.md)**: yêu cầu phần mềm.
+
 ## 1. Tính năng chính (Key Features)
 
 - **Canvas Editor Chuyên Nghiệp**: Hỗ trợ Text, Hình khối (Shape), Ảnh, Undo/Redo, Layering (Fabric.js).
@@ -112,3 +115,11 @@ Mỗi dự án được lưu tại `backend/storage/projects/[uuid]/`:
 
 - Khi Import dự án từ file `.zip`, hệ thống sẽ tự động ánh xạ (remap) lại các đường dẫn ảnh để đảm bảo ảnh hiển thị đúng ngay cả khi Project ID thay đổi.
 - Tính năng **AI Assist** yêu cầu ảnh chụp màn hình Canvas và JSON state để Gemini có thể phân tích chính xác nhất.
+
+## 7. Build Documentation
+
+Chạy lệnh sau
+
+```bash
+cd guide/ && mdbook build
+```
