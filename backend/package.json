@@ -14,6 +14,7 @@
   "type": "module",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

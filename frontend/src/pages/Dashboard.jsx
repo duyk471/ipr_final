@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Image as ImageIcon, Trash2, Download, FileJson } from 'lucide-react';
+import { Plus, Image as ImageIcon, Trash2, Download, FileJson, Upload } from 'lucide-react';
 import { api } from '../store/useCanvasStore';
 import NewProjectModal from '../components/Dashboard/NewProjectModal';
 
@@ -59,13 +59,39 @@ const Dashboard = () => {
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                         AI Image Editor
                     </h1>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 shadow-md transition-all active:scale-95"
-                    >
-                        <Plus size={20} />
-                        <span>Create Project</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 shadow-sm transition-all active:scale-95 cursor-pointer font-medium">
+                            <Upload size={20} />
+                            <span>Import ZIP</span>
+                            <input
+                                type="file"
+                                accept=".zip"
+                                className="hidden"
+                                onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+                                    try {
+                                        const res = await api.post('/projects/import', formData);
+                                        if (res.data.success) {
+                                            fetchProjects();
+                                        }
+                                    } catch (err) {
+                                        alert(err.response?.data?.message || 'Error importing project zip. Please make sure it is a valid project archive.');
+                                    }
+                                    e.target.value = '';
+                                }}
+                            />
+                        </label>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 shadow-md transition-all active:scale-95 font-medium"
+                        >
+                            <Plus size={20} />
+                            <span>Create Project</span>
+                        </button>
+                    </div>
                 </header>
 
                 <NewProjectModal

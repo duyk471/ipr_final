@@ -171,10 +171,36 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         loadDesign: async (json) => {
             if (!fabricCanvas.current) return;
             isActionInProgress.current = true;
-            await fabricCanvas.current.loadFromJSON(json);
+
+            // Filter out broken images
+            const objects = json.objects || json;
+            const filteredLayers = await Promise.all((Array.isArray(objects) ? objects : []).map(async (obj) => {
+                if (obj.type === 'image' && obj.src) {
+                    try {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        const src = obj.src.startsWith('http') ? obj.src : `http://localhost:5000${obj.src}`;
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                            img.src = src;
+                            setTimeout(() => reject(new Error('Timeout')), 3000);
+                        });
+                        return obj;
+                    } catch (err) {
+                        return null;
+                    }
+                }
+                return obj;
+            }));
+
+            await fabricCanvas.current.loadFromJSON({
+                objects: filteredLayers.filter(o => o !== null),
+                background: json.background || fabricCanvas.current.backgroundColor
+            });
             fabricCanvas.current.renderAll();
             isActionInProgress.current = false;
-            pushToUndo(); // Push the new AI-fixed state to undo
+            pushToUndo();
             queueSave(true);
         }
     }));
@@ -275,11 +301,41 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.on('object:removed', () => queueSave());
 
             if (canvasData?.layers?.length > 0) {
+                // Filter out broken images to prevent canvas from being empty
+                const filteredLayers = await Promise.all(canvasData.layers.map(async (obj) => {
+                    if (obj.type === 'image' && obj.src) {
+                        try {
+                            // Test if image exists
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            const src = obj.src.startsWith('http') ? obj.src : `http://localhost:5000${obj.src}`;
+
+                            await new Promise((resolve, reject) => {
+                                img.onload = resolve;
+                                img.onerror = reject;
+                                img.src = src;
+                                // Timeout after 3 seconds
+                                setTimeout(() => reject(new Error('Timeout')), 3000);
+                            });
+                            return obj;
+                        } catch (err) {
+                            console.warn('Removing missing asset:', obj.src);
+                            return null;
+                        }
+                    }
+                    return obj;
+                }));
+
                 await fabricCanvas.current.loadFromJSON({
-                    objects: canvasData.layers,
+                    objects: filteredLayers.filter(o => o !== null),
                     background: (canvasData.canvas && canvasData.canvas.backgroundColor) || '#ffffff'
                 });
                 fabricCanvas.current.renderAll();
+
+                // If we filtered out some layers, trigger a save to update the backend index.json
+                if (filteredLayers.some(l => l === null)) {
+                    queueSave();
+                }
             }
 
             // Push initial state to undo

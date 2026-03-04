@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import archiver from 'archiver';
+import AdmZip from 'adm-zip';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -128,4 +129,49 @@ export const exportProjectZip = async (projectId, res) => {
     archive.pipe(res);
     archive.directory(projectPath, false);
     await archive.finalize();
+};
+
+export const importProjectFromZip = async (zipBuffer) => {
+    const zip = new AdmZip(zipBuffer);
+    const tempId = `temp_${Date.now()}`;
+    const tempPath = path.join(PROJECTS_DIR, tempId);
+
+    await fs.ensureDir(tempPath);
+    zip.extractAllTo(tempPath, true);
+
+    const indexPath = path.join(tempPath, 'index.json');
+    if (!(await fs.pathExists(indexPath))) {
+        await fs.remove(tempPath);
+        throw new Error('Invalid project zip: Missing index.json');
+    }
+
+    const data = await fs.readJson(indexPath);
+    if (!data.projectInfo || !data.projectInfo.name) {
+        await fs.remove(tempPath);
+        throw new Error('Invalid project zip: Malformed index.json');
+    }
+
+    const newProjectId = uuidv4();
+    const newProjectPath = path.join(PROJECTS_DIR, newProjectId);
+
+    await fs.move(tempPath, newProjectPath);
+
+    // Update IDs and fix all asset paths in the layers using a robust regex
+    let jsonString = JSON.stringify(data);
+
+    // Find any project asset path pattern and replace it with the new ID
+    // Pattern: /storage/projects/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/
+    const pathPattern = /\/storage\/projects\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//g;
+    jsonString = jsonString.replace(pathPattern, `/storage/projects/${newProjectId}/`);
+
+    const updatedData = JSON.parse(jsonString);
+
+    // Ensure project info is fresh and matches the new folder ID
+    updatedData.projectInfo.id = newProjectId;
+    updatedData.projectInfo.createdAt = new Date().toISOString();
+    updatedData.projectInfo.updatedAt = new Date().toISOString();
+
+    await fs.writeJson(path.join(newProjectPath, 'index.json'), updatedData, { spaces: 2 });
+
+    return updatedData;
 };

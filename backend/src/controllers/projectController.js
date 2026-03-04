@@ -4,7 +4,8 @@ import {
     getProject,
     saveProject,
     removeProject,
-    exportProjectZip
+    exportProjectZip,
+    importProjectFromZip
 } from '../services/storageService.js';
 
 export const getAllProjects = async (req, res) => {
@@ -78,5 +79,18 @@ export const exportProject = async (req, res) => {
             return res.status(404).json({ success: false, message: error.message });
         }
         res.status(500).json({ success: false, message: 'Failed to export project' });
+    }
+};
+
+export const importProject = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+        const data = await importProjectFromZip(req.file.buffer);
+        res.status(201).json({ success: true, project: data });
+    } catch (error) {
+        console.error('Import project error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Failed to import project' });
     }
 };
