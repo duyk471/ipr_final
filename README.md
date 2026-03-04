@@ -1,87 +1,114 @@
-# Dự án IPR cuối kì
+# AI Image Editor
 
-Đây là thông tin cơ bản về dự án:
+## 1. Tính năng chính (Key Features)
 
-- Nếu muốn đọc thêm cấu trúc một Project của ứng dụng, hãy đọc: [Cấu trúc một dự án](project.md)
-- Nếu muốn đọc bản SRS (Software Requirements Specification), hãy đọc: [Bản SRS của dự án](srs.md)
+- **Canvas Editor Chuyên Nghiệp**: Hỗ trợ Text, Hình khối (Shape), Ảnh, Undo/Redo, Layering (Fabric.js).
+- **AI Image Generation**: Tạo ảnh nghệ thuật từ văn bản (Hugging Face - Flux/SDXL).
+- **Auto Background Removal**: Tách nền ảnh AI tự động bằng thư viện `sharp`.
+- **AI Design Assistant**:
+  - Review bản thiết kế và đưa ra 3 lời khuyên cải thiện (Gemini 2.0 Flash).
+  - Tự động áp dụng cải thiện (Auto-fix) trực tiếp lên Canvas.
+- **Quản lý Dự án**: Lưu trữ cục bộ (Local Storage System), xem danh sách dự án với Thumbnail.
+- **Import/Export**: Xuất dự án ra file `.zip` và nhập ngược lại vào hệ thống một cách dễ dàng.
 
-## 1. Kiến trúc tổng thể (Tech Stack)
+## 2. Kiến trúc & Công nghệ (Tech Stack)
 
-- *Frontend:*
-  - *Framework:* React (Vite)
-  - *Styling:* Tailwind CSS
-  - *Canvas Engine:* *Fabric.js* - Quản lý các đối tượng (ảnh, text, hình khối).
-  - *State Management:* Zustand (Nhẹ hơn Redux, phù hợp để quản lý trạng thái Canvas).
-  - *Icons:* Lucide React.
-- *Backend:*
-  - *Runtime:* Node.js (Express.js).
-  - *File Handling:* `fs-extra` (Mở rộng của module `fs` giúp thao tác thư mục dễ dàng hơn).
-  - *Image Processing:* `sharp` (Để tạo ảnh preview/thumbnail tự động).
-  - *Upload:* `multer` (Xử lý ảnh người dùng tải lên).
-- *AI Integration:*
-  - *API:* Google Gemini SDK (`@google/generative-ai`). Chưa thống nhất hoàn toàn về vấn đề này (Để AI chọn)
-  - *Flow:* Backend gọi Gemini -> Tải ảnh từ URL của Gemini về -> Lưu vào folder `assets/` cục bộ -> Trả về đường dẫn nội bộ cho Frontend.
-- *Storage:*
-  - Hệ thống thư mục phân cấp trên Server/Máy host.
+### Frontend
 
-## 2. Cấu trúc thư mục (Project Structure)
+- **Framework**: React (Vite)
+- **Styling**: Vanilla CSS & Tailwind CSS
+- **Canvas Engine**: Fabric.js (v7.x)
+- **State Management**: Zustand
+- **Icons**: Lucide React
+
+### Backend
+
+- **Runtime**: Node.js (Express.js)
+- **File System**: `fs-extra` (Quản lý dự án theo cấu trúc folder)
+- **Xử lý ảnh**: `sharp` (Tách nền, tạo preview)
+- **AI SDK**: `@google/generative-ai` (Gemini API)
+- **ZIP Handling**: `archiver`, `adm-zip`
+
+## 3. Cấu trúc thư mục (Project Structure)
 
 ```text
 ai-image-editor/
 ├── backend/
-│   ├── storage/                # Nơi lưu trữ toàn bộ dữ liệu dự án
-│   │   └── projects/
-│   │       └── [project-id]/   # Thư mục riêng cho từng dự án
-│   │           ├── index.json  # Cấu trúc Canvas (vị trí, layer, metadata)
-│   │           ├── preview.png # Ảnh chụp nhanh giao diện để hiển thị ở list
-│   │           └── assets/     # Chứa tất cả ảnh (upload, AI gen, pasted)
 │   ├── src/
-│   │   ├── controllers/        # Logic: projectController, aiController
-│   │   ├── routes/             # Định nghĩa các API endpoints
-│   │   ├── services/           # Logic gọi Gemini, xử lý File System
-│   │   ├── middleware/         # Xử lý lỗi, static file serving
-│   │   └── index.js            # Khởi tạo server Express
-│   ├── .env                    # Chứa GEMINI_API_KEY, PORT
-│   └── package.json
+│   │   ├── controllers/    # Xử lý logic AI, Project, Assets
+│   │   ├── routes/         # Định nghĩa API endpoints
+│   │   ├── services/       # Storage logic & AI integration
+│   │   └── index.js        # Khởi tạo server (Port 5000)
+│   ├── storage/            # Nơi lưu trữ thực tế các dự án
+│   └── .env                # Chứa API Keys (Gemini & HuggingFace)
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── Editor/         # Fabric Canvas, Toolbar, Sidebar
-│   │   │   ├── Dashboard/      # Project List, Create New Project
-│   │   │   └── UI/             # Button, Modal, Input (Tailwind)
-│   │   ├── hooks/              # useFabricCanvas (Custom hook quản lý Fabric)
-│   │   ├── store/              # Zustand store (canvasState, currentProject)
-│   │   └── services/           # Axios calls đến Backend
-│   ├── public/                 # Static assets của frontend
-│   ├── tailwind.config.js
-│   └── package.json
-└── docker-compose.yml          # (Tùy chọn) Để đóng gói cả app chạy ở bất cứ đâu
+│   │   ├── components/     # Editor, Sidebar, Dashboard components
+│   │   ├── pages/          # Dashboard & Editor pages
+│   │   └── store/          # Zustand store cho Canvas & API
+│   └── index.html
+└── README.md
 ```
 
-## 3. Danh sách API Endpoints
+## 4. Hướng dẫn cài đặt (Setup Guide)
 
-Vì lưu bằng File System, các API sẽ tập trung vào việc đọc/ghi tệp:
+### Bước 1: Clone dự án và cài đặt dependencies
 
-### A. Quản lý dự án (Project Management)
+**Cài đặt cho Backend:**
 
-1.  *GET `/api/projects`*: Quét thư mục `storage/projects/` để lấy danh sách tất cả dự án (trả về tên, ID, và ảnh preview).
-2.  *POST `/api/projects`*: Tạo thư mục dự án mới với một file `index.json` mặc định.
-3.  *GET `/api/projects/:id`*: Đọc file `index.json` của dự án cụ thể.
-4.  *PUT `/api/projects/:id`*: Ghi đè dữ liệu Canvas mới vào `index.json` (Auto-save).
-5.  *DELETE `/api/projects/:id`*: Xóa toàn bộ thư mục của dự án đó.
-6.  *POST `/api/projects/:id/export`*: Nén toàn bộ thư mục dự án thành file `.zip` để tải về máy.
+```bash
+cd backend
+npm install
+```
 
-### B. Xử lý hình ảnh & Assets
+**Cài đặt cho Frontend:**
 
-7.  *POST `/api/projects/:id/assets/upload`*: Nhận file ảnh người dùng upload -> Lưu vào `projects/:id/assets/` -> Trả về path.
-8.  *POST `/api/projects/:id/assets/pasted`*: Nhận dữ liệu Base64 (từ lệnh Paste) -> Chuyển thành file `.png` -> Lưu vào `assets/`.
-9.  *GET `/api/assets/:projectId/:filename`*: API trung gian (hoặc Static route) để lấy ảnh hiển thị lên Canvas mà không bị lỗi CORS.
+```bash
+cd frontend
+npm install
+```
 
-### C. AI Generation (Gemini)
+### Bước 2: Cấu hình biến môi trường (.env)
 
-*POST `/api/ai/generate`*:
+Tạo file `.env` bên trong thư mục `backend/` với nội dung sau:
 
-- Nhận: `prompt`, `projectId`.
-- Xử lý: Gọi Gemini API -> Nhận URL ảnh -> *Tải ảnh về* lưu vào `projects/:projectId/assets/` với tên file `ai_[timestamp].png`.
-- Trả về: Đường dẫn tệp tin vừa lưu để Frontend add vào Fabric.js.
+```env
+PORT=5000
+GEMINI_API_KEY=your_gemini_api_key_here
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+```
 
+*Lưu ý: Bạn cần có API Key từ Google AI Studio và Hugging Face để sử dụng các tính năng AI.*
+
+### Bước 3: Chạy ứng dụng
+
+Bạn cần chạy đồng thời cả Backend và Frontend.
+
+**Chạy Backend (Port 5000):**
+
+```bash
+cd backend
+npm run dev
+```
+
+**Chạy Frontend (Thường là Port 5173):**
+
+```bash
+cd frontend
+npm run dev
+```
+
+Sau khi chạy cả hai, hãy truy cập vào địa chỉ URL hiển thị ở terminal (ví dụ: `http://localhost:5173`).
+
+## 5. Cấu trúc một dự án (Project Storage)
+
+Mỗi dự án được lưu tại `backend/storage/projects/[uuid]/`:
+
+- `index.json`: Chứa metadata, thông tin canvas và danh sách layers (JSON).
+- `preview.png`: Thumbnail của dự án hiển thị ở Dashboard.
+- `assets/`: Thư mục lưu trữ các hình ảnh được tải lên hoặc tạo ra bởi AI.
+
+## 6. Lưu ý quan trọng
+
+- Khi Import dự án từ file `.zip`, hệ thống sẽ tự động ánh xạ (remap) lại các đường dẫn ảnh để đảm bảo ảnh hiển thị đúng ngay cả khi Project ID thay đổi.
+- Tính năng **AI Assist** yêu cầu ảnh chụp màn hình Canvas và JSON state để Gemini có thể phân tích chính xác nhất.
