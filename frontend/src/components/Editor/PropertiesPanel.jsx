@@ -154,6 +154,18 @@ const PropertiesPanel = ({ canvasRef }) => {
                     >
                         Send Back
                     </button>
+                    <button
+                        onClick={() => canvasRef.current?.bringForward()}
+                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors"
+                    >
+                        Move Up
+                    </button>
+                    <button
+                        onClick={() => canvasRef.current?.sendBackwards()}
+                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors"
+                    >
+                        Move Down
+                    </button>
                 </div>
             </div>
         </div>

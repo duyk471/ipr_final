@@ -120,7 +120,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         bringToFront: () => {
             const activeObject = fabricCanvas.current?.getActiveObject();
             if (activeObject) {
-                activeObject.bringToFront();
+                fabricCanvas.current.bringObjectToFront(activeObject);
                 fabricCanvas.current.renderAll();
                 queueSave();
             }
@@ -128,7 +128,23 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         sendToBack: () => {
             const activeObject = fabricCanvas.current?.getActiveObject();
             if (activeObject) {
-                activeObject.sendToBack();
+                fabricCanvas.current.sendObjectToBack(activeObject);
+                fabricCanvas.current.renderAll();
+                queueSave();
+            }
+        },
+        bringForward: () => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject) {
+                fabricCanvas.current.bringObjectForward(activeObject);
+                fabricCanvas.current.renderAll();
+                queueSave();
+            }
+        },
+        sendBackwards: () => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject) {
+                fabricCanvas.current.sendObjectBackwards(activeObject);
                 fabricCanvas.current.renderAll();
                 queueSave();
             }
