@@ -29,7 +29,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const lastPosY = useRef(0);
     const panOffsetX = useRef(0);
     const panOffsetY = useRef(0);
-    
+
     // Zoom State
     const zoomLevel = useRef(1);
     const MIN_ZOOM = 0.1;
@@ -187,8 +187,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             isActionInProgress.current = true;
 
             // Filter out broken images
-            const objects = json.objects || json;
-            const filteredLayers = await Promise.all((Array.isArray(objects) ? objects : []).map(async (obj) => {
+            // Compatibility check: Our project uses 'layers', Fabric uses 'objects'
+            const objects = json.layers || json.objects || (Array.isArray(json) ? json : []);
+
+            const filteredLayers = await Promise.all(objects.map(async (obj) => {
                 if (obj.type === 'image' && obj.src) {
                     try {
                         const img = new Image();
@@ -313,25 +315,25 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 if (e.key === ' ' || e.code === 'Space') {
                     // Check if user is typing in an input field or textarea
                     const target = e.target;
-                    const isInputField = target.tagName === 'INPUT' || 
-                                       target.tagName === 'TEXTAREA' || 
-                                       target.isContentEditable;
-                    
+                    const isInputField = target.tagName === 'INPUT' ||
+                        target.tagName === 'TEXTAREA' ||
+                        target.isContentEditable;
+
                     if (isInputField) {
                         return; // Allow normal space in input fields
                     }
-                    
+
                     // Check if user is editing text in canvas - if so, allow normal space
                     const activeObject = fabricCanvas.current.getActiveObject();
                     if (activeObject && activeObject.type === 'i-text' && activeObject.isEditing) {
                         return; // Don't interfere with text editing
                     }
-                    
+
                     // Only enable panning if mouse is in canvas
                     if (!isMouseInCanvas.current) {
                         return;
                     }
-                    
+
                     e.preventDefault(); // Prevent page scrolling
                     if (!isSpacePressed.current) {
                         isSpacePressed.current = true;
@@ -355,14 +357,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 if (e.key === 'Delete' || e.key === 'Backspace') {
                     // Check if not typing in text object or input field
                     const target = e.target;
-                    const isInputField = target.tagName === 'INPUT' || 
-                                       target.tagName === 'TEXTAREA' || 
-                                       target.isContentEditable;
-                    
+                    const isInputField = target.tagName === 'INPUT' ||
+                        target.tagName === 'TEXTAREA' ||
+                        target.isContentEditable;
+
                     if (isInputField) {
                         return; // Allow normal delete/backspace in input fields
                     }
-                    
+
                     const activeObject = fabricCanvas.current.getActiveObject();
                     if (activeObject && activeObject.type !== 'i-text' || (activeObject.type === 'i-text' && !activeObject.isEditing)) {
                         deleteActiveObject();
@@ -373,14 +375,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 if (e.key === ' ' || e.code === 'Space') {
                     // Check if user is typing in an input field or textarea
                     const target = e.target;
-                    const isInputField = target.tagName === 'INPUT' || 
-                                       target.tagName === 'TEXTAREA' || 
-                                       target.isContentEditable;
-                    
+                    const isInputField = target.tagName === 'INPUT' ||
+                        target.tagName === 'TEXTAREA' ||
+                        target.isContentEditable;
+
                     if (isInputField) {
                         return; // Don't reset panning state for input fields
                     }
-                    
+
                     isSpacePressed.current = false;
                     isPanning.current = false;
                     fabricCanvas.current.selection = true; // Enable selection
@@ -406,17 +408,17 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const handleWheel = (e) => {
                 if (e.ctrlKey) {
                     e.preventDefault();
-                    
+
                     const delta = e.deltaY;
                     const zoomFactor = delta > 0 ? 0.9 : 1.1;
-                    
+
                     const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel.current * zoomFactor));
                     zoomLevel.current = newZoom;
-                    
+
                     updateContainerTransform();
                 }
             };
-            
+
             if (containerRef.current) {
                 containerRef.current.addEventListener('wheel', handleWheel, { passive: false });
             }
@@ -439,13 +441,13 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 if (isPanning.current && isSpacePressed.current) {
                     const deltaX = e.clientX - lastPosX.current;
                     const deltaY = e.clientY - lastPosY.current;
-                    
+
                     panOffsetX.current += deltaX;
                     panOffsetY.current += deltaY;
-                    
+
                     // Update container position
                     updateContainerTransform();
-                    
+
                     lastPosX.current = e.clientX;
                     lastPosY.current = e.clientY;
                 }
@@ -469,7 +471,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const handleCanvasMouseEnter = () => {
                 isMouseInCanvas.current = true;
             };
-            
+
             const handleCanvasMouseLeave = () => {
                 isMouseInCanvas.current = false;
                 // If space is pressed but mouse leaves canvas, reset cursor
@@ -477,7 +479,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     containerRef.current.style.cursor = 'default';
                 }
             };
-            
+
             if (containerRef.current) {
                 containerRef.current.addEventListener('mouseenter', handleCanvasMouseEnter);
                 containerRef.current.addEventListener('mouseleave', handleCanvasMouseLeave);
@@ -574,7 +576,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const ph = parent.clientHeight - 60;
             const baseScale = Math.min(pw / cw, ph / ch);
             const finalScale = baseScale * zoomLevel.current;
-            
+
             containerRef.current.style.transform = `translate(${panOffsetX.current}px, ${panOffsetY.current}px) scale(${finalScale})`;
         }
     };
