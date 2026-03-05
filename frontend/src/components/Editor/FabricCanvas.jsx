@@ -495,6 +495,18 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.on('object:added', () => queueSave());
             fabricCanvas.current.on('object:removed', () => queueSave());
 
+            // Prevent page scrolling when editing text in transformed container
+            fabricCanvas.current.on('text:editing:entered', () => {
+                window.scrollTo(0, 0); // Failsafe
+                const textarea = fabricCanvas.current.elements?.[0] || document.querySelector('.copy-paste-helper');
+                if (textarea) {
+                    textarea.style.position = 'fixed';
+                    textarea.style.top = '0px';
+                    textarea.style.left = '0px';
+                    textarea.style.zIndex = '-9999';
+                }
+            });
+
             if (canvasData?.layers?.length > 0) {
                 // Filter out broken images to prevent canvas from being empty
                 const filteredLayers = await Promise.all(canvasData.layers.map(async (obj) => {
