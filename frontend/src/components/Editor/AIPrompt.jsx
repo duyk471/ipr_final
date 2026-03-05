@@ -66,7 +66,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                         onChange={(e) => setTransparent(e.target.checked)}
                         className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                     />
-                    <label htmlFor="transparent-bg" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                    <label htmlFor="transparent-bg" className="text-sm font-medium text-gray-700 cursor-pointer select-none">   
                         Transparent Background (Alpha)
                     </label>
                 </div>

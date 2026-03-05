@@ -24,10 +24,16 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     // Panning State
     const isPanning = useRef(false);
     const isSpacePressed = useRef(false);
+    const isMouseInCanvas = useRef(false);
     const lastPosX = useRef(0);
     const lastPosY = useRef(0);
     const panOffsetX = useRef(0);
     const panOffsetY = useRef(0);
+    
+    // Zoom State
+    const zoomLevel = useRef(1);
+    const MIN_ZOOM = 0.1;
+    const MAX_ZOOM = 5;
 
     const pushToUndo = () => {
         if (isActionInProgress.current || !fabricCanvas.current) return;
@@ -214,7 +220,27 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         resetPan: () => {
             panOffsetX.current = 0;
             panOffsetY.current = 0;
+            zoomLevel.current = 1;
             updateContainerTransform();
+        },
+        getCanvasSize: () => {
+            if (!fabricCanvas.current) {
+                return { width: 0, height: 0 };
+            }
+            return {
+                width: fabricCanvas.current.width,
+                height: fabricCanvas.current.height
+            };
+        },
+        getBackgroundColor: () => {
+            if (!fabricCanvas.current) return '#ffffff';
+            return fabricCanvas.current.backgroundColor || '#ffffff';
+        },
+        setBackgroundColor: (color) => {
+            if (!fabricCanvas.current) return;
+            fabricCanvas.current.backgroundColor = color;
+            fabricCanvas.current.renderAll();
+            queueSave();
         }
     }));
 
@@ -285,12 +311,36 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             // Keyboard Listeners
             const handleKeyDown = (e) => {
                 if (e.key === ' ' || e.code === 'Space') {
+                    // Check if user is typing in an input field or textarea
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' || 
+                                       target.tagName === 'TEXTAREA' || 
+                                       target.isContentEditable;
+                    
+                    if (isInputField) {
+                        return; // Allow normal space in input fields
+                    }
+                    
+                    // Check if user is editing text in canvas - if so, allow normal space
+                    const activeObject = fabricCanvas.current.getActiveObject();
+                    if (activeObject && activeObject.type === 'i-text' && activeObject.isEditing) {
+                        return; // Don't interfere with text editing
+                    }
+                    
+                    // Only enable panning if mouse is in canvas
+                    if (!isMouseInCanvas.current) {
+                        return;
+                    }
+                    
                     e.preventDefault(); // Prevent page scrolling
                     if (!isSpacePressed.current) {
                         isSpacePressed.current = true;
                         fabricCanvas.current.selection = false; // Disable selection
                         fabricCanvas.current.defaultCursor = 'grab';
                         fabricCanvas.current.hoverCursor = 'grab';
+                        if (containerRef.current) {
+                            containerRef.current.style.cursor = 'grab';
+                        }
                         fabricCanvas.current.forEachObject((obj) => {
                             obj.selectable = false;
                             obj.evented = false;
@@ -303,7 +353,16 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     fabricCanvas.current.uniformScaling = true;
                 }
                 if (e.key === 'Delete' || e.key === 'Backspace') {
-                    // Check if not typing in text object
+                    // Check if not typing in text object or input field
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' || 
+                                       target.tagName === 'TEXTAREA' || 
+                                       target.isContentEditable;
+                    
+                    if (isInputField) {
+                        return; // Allow normal delete/backspace in input fields
+                    }
+                    
                     const activeObject = fabricCanvas.current.getActiveObject();
                     if (activeObject && activeObject.type !== 'i-text' || (activeObject.type === 'i-text' && !activeObject.isEditing)) {
                         deleteActiveObject();
@@ -312,11 +371,24 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             };
             const handleKeyUp = (e) => {
                 if (e.key === ' ' || e.code === 'Space') {
+                    // Check if user is typing in an input field or textarea
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' || 
+                                       target.tagName === 'TEXTAREA' || 
+                                       target.isContentEditable;
+                    
+                    if (isInputField) {
+                        return; // Don't reset panning state for input fields
+                    }
+                    
                     isSpacePressed.current = false;
                     isPanning.current = false;
                     fabricCanvas.current.selection = true; // Enable selection
                     fabricCanvas.current.defaultCursor = 'default';
                     fabricCanvas.current.hoverCursor = 'move';
+                    if (containerRef.current) {
+                        containerRef.current.style.cursor = 'default';
+                    }
                     fabricCanvas.current.forEachObject((obj) => {
                         obj.selectable = true;
                         obj.evented = true;
@@ -330,22 +402,43 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('keyup', handleKeyUp);
 
-            // Panning Events
-            fabricCanvas.current.on('mouse:down', (opt) => {
-                if (isSpacePressed.current) {
-                    isPanning.current = true;
-                    fabricCanvas.current.defaultCursor = 'grabbing';
-                    const evt = opt.e;
-                    lastPosX.current = evt.clientX;
-                    lastPosY.current = evt.clientY;
+            // Mouse Wheel Zoom (with Ctrl)
+            const handleWheel = (e) => {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                    
+                    const delta = e.deltaY;
+                    const zoomFactor = delta > 0 ? 0.9 : 1.1;
+                    
+                    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel.current * zoomFactor));
+                    zoomLevel.current = newZoom;
+                    
+                    updateContainerTransform();
                 }
-            });
+            };
+            
+            if (containerRef.current) {
+                containerRef.current.addEventListener('wheel', handleWheel, { passive: false });
+            }
+            window.addEventListener('wheel', handleWheel, { passive: false });
 
-            fabricCanvas.current.on('mouse:move', (opt) => {
+            // Panning Events - using window events so it works anywhere
+            const handleMouseDown = (e) => {
+                if (isSpacePressed.current && isMouseInCanvas.current) {
+                    isPanning.current = true;
+                    if (containerRef.current) {
+                        containerRef.current.style.cursor = 'grabbing';
+                    }
+                    fabricCanvas.current.defaultCursor = 'grabbing';
+                    lastPosX.current = e.clientX;
+                    lastPosY.current = e.clientY;
+                }
+            };
+
+            const handleMouseMove = (e) => {
                 if (isPanning.current && isSpacePressed.current) {
-                    const evt = opt.e;
-                    const deltaX = evt.clientX - lastPosX.current;
-                    const deltaY = evt.clientY - lastPosY.current;
+                    const deltaX = e.clientX - lastPosX.current;
+                    const deltaY = e.clientY - lastPosY.current;
                     
                     panOffsetX.current += deltaX;
                     panOffsetY.current += deltaY;
@@ -353,19 +446,42 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     // Update container position
                     updateContainerTransform();
                     
-                    lastPosX.current = evt.clientX;
-                    lastPosY.current = evt.clientY;
+                    lastPosX.current = e.clientX;
+                    lastPosY.current = e.clientY;
                 }
-            });
+            };
 
-            fabricCanvas.current.on('mouse:up', () => {
+            const handleMouseUp = () => {
                 if (isPanning.current) {
                     isPanning.current = false;
-                    if (isSpacePressed.current) {
-                        fabricCanvas.current.defaultCursor = 'grab';
+                    if (isSpacePressed.current && containerRef.current) {
+                        containerRef.current.style.cursor = 'grab';
                     }
+                    fabricCanvas.current.defaultCursor = 'grab';
                 }
-            });
+            };
+
+            window.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+
+            // Track mouse enter/leave canvas area
+            const handleCanvasMouseEnter = () => {
+                isMouseInCanvas.current = true;
+            };
+            
+            const handleCanvasMouseLeave = () => {
+                isMouseInCanvas.current = false;
+                // If space is pressed but mouse leaves canvas, reset cursor
+                if (isSpacePressed.current && !isPanning.current && containerRef.current) {
+                    containerRef.current.style.cursor = 'default';
+                }
+            };
+            
+            if (containerRef.current) {
+                containerRef.current.addEventListener('mouseenter', handleCanvasMouseEnter);
+                containerRef.current.addEventListener('mouseleave', handleCanvasMouseLeave);
+            }
 
             // Events
             fabricCanvas.current.on('selection:created', updateSelectedState);
@@ -425,6 +541,15 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             return () => {
                 window.removeEventListener('keydown', handleKeyDown);
                 window.removeEventListener('keyup', handleKeyUp);
+                window.removeEventListener('wheel', handleWheel);
+                window.removeEventListener('mousedown', handleMouseDown);
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+                if (containerRef.current) {
+                    containerRef.current.removeEventListener('wheel', handleWheel);
+                    containerRef.current.removeEventListener('mouseenter', handleCanvasMouseEnter);
+                    containerRef.current.removeEventListener('mouseleave', handleCanvasMouseLeave);
+                }
             };
         };
 
@@ -447,9 +572,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
             const pw = parent.clientWidth - 60;
             const ph = parent.clientHeight - 60;
-            const scale = Math.min(pw / cw, ph / ch);
+            const baseScale = Math.min(pw / cw, ph / ch);
+            const finalScale = baseScale * zoomLevel.current;
             
-            containerRef.current.style.transform = `translate(${panOffsetX.current}px, ${panOffsetY.current}px) scale(${scale})`;
+            containerRef.current.style.transform = `translate(${panOffsetX.current}px, ${panOffsetY.current}px) scale(${finalScale})`;
         }
     };
 
