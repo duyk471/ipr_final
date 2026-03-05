@@ -5,7 +5,8 @@ import {
     saveProject,
     removeProject,
     exportProjectZip,
-    importProjectFromZip
+    importProjectFromZip,
+    createProjectFromImage
 } from '../services/storageService.js';
 
 export const getAllProjects = async (req, res) => {
@@ -92,5 +93,24 @@ export const importProject = async (req, res) => {
     } catch (error) {
         console.error('Import project error:', error);
         res.status(500).json({ success: false, message: error.message || 'Failed to import project' });
+    }
+};
+
+export const importImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No image uploaded' });
+        }
+        
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(req.file.mimetype)) {
+            return res.status(400).json({ success: false, message: 'Invalid file type. Only images are allowed.' });
+        }
+        
+        const project = await createProjectFromImage(req.file.buffer, req.file.originalname);
+        res.status(201).json({ success: true, project });
+    } catch (error) {
+        console.error('Import image error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Failed to import image' });
     }
 };

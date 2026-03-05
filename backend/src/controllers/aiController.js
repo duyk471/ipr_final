@@ -27,9 +27,9 @@ export const analyzeDesign = async (req, res) => {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        console.log(`Analyzing design for project ${projectId} using Gemini 2.0 Flash...`);
+        console.log(`Analyzing design for project ${projectId} using Gemini 2.5 Flash...`);
 
         // Prepare image for Gemini (remove data:image/png;base64 prefix)
         const base64Image = screenshot.split(',')[1] || screenshot;

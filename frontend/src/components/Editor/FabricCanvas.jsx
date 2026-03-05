@@ -21,6 +21,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const redoStack = useRef([]);
     const isActionInProgress = useRef(false);
 
+    // Panning State
+    const isPanning = useRef(false);
+    const isSpacePressed = useRef(false);
+    const lastPosX = useRef(0);
+    const lastPosY = useRef(0);
+    const panOffsetX = useRef(0);
+    const panOffsetY = useRef(0);
+
     const pushToUndo = () => {
         if (isActionInProgress.current || !fabricCanvas.current) return;
         const json = fabricCanvas.current.toObject(['id', 'metadata']);
@@ -202,6 +210,11 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             isActionInProgress.current = false;
             pushToUndo();
             queueSave(true);
+        },
+        resetPan: () => {
+            panOffsetX.current = 0;
+            panOffsetY.current = 0;
+            updateContainerTransform();
         }
     }));
 
@@ -271,6 +284,21 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
             // Keyboard Listeners
             const handleKeyDown = (e) => {
+                if (e.key === ' ' || e.code === 'Space') {
+                    e.preventDefault(); // Prevent page scrolling
+                    if (!isSpacePressed.current) {
+                        isSpacePressed.current = true;
+                        fabricCanvas.current.selection = false; // Disable selection
+                        fabricCanvas.current.defaultCursor = 'grab';
+                        fabricCanvas.current.hoverCursor = 'grab';
+                        fabricCanvas.current.forEachObject((obj) => {
+                            obj.selectable = false;
+                            obj.evented = false;
+                        });
+                        fabricCanvas.current.discardActiveObject();
+                        fabricCanvas.current.renderAll();
+                    }
+                }
                 if (e.key === 'Control') {
                     fabricCanvas.current.uniformScaling = true;
                 }
@@ -283,12 +311,61 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 }
             };
             const handleKeyUp = (e) => {
+                if (e.key === ' ' || e.code === 'Space') {
+                    isSpacePressed.current = false;
+                    isPanning.current = false;
+                    fabricCanvas.current.selection = true; // Enable selection
+                    fabricCanvas.current.defaultCursor = 'default';
+                    fabricCanvas.current.hoverCursor = 'move';
+                    fabricCanvas.current.forEachObject((obj) => {
+                        obj.selectable = true;
+                        obj.evented = true;
+                    });
+                    fabricCanvas.current.renderAll();
+                }
                 if (e.key === 'Control') {
                     fabricCanvas.current.uniformScaling = false;
                 }
             };
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('keyup', handleKeyUp);
+
+            // Panning Events
+            fabricCanvas.current.on('mouse:down', (opt) => {
+                if (isSpacePressed.current) {
+                    isPanning.current = true;
+                    fabricCanvas.current.defaultCursor = 'grabbing';
+                    const evt = opt.e;
+                    lastPosX.current = evt.clientX;
+                    lastPosY.current = evt.clientY;
+                }
+            });
+
+            fabricCanvas.current.on('mouse:move', (opt) => {
+                if (isPanning.current && isSpacePressed.current) {
+                    const evt = opt.e;
+                    const deltaX = evt.clientX - lastPosX.current;
+                    const deltaY = evt.clientY - lastPosY.current;
+                    
+                    panOffsetX.current += deltaX;
+                    panOffsetY.current += deltaY;
+                    
+                    // Update container position
+                    updateContainerTransform();
+                    
+                    lastPosX.current = evt.clientX;
+                    lastPosY.current = evt.clientY;
+                }
+            });
+
+            fabricCanvas.current.on('mouse:up', () => {
+                if (isPanning.current) {
+                    isPanning.current = false;
+                    if (isSpacePressed.current) {
+                        fabricCanvas.current.defaultCursor = 'grab';
+                    }
+                }
+            });
 
             // Events
             fabricCanvas.current.on('selection:created', updateSelectedState);
@@ -361,21 +438,30 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         };
     }, []);
 
-    const resize = () => {
+    const updateContainerTransform = () => {
         if (containerRef.current && fabricCanvas.current) {
             const parent = containerRef.current.parentElement;
             if (!parent) return;
             const cw = fabricCanvas.current.width;
             const ch = fabricCanvas.current.height;
 
-            // Set explicit size to container so the scaling box is correct
-            containerRef.current.style.width = `${cw}px`;
-            containerRef.current.style.height = `${ch}px`;
-
             const pw = parent.clientWidth - 60;
             const ph = parent.clientHeight - 60;
             const scale = Math.min(pw / cw, ph / ch);
-            containerRef.current.style.transform = `scale(${scale})`;
+            
+            containerRef.current.style.transform = `translate(${panOffsetX.current}px, ${panOffsetY.current}px) scale(${scale})`;
+        }
+    };
+
+    const resize = () => {
+        updateContainerTransform();
+        if (containerRef.current && fabricCanvas.current) {
+            const cw = fabricCanvas.current.width;
+            const ch = fabricCanvas.current.height;
+
+            // Set explicit size to container so the scaling box is correct
+            containerRef.current.style.width = `${cw}px`;
+            containerRef.current.style.height = `${ch}px`;
         }
     };
 

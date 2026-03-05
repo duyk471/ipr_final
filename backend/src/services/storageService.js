@@ -175,3 +175,70 @@ export const importProjectFromZip = async (zipBuffer) => {
 
     return updatedData;
 };
+
+export const createProjectFromImage = async (imageBuffer, originalFilename) => {
+    const projectId = uuidv4();
+    const projectPath = await ensureProjectDir(projectId);
+    
+    // Save image to assets
+    const filename = `imported_${Date.now()}_${originalFilename.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const assetPath = path.join(projectPath, 'assets', filename);
+    await fs.writeFile(assetPath, imageBuffer);
+    
+    const imageUrl = `/storage/projects/${projectId}/assets/${filename}`;
+    
+    // Get image dimensions using a lightweight approach
+    // For now, we'll use default dimensions and let the frontend handle sizing
+    const canvasWidth = 1080;
+    const canvasHeight = 1080;
+    
+    const now = new Date().toISOString();
+    const projectData = {
+        version: "1.0",
+        projectInfo: {
+            id: projectId,
+            name: `${originalFilename.replace(/\.[^/.]+$/, '')} - ${new Date().toLocaleDateString()}`,
+            createdAt: now,
+            updatedAt: now,
+            previewUrl: "preview.png"
+        },
+        canvas: {
+            width: canvasWidth,
+            height: canvasHeight,
+            backgroundColor: "#ffffff",
+            backgroundImage: null,
+            zoom: 1,
+            viewportTransform: [1, 0, 0, 1, 0, 0]
+        },
+        layers: [
+            {
+                type: "Image",
+                version: "7.2.0",
+                originX: "center",
+                originY: "center",
+                left: canvasWidth / 2,
+                top: canvasHeight / 2,
+                fill: "rgb(0,0,0)",
+                stroke: null,
+                strokeWidth: 0,
+                opacity: 1,
+                scaleX: 1,
+                scaleY: 1,
+                angle: 0,
+                flipX: false,
+                flipY: false,
+                visible: true,
+                src: `http://localhost:5000${imageUrl}`,
+                crossOrigin: "anonymous"
+            }
+        ],
+        history: {
+            undoStack: [],
+            redoStack: []
+        }
+    };
+    
+    await fs.writeJson(path.join(projectPath, 'index.json'), projectData, { spaces: 2 });
+    
+    return projectData;
+};

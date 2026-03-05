@@ -52,6 +52,24 @@ const Dashboard = () => {
         window.location.href = `http://localhost:5000/api/projects/${id}/export`;
     };
 
+    const handleImportImage = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        try {
+            const res = await api.post('/projects/import-image', formData);
+            if (res.data.success) {
+                navigate(`/editor/${res.data.project.projectInfo.id}`);
+            }
+        } catch (err) {
+            alert(err.response?.data?.message || 'Error importing image. Please make sure it is a valid image file.');
+        }
+        e.target.value = '';
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-6xl mx-auto flex flex-col gap-8">
@@ -82,6 +100,16 @@ const Dashboard = () => {
                                     }
                                     e.target.value = '';
                                 }}
+                            />
+                        </label>
+                        <label className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-600 shadow-md transition-all active:scale-95 cursor-pointer font-medium">
+                            <ImageIcon size={20} />
+                            <span>Import Image</span>
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                className="hidden"
+                                onChange={handleImportImage}
                             />
                         </label>
                         <button
