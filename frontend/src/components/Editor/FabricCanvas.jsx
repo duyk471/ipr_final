@@ -66,6 +66,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 fontSize: 40
             });
             fabricCanvas.current.add(text);
+            fabricCanvas.current.bringObjectToFront(text);
             fabricCanvas.current.setActiveObject(text);
             fabricCanvas.current.renderAll();
         },
@@ -81,6 +82,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             }
             if (shape) {
                 fabricCanvas.current.add(shape);
+                fabricCanvas.current.bringObjectToFront(shape);
                 fabricCanvas.current.setActiveObject(shape);
                 fabricCanvas.current.renderAll();
             }
@@ -101,6 +103,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     img.set('metadata', metadata);
                 }
                 fabricCanvas.current.add(img);
+                fabricCanvas.current.bringObjectToFront(img);
                 fabricCanvas.current.setActiveObject(img);
                 fabricCanvas.current.renderAll();
                 queueSave();

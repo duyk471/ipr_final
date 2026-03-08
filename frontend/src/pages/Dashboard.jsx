@@ -71,8 +71,8 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-6xl mx-auto flex flex-col gap-8">
+        <div className="h-screen bg-gray-50 overflow-y-auto">
+            <div className="max-w-6xl mx-auto flex flex-col gap-8 p-8">
                 <header className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                         AI Image Editor
