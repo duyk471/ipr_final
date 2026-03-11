@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as fabric from 'fabric';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Copy, MoreVertical, RotateCw } from 'lucide-react';
 import useCanvasStore from '../../store/useCanvasStore';
 import { api } from '../../store/useCanvasStore';
 
@@ -15,6 +15,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
     // Selection UI State
     const [toolbarPos, setToolbarPos] = useState(null);
+    const isRotating = useRef(false);
 
     // Undo/Redo Stacks
     const undoStack = useRef([]);
@@ -35,6 +36,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const MIN_ZOOM = 0.1;
     const MAX_ZOOM = 5;
 
+    // Clipboard for copy/paste
+    const clipboard = useRef(null);
+    const isPasting = useRef(false);
+
     const pushToUndo = () => {
         if (isActionInProgress.current || !fabricCanvas.current) return;
         const json = fabricCanvas.current.toObject(['id', 'metadata']);
@@ -52,6 +57,40 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.renderAll();
             queueSave();
         }
+    };
+
+    const duplicateActiveObject = () => {
+        if (!fabricCanvas.current) return;
+        const activeObject = fabricCanvas.current.getActiveObject();
+        if (!activeObject) return;
+
+        activeObject.clone(['id', 'metadata']).then((cloned) => {
+            cloned.set({
+                left: activeObject.left + 30,
+                top: activeObject.top + 30,
+            });
+            fabricCanvas.current.add(cloned);
+            fabricCanvas.current.discardActiveObject();
+            fabricCanvas.current.setActiveObject(cloned);
+            fabricCanvas.current.requestRenderAll();
+            updateSelectedState();
+            queueSave();
+        }).catch((err) => {
+            console.error('Duplicate error:', err);
+        });
+    };
+
+    const rotateActiveObject = () => {
+        if (!fabricCanvas.current) return;
+        const activeObject = fabricCanvas.current.getActiveObject();
+        if (!activeObject) return;
+
+        const currentAngle = activeObject.angle || 0;
+        activeObject.set('angle', (currentAngle + 90) % 360);
+        activeObject.setCoords();
+        fabricCanvas.current.renderAll();
+        updateSelectedState();
+        queueSave();
     };
 
     useImperativeHandle(ref, () => ({
@@ -114,7 +153,37 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         updateObject: (props) => {
             const activeObject = fabricCanvas.current?.getActiveObject();
             if (activeObject) {
+                // Handle width/height changes with scaling
+                if (props.width !== undefined || props.height !== undefined) {
+                    const currentWidth = activeObject.getScaledWidth();
+                    const currentHeight = activeObject.getScaledHeight();
+                    
+                    if (props.width !== undefined) {
+                        const scaleX = props.width / (activeObject.width * activeObject.scaleX);
+                        activeObject.set('scaleX', activeObject.scaleX * scaleX);
+                    }
+                    if (props.height !== undefined) {
+                        const scaleY = props.height / (activeObject.height * activeObject.scaleY);
+                        activeObject.set('scaleY', activeObject.scaleY * scaleY);
+                    }
+                    delete props.width;
+                    delete props.height;
+                }
+                
+                // Handle right/bottom positioning (convert to left/top)
+                if (props.right !== undefined) {
+                    const width = activeObject.getScaledWidth();
+                    props.left = fabricCanvas.current.width - props.right - width;
+                    delete props.right;
+                }
+                if (props.bottom !== undefined) {
+                    const height = activeObject.getScaledHeight();
+                    props.top = fabricCanvas.current.height - props.bottom - height;
+                    delete props.bottom;
+                }
+                
                 activeObject.set(props);
+                activeObject.setCoords();
                 fabricCanvas.current.renderAll();
                 updateSelectedState();
                 queueSave();
@@ -294,6 +363,15 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         if (!fabricCanvas.current) return;
         const activeObject = fabricCanvas.current.getActiveObject();
         if (activeObject) {
+            const canvasWidth = fabricCanvas.current.width;
+            const canvasHeight = fabricCanvas.current.height;
+            const width = activeObject.getScaledWidth();
+            const height = activeObject.getScaledHeight();
+            const left = activeObject.left;
+            const top = activeObject.top;
+            const right = canvasWidth - (left + width);
+            const bottom = canvasHeight - (top + height);
+
             setSelectedObject({
                 type: activeObject.type,
                 fill: activeObject.fill,
@@ -301,14 +379,22 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 text: activeObject.text,
                 fontFamily: activeObject.fontFamily,
                 opacity: activeObject.opacity,
+                width: Math.round(width),
+                height: Math.round(height),
+                left: Math.round(left),
+                top: Math.round(top),
+                right: Math.round(right),
+                bottom: Math.round(bottom),
             });
 
-            // Update floating toolbar position
-            const bound = activeObject.getBoundingRect();
-            setToolbarPos({
-                left: bound.left + bound.width / 2,
-                top: bound.top - 40
-            });
+            // Update floating toolbar position (hide if rotating)
+            if (!isRotating.current) {
+                const bound = activeObject.getBoundingRect();
+                setToolbarPos({
+                    left: bound.left + bound.width / 2,
+                    top: bound.top - 80
+                });
+            }
         } else {
             setSelectedObject(null);
             setToolbarPos(null);
@@ -373,6 +459,58 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 if (e.key === 'Control') {
                     fabricCanvas.current.uniformScaling = true;
                 }
+                // Copy with Ctrl+C
+                if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' ||
+                        target.tagName === 'TEXTAREA' ||
+                        target.isContentEditable;
+
+                    const activeObject = fabricCanvas.current.getActiveObject();
+                    const isEditingText = activeObject && activeObject.type === 'i-text' && activeObject.isEditing;
+
+                    if (!isInputField && !isEditingText && activeObject) {
+                        e.preventDefault();
+                        activeObject.clone(['id', 'metadata']).then((cloned) => {
+                            clipboard.current = cloned;
+                        });
+                    }
+                }
+
+                // Paste with Ctrl+V
+                if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' ||
+                        target.tagName === 'TEXTAREA' ||
+                        target.isContentEditable;
+
+                    const activeObject = fabricCanvas.current.getActiveObject();
+                    const isEditingText = activeObject && activeObject.type === 'i-text' && activeObject.isEditing;
+
+                    if (!isInputField && !isEditingText && clipboard.current && !isPasting.current) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        isPasting.current = true;
+                        
+                        clipboard.current.clone(['id', 'metadata']).then((cloned) => {
+                            cloned.set({
+                                left: cloned.left + 30,
+                                top: cloned.top + 30,
+                            });
+                            fabricCanvas.current.discardActiveObject();
+                            fabricCanvas.current.add(cloned);
+                            fabricCanvas.current.setActiveObject(cloned);
+                            fabricCanvas.current.requestRenderAll();
+                            updateSelectedState();
+                            queueSave();
+                            isPasting.current = false;
+                        }).catch((err) => {
+                            console.error('Paste error:', err);
+                            isPasting.current = false;
+                        });
+                    }
+                }
+
                 if (e.key === 'Delete' || e.key === 'Backspace') {
                     // Check if not typing in text object or input field
                     const target = e.target;
@@ -510,7 +648,19 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.on('selection:cleared', updateSelectedState);
             fabricCanvas.current.on('object:scaling', updateSelectedState);
             fabricCanvas.current.on('object:moving', updateSelectedState);
-            fabricCanvas.current.on('object:modified', () => { updateSelectedState(); queueSave(); });
+            
+            // Handle rotation - hide toolbar while rotating
+            fabricCanvas.current.on('object:rotating', () => {
+                isRotating.current = true;
+                setToolbarPos(null); // Hide toolbar
+            });
+            
+            fabricCanvas.current.on('object:modified', () => { 
+                isRotating.current = false;
+                updateSelectedState(); 
+                queueSave(); 
+            });
+            
             fabricCanvas.current.on('object:added', () => queueSave());
             fabricCanvas.current.on('object:removed', () => queueSave());
 
@@ -636,15 +786,38 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             {/* Floating Deletion Toolbar */}
             {toolbarPos && (
                 <div
-                    className="absolute bg-white rounded-lg shadow-xl border border-gray-100 p-1 flex items-center gap-1 z-[100] -translate-x-1/2"
-                    style={{ left: toolbarPos.left, top: toolbarPos.top }}
+                    className="absolute rounded-xl shadow-2xl p-2 flex items-center gap-2 z-[100] -translate-x-1/2"
+                    style={{ left: toolbarPos.left, top: toolbarPos.top, backgroundColor: '#1d1f26' }}
                 >
                     <button
+                        onClick={rotateActiveObject}
+                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
+                        title="Rotate 90°"
+                    >
+                        <RotateCw size={24} />
+                    </button>
+                    <div className="w-px h-6 bg-white/20"></div>
+                    <button
+                        onClick={duplicateActiveObject}
+                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
+                        title="Duplicate"
+                    >
+                        <Copy size={24} />
+                    </button>
+                    <div className="w-px h-6 bg-white/20"></div>
+                    <button
                         onClick={deleteActiveObject}
-                        className="p-1.5 hover:bg-red-50 text-gray-500 hover:text-red-500 rounded transition-all"
+                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
                         title="Delete"
                     >
-                        <Trash2 size={16} />
+                        <Trash2 size={24} />
+                    </button>
+                    <div className="w-px h-6 bg-white/20"></div>
+                    <button
+                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
+                        title="More options"
+                    >
+                        <MoreVertical size={24} />
                     </button>
                 </div>
             )}
