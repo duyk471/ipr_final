@@ -367,11 +367,11 @@ No other text, just the JSON.
 
             for (const modelId of models) {
                 try {
-                    const url = \`https://router.huggingface.co/hf-inference/models/\${modelId}\`;
+                    const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: {
-                            'Authorization': \`Bearer \${hfToken}\`,
+                            'Authorization': `Bearer ${hfToken}`,
                             'Content-Type': 'application/json',
                             'x-use-cache': 'false'
                         },
@@ -385,18 +385,18 @@ No other text, just the JSON.
                         break;
                     }
                 } catch (err) {
-                    console.warn(\`Model \${modelId} failed for asset \${asset.id}\`);
+                    console.warn(`Model ${modelId} failed for asset ${asset.id}`);
                 }
             }
 
             if (!imageBuffer) {
-                console.warn(\`Skipping asset \${asset.id} as AI generation failed.\`);
+                console.warn(`Skipping asset ${asset.id} as AI generation failed.`);
                 continue;
             }
 
             // Remove Background if foreground
             if (asset.type === 'foreground') {
-                console.log(\`Removing background for \${asset.id}...\`);
+                console.log(`Removing background for ${asset.id}...`);
                 const { data, info } = await sharp(imageBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
                 const width = info.width;
                 const height = info.height;
@@ -443,13 +443,13 @@ No other text, just the JSON.
             }
 
             // Save asset to folder
-            const filename = \`ai_\${asset.id}_\${Date.now()}.png\`;
+            const filename = `ai_${asset.id}_${Date.now()}.png`;
             const filePath = path.join(assetsPath, filename);
             await fs.writeFile(filePath, imageBuffer);
 
             // Add layer to composition
             generatedLayers.push({
-                id: \`layer_\${asset.id}_\${Date.now()}\`,
+                id: `layer_${asset.id}_${Date.now()}`,
                 type: "image",
                 version: "5.3.0",
                 originX: "center",
@@ -466,7 +466,7 @@ No other text, just the JSON.
                 opacity: 1,
                 visible: true,
                 selectable: true,
-                src: \`assets/\${filename}\`,
+                src: `assets/${filename}`,
                 metadata: {
                     source: 'huggingface-router',
                     model: usedModel,
