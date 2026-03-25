@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Image as ImageIcon, Trash2, Download, FileJson, Upload } from 'lucide-react';
+import { Plus, Image as ImageIcon, Trash2, Download, FileJson, Upload, Sparkles } from 'lucide-react';
 import { api } from '../store/useCanvasStore';
 import NewProjectModal from '../components/Dashboard/NewProjectModal';
 
@@ -8,6 +8,8 @@ const Dashboard = () => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
     const navigate = useNavigate();
 
     const fetchProjects = async () => {
@@ -24,6 +26,25 @@ const Dashboard = () => {
     useEffect(() => {
         fetchProjects();
     }, []);
+
+    const handleAIGenerate = async () => {
+        if (!aiPrompt.trim()) return;
+        setIsGenerating(true);
+        try {
+            const res = await api.post('/ai/generate-project', { prompt: aiPrompt });
+            if (res.data.success) {
+                navigate(`/editor/${res.data.projectId}`);
+            } else {
+                alert(res.data.message || 'Failed to generate project.');
+            }
+        } catch (error) {
+            console.error('Error generating project:', error);
+            alert(error.response?.data?.message || 'Error generating project. Make sure API keys are set.');
+        } finally {
+            setIsGenerating(false);
+            setAiPrompt('');
+        }
+    };
 
     const handleCreateProject = async ({ name, width, height }) => {
         try {
@@ -127,6 +148,46 @@ const Dashboard = () => {
                     onClose={() => setIsModalOpen(false)}
                     onCreate={handleCreateProject}
                 />
+
+                <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden mb-2">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <Sparkles className="text-indigo-500" /> AI Magic Generation
+                    </h2>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <input 
+                            type="text" 
+                            placeholder="Describe your scene: e.g., A golden retriever wearing sunglasses on a sunny beach..."
+                            className="flex-1 border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            onKeyDown={(e) => { if(e.key === 'Enter') handleAIGenerate(); }}
+                            disabled={isGenerating}
+                        />
+                        <button 
+                            onClick={handleAIGenerate}
+                            disabled={isGenerating || !aiPrompt.trim()}
+                            className="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 font-medium transition-all focus:ring-4 focus:ring-indigo-200 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[160px]"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                                    Building...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles size={20} />
+                                    Generate
+                                </>
+                            )}
+                        </button>
+                    </div>
+                    {isGenerating && (
+                        <p className="text-sm text-indigo-600 mt-3 animate-pulse font-medium">
+                            ✨ AI is analyzing your prompt and generating layers... This might take 10-30 seconds.
+                        </p>
+                    )}
+                </section>
 
                 <section>
                     <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
