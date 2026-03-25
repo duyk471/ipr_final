@@ -7,6 +7,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
     const [suggestions, setSuggestions] = useState([]);
     const [updatedJson, setUpdatedJson] = useState(null);
     const [error, setError] = useState('');
+    const [assistantPrompt, setAssistantPrompt] = useState('');
 
     const handleAnalyze = async () => {
         if (!canvasRef.current) return;
@@ -23,7 +24,8 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
             const res = await api.post('/ai/analyze-design', {
                 screenshot: snapshot.screenshot,
                 canvasJson: snapshot.json,
-                projectId
+                projectId,
+                userPrompt: assistantPrompt.trim()
             });
 
             if (res.data.success) {
@@ -62,6 +64,22 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                 <p className="text-xs text-gray-500 mt-1">
                     Let AI review your design and suggest professional improvements.
                 </p>
+                <div className="mt-4">
+                    <label htmlFor="design-assistant-prompt" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                        Prompt For AI
+                    </label>
+                    <textarea
+                        id="design-assistant-prompt"
+                        value={assistantPrompt}
+                        onChange={(e) => setAssistantPrompt(e.target.value)}
+                        placeholder="E.g. Make it look more premium, cleaner, and suitable for a fashion brand."
+                        className="w-full min-h-24 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20"
+                        disabled={loading}
+                    />
+                    <p className="mt-2 text-[11px] text-gray-400">
+                        Optional. If you enter a prompt here, AI will use it when you press Analyze My Design.
+                    </p>
+                </div>
             </div>
 
             {!suggestions.length && !loading && (

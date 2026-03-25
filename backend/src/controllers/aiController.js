@@ -12,7 +12,7 @@ const STORAGE_ROOT = path.join(__dirname, '../../../storage');
 // Design Assistant Analysis
 export const analyzeDesign = async (req, res) => {
     try {
-        const { projectId } = req.body;
+        const { projectId, userPrompt } = req.body;
 
         if (!projectId) {
             return res.status(400).json({ success: false, message: 'Missing projectId' });
@@ -59,6 +59,7 @@ export const analyzeDesign = async (req, res) => {
         const systemPrompt = `
             You are a professional graphic designer and UI/UX expert.
             Review the attached design (preview.png) and its structure (index.json).
+            ${userPrompt?.trim() ? `The user wants you to follow this additional creative direction: "${userPrompt.trim()}".` : 'No extra user direction was provided, so use your best professional judgment.'}
             
             TASKS:
             1. Review visual balance, color theory, typography, and spacing.
@@ -66,6 +67,7 @@ export const analyzeDesign = async (req, res) => {
             3. Generate a modified version of the "layers" array that implements your best suggestions.
             
             REQUIREMENTS:
+                        - Treat the user's additional creative direction as a high-priority instruction unless it conflicts with the project structure.
             - Keep the EXACT SAME object structure as Fabric.js found in the source JSON.
             - Return your response EQUIVALENT to this JSON format:
             {

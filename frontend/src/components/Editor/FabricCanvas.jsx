@@ -129,22 +129,20 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         addImage: async (url, metadata = null) => {
             if (!fabricCanvas.current) return;
             try {
+                const canvas = fabricCanvas.current;
                 const fullUrl = `http://localhost:5000${url}?t=${Date.now()}`;
                 const img = await fabric.FabricImage.fromURL(fullUrl, { crossOrigin: 'anonymous' });
-
-                // Add without scaling to keep intact, but center it
-                img.set({
-                    left: (fabricCanvas.current.width - img.getScaledWidth()) / 2,
-                    top: (fabricCanvas.current.height - img.getScaledHeight()) / 2
-                });
 
                 if (metadata) {
                     img.set('metadata', metadata);
                 }
-                fabricCanvas.current.add(img);
-                fabricCanvas.current.bringObjectToFront(img);
-                fabricCanvas.current.setActiveObject(img);
-                fabricCanvas.current.renderAll();
+
+                canvas.add(img);
+                canvas.centerObject(img);
+                img.setCoords();
+                canvas.bringObjectToFront(img);
+                canvas.setActiveObject(img);
+                canvas.renderAll();
                 queueSave();
             } catch (err) {
                 console.error('Error adding image:', err);
