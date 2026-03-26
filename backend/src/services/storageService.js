@@ -92,8 +92,23 @@ export const saveProject = async (projectId, canvasState, previewBase64) => {
     }
 
     const data = await fs.readJson(indexPath);
+    
+    // Process layers to ensure relative paths for local assets
+    const processedLayers = (canvasState.layers || data.layers).map(layer => {
+        if ((layer.type === 'Image' || layer.type === 'image') && layer.src && typeof layer.src === 'string') {
+            // Match absolute or root-relative project path:
+            // (http://localhost:5000)?/storage/projects/UUID/assets/filename.png
+            const storageRegex = new RegExp(`^(https?://[^/]+)?/storage/projects/${projectId}/`, 'i');
+            layer.src = layer.src.replace(storageRegex, '');
+            
+            // Optional: Strip cache-busting query params (?, &t=...) for a cleaner index.json
+            layer.src = layer.src.split('?')[0];
+        }
+        return layer;
+    });
+
     data.canvas = canvasState.canvas || data.canvas;
-    data.layers = canvasState.layers || data.layers;
+    data.layers = processedLayers;
     data.projectInfo.updatedAt = new Date().toISOString();
 
     if (canvasState.projectInfo && canvasState.projectInfo.name) {
@@ -156,14 +171,14 @@ export const importProjectFromZip = async (zipBuffer) => {
 
     await fs.move(tempPath, newProjectPath);
 
-    // Update IDs and fix all asset paths in the layers using a robust regex
-    let jsonString = JSON.stringify(data);
-
-    // Find any project asset path pattern and replace it with the new ID
-    // Pattern: /storage/projects/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/
+    // Strip absolute project paths to make them relative to the new project root
     const pathPattern = /\/storage\/projects\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//g;
-    jsonString = jsonString.replace(pathPattern, `/storage/projects/${newProjectId}/`);
-
+    const httpPrefixPattern = /http:\/\/localhost:5000/g;
+    
+    let jsonString = JSON.stringify(data);
+    jsonString = jsonString.replace(httpPrefixPattern, ''); // Remove http prefix if present
+    jsonString = jsonString.replace(pathPattern, ''); // Make assets/... relative
+    
     const updatedData = JSON.parse(jsonString);
 
     // Ensure project info is fresh and matches the new folder ID
@@ -228,7 +243,7 @@ export const createProjectFromImage = async (imageBuffer, originalFilename) => {
                 flipX: false,
                 flipY: false,
                 visible: true,
-                src: `http://localhost:5000${imageUrl}`,
+                src: `assets/${filename}`,
                 crossOrigin: "anonymous"
             }
         ],

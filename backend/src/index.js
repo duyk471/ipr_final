@@ -20,7 +20,10 @@ app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json({ limit: '50mb' })); // Allow large requests for base64
 
 // Serve storage directory statically to access preview images and assets directly
-app.use('/storage', express.static(path.join(__dirname, '../../storage')));
+app.use('/storage', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+}, express.static(path.join(__dirname, '../../storage')));
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:id/assets', assetRoutes);

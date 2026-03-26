@@ -10,6 +10,79 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STORAGE_ROOT = path.join(__dirname, '../../../storage');
 
+/**
+ * Simple Google Image Scraper
+ * @param {string} query 
+ * @returns {Promise<string[]>}
+ */
+const scrapeGoogleImage = async (query) => {
+    try {
+        console.log(`Scraping Google Images for: "${query}"`);
+        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch&safe=active`;
+        
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+
+        if (!response.ok) throw new Error("Google search failed");
+        
+        const html = await response.text();
+        
+        // Find image URLs in the HTML
+        const results = [];
+        
+        // 1. Look for encrypted thumbnails (very reliable)
+        const thumbnailPattern = /https:\/\/encrypted-tbn[0-9]\.gstatic\.com\/images\?q=tbn:[^"'\s]+/g;
+        const matches = html.match(thumbnailPattern) || [];
+        results.push(...new Set(matches));
+
+        // 2. Look for common image extensions in the HTML (can find better quality)
+        const imgLinksPattern = /"https?:\/\/[^"]+?\.(?:jpg|png|jpeg|webp)"/g;
+        const imgMatches = html.match(imgLinksPattern) || [];
+        const cleanedImgMatches = imgMatches.map(m => m.replace(/"/g, ''));
+        results.push(...new Set(cleanedImgMatches));
+        
+        // 3. Look for data-iurl (another common source for thumbnails in script tags)
+        const iurlPattern = /data-iurl="([^"]+)"/g;
+        let iurlMatch;
+        while ((iurlMatch = iurlPattern.exec(html)) !== null) {
+            results.push(iurlMatch[1]);
+        }
+        
+        // Filter out some common tracking/icon domains
+        return [...new Set(results)].filter(u => 
+            !u.includes('gstatic.com/m/') && 
+            !u.includes('google-analytics.com') &&
+            !u.includes('favicon')
+        );
+    } catch (err) {
+        console.error("Scraping error:", err);
+        return [];
+    }
+};
+
+/**
+ * Download Image Helper
+ */
+const downloadImage = async (url) => {
+    try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Basic validation: Check if it's actually an image
+        if (buffer.length < 100) return null;
+        
+        return buffer;
+    } catch (err) {
+        console.error(`Download error for ${url}:`, err.message);
+        return null;
+    }
+};
+
 // Design Assistant Analysis
 export const analyzeDesign = async (req, res) => {
     try {
@@ -297,14 +370,18 @@ The user wants to generate an image composition: "${prompt}".
 Break this down into logical assets. Always include exactly one "background" and one or more "foreground" subjects.
 For each asset, define:
 - id: a unique short string
-- prompt: an optimized, highly descriptive image generation prompt. For foreground, mention "isolated on plain white background. simple clean background. high quality."
+- prompt: an optimized, highly descriptive image generation prompt. For foreground subjects, always include "isolated on plain white background. cinematic lighting, 8k".
+- search_query: a very short, concise keyword phrase (2-4 words) for finding this image on Google.
 - type: "background" or "foreground"
-- width: 1080 (for background), 512-800 for foreground
-- height: 1080 (for background), 512-800 for foreground
+- width: 1080 (for background), 600-800 for main subjects, 200-400 for secondary subjects.
+- height: 1080 (for background), 600-800 for main subjects, 200-400 for secondary subjects.
 
-Wait! Think carefully about the positions.
-- left / top: relative to a 1080x1080 canvas. Background should be at left: 540, top: 540 (centered if originX/originY are center, but let's use originX: 'center', originY: 'center').
-- scaleX / scaleY: standard is 1.
+LAYOUT GUIDELINES (on a 1080x1080 canvas):
+- Background: Always at left: 540, top: 540, width: 1080, height: 1080.
+- Foreground Subject 1 (Subject): Usually centered horizontally (left: 540) but positioned lower (top: 600-800) to ground them in the scene.
+- Foreground Subject 2+ (Accessories/Other): Offset them logically (left: 300 or 800) depending on the story.
+- Avoid placing elements too close to the canvas edges unless it's a stylistic choice.
+- Think about depth: subjects in front should be slightly lower on the canvas.
 
 Return your response AS A VALID JSON OBJECT EXACTLY matching this format:
 {
@@ -312,6 +389,7 @@ Return your response AS A VALID JSON OBJECT EXACTLY matching this format:
     {
       "id": "bg",
       "prompt": "detailed magical forest background, cinematic lighting, 8k",
+      "search_query": "magical forest background",
       "type": "background",
       "width": 1080,
       "height": 1080,
@@ -321,11 +399,12 @@ Return your response AS A VALID JSON OBJECT EXACTLY matching this format:
     {
       "id": "fg1",
       "prompt": "a cute golden retriever wearing a wizard hat, isolated on plain white background",
+      "search_query": "golden retriever wizard hat",
       "type": "foreground",
       "width": 600,
       "height": 600,
       "left": 540,
-      "top": 650
+      "top": 750
     }
   ]
 }
@@ -359,45 +438,90 @@ No other text, just the JSON.
         ];
 
         const generatedLayers = [];
+        const previewLayers = [];
 
         for (const asset of projectPlan.assets) {
-            console.log(`Generating asset ${asset.id}: ${asset.prompt}`);
+            console.log(`Processing asset ${asset.id}: ${asset.prompt}`);
             let imageBuffer = null;
-            let usedModel = "";
+            let usedModel = "google-scrape";
+            let source = "google-images";
 
-            for (const modelId of models) {
-                try {
-                    const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${hfToken}`,
-                            'Content-Type': 'application/json',
-                            'x-use-cache': 'false'
-                        },
-                        body: JSON.stringify({ inputs: asset.prompt })
-                    });
-
-                    if (response.ok) {
-                        const arrayBuffer = await response.arrayBuffer();
-                        imageBuffer = Buffer.from(arrayBuffer);
-                        usedModel = modelId;
+            // --- STRATEGY 1: SCRAPE GOOGLE IMAGES ---
+            try {
+                const query = asset.search_query || asset.prompt.split(',')[0];
+                const scrapedUrls = await scrapeGoogleImage(query);
+                for (const url of scrapedUrls.slice(0, 5)) { // Try first 5 results
+                    console.log(`Trying to download scraped image: ${url}`);
+                    const buffer = await downloadImage(url);
+                    if (buffer) {
+                        imageBuffer = buffer;
                         break;
                     }
-                } catch (err) {
-                    console.warn(`Model ${modelId} failed for asset ${asset.id}`);
+                }
+            } catch (err) {
+                console.warn(`Scraping failed for asset ${asset.id}: ${err.message}`);
+            }
+
+            // --- STRATEGY 2: FALLBACK TO HUGGINGFACE AI ---
+            if (!imageBuffer) {
+                console.log(`Falling back to AI generation for asset ${asset.id}`);
+                source = "huggingface-router";
+                for (const modelId of models) {
+                    try {
+                        const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${hfToken}`,
+                                'Content-Type': 'application/json',
+                                'x-use-cache': 'false'
+                            },
+                            body: JSON.stringify({ inputs: asset.prompt })
+                        });
+
+                        if (response.ok) {
+                            const arrayBuffer = await response.arrayBuffer();
+                            imageBuffer = Buffer.from(arrayBuffer);
+                            usedModel = modelId;
+                            break;
+                        }
+                    } catch (err) {
+                        console.warn(`Model ${modelId} failed for asset ${asset.id}`);
+                    }
                 }
             }
 
-            if (!imageBuffer) {
-                console.warn(`Skipping asset ${asset.id} as AI generation failed.`);
-                continue;
+            // Get actual dimensions and calculate scaling
+            const metadata = await sharp(imageBuffer).metadata();
+            const actualWidth = metadata.width || 1024;
+            const actualHeight = metadata.height || 1024;
+            
+            let scaleX = 1;
+            let scaleY = 1;
+
+            if (asset.type === 'background') {
+                // Background: Cover the entire 1080x1080 canvas
+                const scale = Math.max(1080 / actualWidth, 1080 / actualHeight);
+                scaleX = scale;
+                scaleY = scale;
+            } else {
+                // Foreground: Fit into planned size but maintain aspect ratio
+                const targetW = asset.width || 600;
+                const targetH = asset.height || 600;
+                const scale = Math.min(targetW / actualWidth, targetH / actualHeight);
+                scaleX = scale;
+                scaleY = scale;
             }
 
             // Remove Background if foreground
             if (asset.type === 'foreground') {
                 console.log(`Removing background for ${asset.id}...`);
-                const { data, info } = await sharp(imageBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+                // Re-process with sharp to get alpha channel and perform flood fill
+                const { data, info } = await sharp(imageBuffer)
+                    .ensureAlpha()
+                    .raw()
+                    .toBuffer({ resolveWithObject: true });
+                
                 const width = info.width;
                 const height = info.height;
                 const threshold = 240;
@@ -456,10 +580,10 @@ No other text, just the JSON.
                 originY: "center",
                 left: asset.left || 540,
                 top: asset.top || 540,
-                width: asset.width || 512,
-                height: asset.height || 512,
-                scaleX: asset.type === 'background' ? (1080 / (asset.width || 1080)) : 1,
-                scaleY: asset.type === 'background' ? (1080 / (asset.height || 1080)) : 1,
+                width: actualWidth,
+                height: actualHeight,
+                scaleX: scaleX,
+                scaleY: scaleY,
                 angle: 0,
                 flipX: false,
                 flipY: false,
@@ -467,12 +591,28 @@ No other text, just the JSON.
                 visible: true,
                 selectable: true,
                 src: `assets/${filename}`,
+                crossOrigin: "anonymous",
                 metadata: {
-                    source: 'huggingface-router',
+                    source: source,
                     model: usedModel,
                     prompt: asset.prompt
                 }
             });
+
+            // Prepare for preview composition
+            try {
+                const resizedBuffer = await sharp(imageBuffer)
+                    .resize(Math.round(actualWidth * scaleX), Math.round(actualHeight * scaleY))
+                    .toBuffer();
+                
+                previewLayers.push({
+                    input: resizedBuffer,
+                    top: Math.round((asset.top || 540) - (actualHeight * scaleY / 2)),
+                    left: Math.round((asset.left || 540) - (actualWidth * scaleX / 2))
+                });
+            } catch (err) {
+                console.warn(`Failed to add layer ${asset.id} to preview:`, err.message);
+            }
         }
 
         // Update the project's index.json
@@ -480,6 +620,26 @@ No other text, just the JSON.
         const projectData = await fs.readJson(indexPath);
         projectData.layers = generatedLayers;
         await fs.writeJson(indexPath, projectData, { spaces: 2 });
+
+        // Generate preview.png
+        if (previewLayers.length > 0) {
+            try {
+                console.log(`Generating preview.png for project ${projectId}...`);
+                await sharp({
+                    create: {
+                        width: 1080,
+                        height: 1080,
+                        channels: 4,
+                        background: { r: 255, g: 255, b: 255, alpha: 1 }
+                    }
+                })
+                .composite(previewLayers)
+                .png()
+                .toFile(path.join(projectPath, 'preview.png'));
+            } catch (err) {
+                console.error('Failed to generate preview.png:', err);
+            }
+        }
 
         res.json({
             success: true,
