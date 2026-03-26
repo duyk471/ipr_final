@@ -1,7 +1,7 @@
 # AI Image Editor
 
-- 📖 **[Kiến trúc hệ thống](ARCHITECTURE.md)**
-- 📋 **[SRS](srs.md)**: yêu cầu phần mềm.
+- 📖 **[Kiến trúc hệ thống](guide/other/ARCHITECTURE.md)**
+- 📋 **[SRS](guide/other/srs.md)**: yêu cầu phần mềm.
 
 ## 1. Tính năng chính (Key Features)
 
