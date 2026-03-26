@@ -281,19 +281,20 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     try {
                         const img = new Image();
                         img.crossOrigin = 'anonymous';
-                        const src = obj.src.startsWith('http') ? obj.src : `http://localhost:5000${obj.src}`;
-                        await new Promise((resolve, reject) => {
-                            img.onload = resolve;
-                            img.onerror = reject;
-                            img.src = src;
-                            setTimeout(() => reject(new Error('Timeout')), 3000);
-                        });
-                        return obj;
-                    } catch (err) {
-                        return null;
+                            const src = obj.src.startsWith('http') ? obj.src : `http://localhost:5000/storage/projects/${projectId}/${obj.src}`;
+                            await new Promise((resolve, reject) => {
+                                img.onload = resolve;
+                                img.onerror = reject;
+                                img.src = src;
+                                setTimeout(() => reject(new Error('Timeout')), 3000);
+                            });
+                            return { ...obj, src, crossOrigin: 'anonymous' };
+                        } catch (err) {
+                            console.warn('Removing missing asset:', obj.src);
+                            return null;
+                        }
                     }
-                }
-                return obj;
+                    return obj;
             }));
 
             await fabricCanvas.current.loadFromJSON({
@@ -682,7 +683,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                             // Test if image exists
                             const img = new Image();
                             img.crossOrigin = 'anonymous';
-                            const src = obj.src.startsWith('http') ? obj.src : `http://localhost:5000${obj.src}`;
+                             const src = obj.src.startsWith('http') ? obj.src : `http://localhost:5000/storage/projects/${projectId}/${obj.src}`;
 
                             await new Promise((resolve, reject) => {
                                 img.onload = resolve;
@@ -691,7 +692,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                 // Timeout after 3 seconds
                                 setTimeout(() => reject(new Error('Timeout')), 3000);
                             });
-                            return obj;
+                            return { ...obj, src, crossOrigin: 'anonymous' };
                         } catch (err) {
                             console.warn('Removing missing asset:', obj.src);
                             return null;
