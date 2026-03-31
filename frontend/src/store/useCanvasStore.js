@@ -67,4 +67,3 @@ const useCanvasStore = create((set, get) => ({
 }));
 
 export default useCanvasStore;
-export { api };

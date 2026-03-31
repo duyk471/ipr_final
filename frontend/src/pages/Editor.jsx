@@ -14,7 +14,8 @@ const Editor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { fetchProject, currentProject, isLoading, selectedObject } = useCanvasStore();
-    const [activeTab, setActiveTab] = useState('properties'); // 'properties', 'ai', or 'assistant'
+    const [activeTab, setActiveTab] = useState('properties'); // Only 'properties' now
+    const [activeLeftPanel, setActiveLeftPanel] = useState(null); // 'elements', 'ai', 'assistant' hoặc null
     const [showSettings, setShowSettings] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [historyList, setHistoryList] = useState([]);
@@ -194,11 +195,40 @@ const Editor = () => {
             </header>
 
             {/* Main Editing Area */}
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden relative">
                 {/* Left Sidebar Toolbar */}
-                <aside className="w-20 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 items-center py-6 shadow-sm z-10 transition-colors">
-                    <Toolbar canvasRef={canvasRef} projectId={id} />
+                <aside className="w-20 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 items-center py-6 shadow-sm z-20 transition-colors">
+                    <Toolbar 
+                        canvasRef={canvasRef} 
+                        projectId={id} 
+                        activeLeftPanel={activeLeftPanel}
+                        setActiveLeftPanel={setActiveLeftPanel}
+                    />
                 </aside>
+
+                {/* Left Panel Expansion (Canva Style) */}
+                {activeLeftPanel && (
+                    <aside className="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 shadow-lg z-10 animate-in slide-in-from-left duration-300">
+                        <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+                            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                {activeLeftPanel === 'elements' && 'Elements Library'}
+                                {activeLeftPanel === 'ai' && 'AI Magic Generation'}
+                                {activeLeftPanel === 'assistant' && 'AI Design Assistant'}
+                            </h3>
+                            <button 
+                                onClick={() => setActiveLeftPanel(null)}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            >
+                                <ArrowLeft size={16} />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            {activeLeftPanel === 'elements' && <ElementsPanel canvasRef={canvasRef} />}
+                            {activeLeftPanel === 'ai' && <AIPrompt canvasRef={canvasRef} projectId={id} />}
+                            {activeLeftPanel === 'assistant' && <AIDesignAssistant canvasRef={canvasRef} projectId={id} />}
+                        </div>
+                    </aside>
+                )}
 
                 {/* Central Canvas Workspace */}
                 <main className="flex-1 bg-gray-200 dark:bg-gray-900 relative overflow-hidden flex items-center justify-center p-4 transition-colors">
@@ -208,50 +238,9 @@ const Editor = () => {
                     />
                 </main>
 
-                {/* Right Sidebar UI Gen / Options */}
+                {/* Right Sidebar - Selection Properties */}
                 <aside className="w-80 bg-white dark:bg-gray-800 border-l dark:border-gray-700 flex flex-col shrink-0 shadow-lg z-10 relative transition-colors">
-                    {/* Tabs */}
-                    <div className="flex border-b dark:border-gray-700 overflow-x-auto">
-                        <button
-                            onClick={() => setActiveTab('properties')}
-                            className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all whitespace-nowrap px-2 ${activeTab === 'properties' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                        >
-                            <Sliders size={12} /> Design
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('elements')}
-                            className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all whitespace-nowrap px-2 ${activeTab === 'elements' ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50/50 dark:bg-emerald-900/20' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                        >
-                            <Sparkles size={12} /> Elements
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('ai')}
-                            className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all whitespace-nowrap px-2 ${activeTab === 'ai' ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50/50 dark:bg-purple-900/20' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                        >
-                            <Sparkles size={12} /> AI Gen
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('assistant')}
-                            className={`flex-1 py-4 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all whitespace-nowrap px-2 ${activeTab === 'assistant' ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50/50 dark:bg-pink-900/20' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                        >
-                            <Wand2 size={12} /> AI Assist
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-800 transition-colors">
-                        {activeTab === 'properties' && (
-                            <PropertiesPanel canvasRef={canvasRef} />
-                        )}
-                        {activeTab === 'elements' && (
-                            <ElementsPanel canvasRef={canvasRef} />
-                        )}
-                        {activeTab === 'ai' && (
-                            <AIPrompt canvasRef={canvasRef} projectId={id} />
-                        )}
-                        {activeTab === 'assistant' && (
-                            <AIDesignAssistant canvasRef={canvasRef} projectId={id} />
-                        )}
-                    </div>
+                    <PropertiesPanel canvasRef={canvasRef} />
                 </aside>
             </div>
 

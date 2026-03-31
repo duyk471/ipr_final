@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useRef } from 'react';
 import * as LucideIcons from 'lucide-react';
 import * as fabric from 'fabric';
-import { Search, Square, Circle, Triangle, Star, Hexagon } from 'lucide-react';
+import { Search, Square, Circle, Triangle, Star, Hexagon, Frame, Type } from 'lucide-react';
 
 const SHAPES = [
     { name: 'Rectangle', type: 'rect', icon: <Square size={24} /> },
     { name: 'Circle', type: 'circle', icon: <Circle size={24} /> },
     { name: 'Triangle', type: 'triangle', icon: <Triangle size={24} /> },
+    { name: 'Square Frame', type: 'rect-frame', icon: <Frame size={24} /> },
+    { name: 'Circle Frame', type: 'circle-frame', icon: <Circle size={24} /> },
     { name: 'Star Frame', type: 'star-frame', icon: <Star size={24} /> },
-    { name: 'Circle Frame', type: 'circle-frame', icon: <Circle size={24} /> }
+    { name: 'Text Box', type: 'text-frame', icon: <Type size={24} /> }
 ];
 
 const ElementsPanel = ({ canvasRef }) => {
@@ -35,6 +37,8 @@ const ElementsPanel = ({ canvasRef }) => {
         else if (type === 'triangle') canvasRef.current?.addShape('triangle');
         else if (type === 'star-frame') canvasRef.current?.addFrame('star');
         else if (type === 'circle-frame') canvasRef.current?.addFrame('circle');
+        else if (type === 'rect-frame') canvasRef.current?.addFrame('rect');
+        else if (type === 'text-frame') canvasRef.current?.addFrame('text');
     };
 
     const handleAddIcon = (IconComponent) => {

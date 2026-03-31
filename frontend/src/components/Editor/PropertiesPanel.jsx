@@ -11,6 +11,10 @@ const PropertiesPanel = ({ canvasRef }) => {
     const [canvasSize, setCanvasSize] = useState({ width: 1080, height: 1080 });
     const [backgroundColor, setBackgroundColor] = useState('#ffffff');
     const [removingBg, setRemovingBg] = useState(false);
+    
+    // Palette Extractor
+    const [extractedColors, setExtractedColors] = useState([]);
+    const [isExtracting, setIsExtracting] = useState(false);
 
     // Update canvas info when not selecting any object
     useEffect(() => {
@@ -25,6 +29,10 @@ const PropertiesPanel = ({ canvasRef }) => {
             }
         }
     }, [canvasRef, selectedObject]);
+
+    useEffect(() => {
+        setExtractedColors([]);
+    }, [selectedObject?.id]);
 
     const handleBackgroundColorChange = (color) => {
         setBackgroundColor(color);
@@ -94,6 +102,47 @@ const PropertiesPanel = ({ canvasRef }) => {
         } finally {
             setRemovingBg(false);
         }
+    };
+
+    const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+
+    const handleExtractPalette = () => {
+        if (!selectedObject || selectedObject.type !== 'image') return;
+        setIsExtracting(true);
+        // Small delay to allow UI to update to loading state
+        setTimeout(() => {
+            try {
+                const imgEl = selectedObject._originalElement || selectedObject.getElement();
+                if (!imgEl) throw new Error("No image element");
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 100;
+                canvas.height = (imgEl.height / imgEl.width) * 100;
+                ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+                const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                
+                const colorMap = {};
+                for (let i = 0; i < data.length; i += 16) { 
+                    if (data[i+3] < 128) continue; 
+                    const r = Math.min(255, Math.max(0, Math.round(data[i] / 32) * 32));
+                    const g = Math.min(255, Math.max(0, Math.round(data[i+1] / 32) * 32));
+                    const b = Math.min(255, Math.max(0, Math.round(data[i+2] / 32) * 32));
+                    const hex = rgbToHex(r, g, b);
+                    colorMap[hex] = (colorMap[hex] || 0) + 1;
+                }
+                
+                const sortedColors = Object.entries(colorMap)
+                    .sort((a,b) => b[1] - a[1])
+                    .slice(0, 6)
+                    .map(entry => entry[0]);
+                    
+                setExtractedColors(sortedColors);
+            } catch (err) {
+                console.error("Color extraction failed:", err);
+            }
+            setIsExtracting(false);
+        }, 50);
     };
 
     const isText = selectedObject.type.includes('text');
@@ -318,20 +367,16 @@ const PropertiesPanel = ({ canvasRef }) => {
                 </>
             )}
 
-            {/* AI Tools */}
+            {/* Image Utilities */}
             {isImage && (
-                <div className="flex flex-col gap-3 pt-4 border-t">
+                <div className="flex flex-col gap-3 pt-4 border-t dark:border-gray-700">
                     <label className="text-xs font-semibold text-gray-500 uppercase flex items-center justify-between">
-                        AI Magic Tools
+                        Image Utilities
                     </label>
                     <button
                         onClick={handleRemoveBackground}
                         disabled={removingBg}
-                        className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                            removingBg 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100 hover:border-indigo-200 shadow-sm grow-effect'
-                        }`}
+                        className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold transition-all disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
                     >
                         {removingBg ? (
                             <>
