@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Image as ImageIcon, Trash2, Download, FileJson, Upload, Sparkles } from 'lucide-react';
+import { Plus, Image as ImageIcon, Trash2, Download, FileJson, Upload, Sparkles, BookOpen } from 'lucide-react';
 import { api } from '../store/useCanvasStore';
 import NewProjectModal from '../components/Dashboard/NewProjectModal';
 
@@ -133,6 +133,14 @@ const Dashboard = () => {
                                 onChange={handleImportImage}
                             />
                         </label>
+                        <button
+                            onClick={() => navigate('/manual')}
+                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 shadow-sm transition-all active:scale-95 font-medium"
+                            title="Help & Tutorial"
+                        >
+                            <BookOpen size={20} className="text-blue-500" />
+                            <span>Manual</span>
+                        </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
                             className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 shadow-md transition-all active:scale-95 font-medium"

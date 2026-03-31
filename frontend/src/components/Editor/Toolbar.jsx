@@ -42,7 +42,7 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
             id: 'text', 
             icon: <Type size={22} />, 
             label: "Text", 
-            action: () => { canvasRef.current?.addText(); setActiveLeftPanel(null); } 
+            action: () => setActiveLeftPanel(activeLeftPanel === 'text' ? null : 'text') 
         },
         { 
             id: 'ai', 

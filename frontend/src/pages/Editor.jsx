@@ -9,6 +9,7 @@ import PropertiesPanel from '../components/Editor/PropertiesPanel';
 import ProjectSettings from '../components/Editor/ProjectSettings';
 import AIDesignAssistant from '../components/Editor/AIDesignAssistant';
 import ElementsPanel from '../components/Editor/ElementsPanel';
+import TextPanel from '../components/Editor/TextPanel';
 
 const Editor = () => {
     const { id } = useParams();
@@ -212,6 +213,7 @@ const Editor = () => {
                         <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
                             <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                                 {activeLeftPanel === 'elements' && 'Elements Library'}
+                                {activeLeftPanel === 'text' && 'Add Text Elements'}
                                 {activeLeftPanel === 'ai' && 'AI Magic Generation'}
                                 {activeLeftPanel === 'assistant' && 'AI Design Assistant'}
                             </h3>
@@ -224,6 +226,7 @@ const Editor = () => {
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {activeLeftPanel === 'elements' && <ElementsPanel canvasRef={canvasRef} />}
+                            {activeLeftPanel === 'text' && <TextPanel canvasRef={canvasRef} />}
                             {activeLeftPanel === 'ai' && <AIPrompt canvasRef={canvasRef} projectId={id} />}
                             {activeLeftPanel === 'assistant' && <AIDesignAssistant canvasRef={canvasRef} projectId={id} />}
                         </div>
@@ -239,7 +242,7 @@ const Editor = () => {
                 </main>
 
                 {/* Right Sidebar - Selection Properties */}
-                <aside className="w-80 bg-white dark:bg-gray-800 border-l dark:border-gray-700 flex flex-col shrink-0 shadow-lg z-10 relative transition-colors">
+                <aside className="w-80 bg-white dark:bg-gray-800 border-l dark:border-gray-700 flex flex-col shrink-0 shadow-lg z-10 relative transition-colors overflow-y-auto custom-scrollbar">
                     <PropertiesPanel canvasRef={canvasRef} />
                 </aside>
             </div>
