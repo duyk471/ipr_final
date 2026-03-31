@@ -10,71 +10,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STORAGE_ROOT = path.join(__dirname, '../../../storage');
 
-/**
- * Simple Google Image Scraper
- * @param {string} query 
- * @returns {Promise<string[]>}
- */
-const scrapeGoogleImage = async (query) => {
-    try {
-        console.log(`Scraping Google Images for: "${query}"`);
-        const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch&safe=active`;
-        
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-
-        if (!response.ok) throw new Error("Google search failed");
-        
-        const html = await response.text();
-        
-        // Find image URLs in the HTML
-        const results = [];
-        
-        // 1. Look for encrypted thumbnails (very reliable)
-        const thumbnailPattern = /https:\/\/encrypted-tbn[0-9]\.gstatic\.com\/images\?q=tbn:[^"'\s]+/g;
-        const matches = html.match(thumbnailPattern) || [];
-        results.push(...new Set(matches));
-
-        // 2. Look for common image extensions in the HTML (can find better quality)
-        const imgLinksPattern = /"https?:\/\/[^"]+?\.(?:jpg|png|jpeg|webp)"/g;
-        const imgMatches = html.match(imgLinksPattern) || [];
-        const cleanedImgMatches = imgMatches.map(m => m.replace(/"/g, ''));
-        results.push(...new Set(cleanedImgMatches));
-        
-        // 3. Look for data-iurl (another common source for thumbnails in script tags)
-        const iurlPattern = /data-iurl="([^"]+)"/g;
-        let iurlMatch;
-        while ((iurlMatch = iurlPattern.exec(html)) !== null) {
-            results.push(iurlMatch[1]);
-        }
-        
-        // Filter out some common tracking/icon domains
-        return [...new Set(results)].filter(u => 
-            !u.includes('gstatic.com/m/') && 
-            !u.includes('google-analytics.com') &&
-            !u.includes('favicon')
-        );
-    } catch (err) {
-        console.error("Scraping error:", err);
-        return [];
-    }
-};
+import { scrapeImages } from '../utils/scraper.js';
 
 /**
- * Download Image Helper
+ * Enhanced Download Image Helper
  */
 const downloadImage = async (url) => {
     try {
-        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        const response = await fetch(url, { 
+            signal: AbortSignal.timeout(8000),
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+                'Referer': 'https://www.google.com/'
+            }
+        });
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
-        // Basic validation: Check if it's actually an image
-        if (buffer.length < 100) return null;
+        // Validation: Must be a decent size
+        if (buffer.length < 1000) return null;
         
         return buffer;
     } catch (err) {
@@ -188,65 +143,77 @@ export const analyzeDesign = async (req, res) => {
 
 export const generateImage = async (req, res) => {
     try {
-        const { prompt, projectId, removeBackground } = req.body;
+        const { prompt, projectId, removeBackground, useWebSearch } = req.body;
 
         if (!prompt || !projectId) {
             return res.status(400).json({ success: false, message: 'Missing prompt or projectId' });
         }
 
-        const hfToken = process.env.HUGGINGFACE_API_KEY;
-        if (!hfToken || hfToken.includes('your_huggingface_key')) {
-            return res.status(400).json({
-                success: false,
-                message: 'Hugging Face API Key is missing. Please add HUGGINGFACE_API_KEY to your backend/.env'
-            });
-        }
-
-        console.log(`Generating AI image for project ${projectId}: "${prompt}" (Transparent: ${!!removeBackground})`);
-
-        // We'll try FLUX.1 (Schnell) as primary, then Stable Diffusion XL as fallback
-        const models = [
-            "black-forest-labs/FLUX.1-schnell",
-            "stabilityai/stable-diffusion-xl-base-1.0",
-            "runwayml/stable-diffusion-v1-5"
-        ];
+        console.log(`Generating image for project ${projectId}: "${prompt}" (WebSearch: ${!!useWebSearch})`);
 
         let imageBuffer = null;
-        let usedModel = "";
+        let usedModel = "google-images";
+        let source = "google-images-scrape";
         let lastError = "";
 
-        for (const modelId of models) {
+        // --- STRATEGY 1: ONLINE IMAGE SEARCH VIA PUPPETEER/CHEERIO ---
+        if (useWebSearch) {
             try {
-                console.log(`Trying model: ${modelId}...`);
-                // The most robust URL according to latest HF migration
-                const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${hfToken}`,
-                        'Content-Type': 'application/json',
-                        'x-use-cache': 'false'
-                    },
-                    body: JSON.stringify({
-                        inputs: removeBackground ? `${prompt}, isolated on plain white background` : prompt
-                        // Removed parameters to avoid 'wait_for_model' errors on some pipelines
-                    })
-                });
-
-                if (response.ok) {
-                    const arrayBuffer = await response.arrayBuffer();
-                    imageBuffer = Buffer.from(arrayBuffer);
-                    usedModel = modelId;
-                    break;
-                } else {
-                    const err = await response.json().catch(() => ({ error: 'Unknown error' }));
-                    lastError = err.error || response.statusText;
-                    console.warn(`Model ${modelId} failed: ${lastError}`);
+                const scrapedUrls = await scrapeImages(prompt, { limit: 5 });
+                for (const url of scrapedUrls) {
+                    console.log(`Attempting download scraped high-res link: ${url}`);
+                    const buffer = await downloadImage(url);
+                    if (buffer) {
+                        imageBuffer = buffer;
+                        break;
+                    }
                 }
             } catch (err) {
-                lastError = err.message;
-                console.warn(`Model ${modelId} catch error: ${lastError}`);
+                console.warn("Image search failed, falling back to AI:", err.message);
+            }
+        } else {
+            console.log("Web Search is disabled. Skipping scrape Strategy.");
+        }
+
+        // --- STRATEGY 2: AI FALLBACK (Or Default) ---
+        if (!imageBuffer) {
+            console.log(`Falling back to AI generation for project ${projectId}`);
+            source = "huggingface-ai";
+            const hfToken = process.env.HUGGINGFACE_API_KEY;
+            const models = [
+                "black-forest-labs/FLUX.1-schnell",
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                "runwayml/stable-diffusion-v1-5"
+            ];
+
+            for (const modelId of models) {
+                try {
+                    console.log(`Trying AI model: ${modelId}...`);
+                    const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${hfToken}`,
+                            'Content-Type': 'application/json',
+                            'x-use-cache': 'false'
+                        },
+                        body: JSON.stringify({
+                            inputs: removeBackground ? `${prompt}, isolated on white background` : prompt
+                        })
+                    });
+
+                    if (response.ok) {
+                        const arrayBuffer = await response.arrayBuffer();
+                        imageBuffer = Buffer.from(arrayBuffer);
+                        usedModel = modelId;
+                        break;
+                    } else {
+                        const err = await response.json().catch(() => ({ error: 'Unknown' }));
+                        lastError = err.error || "Request failed";
+                    }
+                } catch (err) {
+                    lastError = err.message;
+                }
             }
         }
 
@@ -327,7 +294,7 @@ export const generateImage = async (req, res) => {
                 displayUrl: `/storage/projects/${projectId}/assets/${filename}`
             },
             metadata: {
-                source: 'huggingface-router',
+                source: source,
                 model: usedModel,
                 prompt,
                 removedBackground: !!removeBackground
@@ -342,7 +309,7 @@ export const generateImage = async (req, res) => {
 
 export const generateProjectFromPrompt = async (req, res) => {
     try {
-        const { prompt } = req.body;
+        const { prompt, useWebSearch } = req.body;
         if (!prompt) {
             return res.status(400).json({ success: false, message: 'Missing prompt' });
         }
@@ -350,46 +317,41 @@ export const generateProjectFromPrompt = async (req, res) => {
         const hfToken = process.env.HUGGINGFACE_API_KEY;
         const geminiToken = process.env.GEMINI_API_KEY;
 
-        if (!hfToken || !geminiToken) {
+        if (!geminiToken) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required API keys. Please check backend/.env'
+                message: 'Missing GEMINI_API_KEY. Please check backend/.env'
             });
         }
 
-        console.log(`Generating project from prompt: "${prompt}"`);
+        console.log(`\n=========================================\nGenerating entirely new Project from prompt: "${prompt}" (WebSearch: ${!!useWebSearch})\n=========================================`);
 
-        // 1. Ask Gemini to break down the prompt
+        // 1. SMART LAYOUT GENERATION WITH GEMINI
         const genAI = new GoogleGenerativeAI(geminiToken);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const systemPrompt = `
-You are an expert AI art director generating a structured project layout based on a user's prompt.
-The user wants to generate an image composition: "${prompt}".
+You are an expert Art Director and strict JSON API turning a user's prompt into a layered image composition.
+The user wants to generate: "${prompt}".
 
-Break this down into logical assets. Always include exactly one "background" and one or more "foreground" subjects.
-For each asset, define:
-- id: a unique short string
-- prompt: an optimized, highly descriptive image generation prompt. For foreground subjects, always include "isolated on plain white background. cinematic lighting, 8k".
-- search_query: a very short, concise keyword phrase (2-4 words) for finding this image on Google.
-- type: "background" or "foreground"
-- width: 1080 (for background), 600-800 for main subjects, 200-400 for secondary subjects.
-- height: 1080 (for background), 600-800 for main subjects, 200-400 for secondary subjects.
+RULES FOR ASSETS:
+- Produce EXACTLY ONE "background" layer.
+- Produce ALONG WITH IT 1 to 3 "foreground" layers.
+- For each layer, define:
+  - "id": a unique short alphanumeric string.
+  - "prompt": highly descriptive AI generation prompt (e.g. "cinematic lighting, 8k, photorealistic").
+  - "search_query": a very precise, concise 2-4 word keyword phase to find the real image on Google.
+  - "type": "background" or "foreground".
+  - "width" & "height": integer dimensions. Background must be 1080x1080.
+  - "left" & "top": Canvas center coordinates for placement. (Background is always 540, 540).
 
-LAYOUT GUIDELINES (on a 1080x1080 canvas):
-- Background: Always at left: 540, top: 540, width: 1080, height: 1080.
-- Foreground Subject 1 (Subject): Usually centered horizontally (left: 540) but positioned lower (top: 600-800) to ground them in the scene.
-- Foreground Subject 2+ (Accessories/Other): Offset them logically (left: 300 or 800) depending on the story.
-- Avoid placing elements too close to the canvas edges unless it's a stylistic choice.
-- Think about depth: subjects in front should be slightly lower on the canvas.
-
-Return your response AS A VALID JSON OBJECT EXACTLY matching this format:
+Return ONLY the raw JSON object formatted like this, no markdown backticks, no extra text:
 {
   "assets": [
     {
-      "id": "bg",
-      "prompt": "detailed magical forest background, cinematic lighting, 8k",
-      "search_query": "magical forest background",
+      "id": "bg1",
+      "prompt": "detailed landscape background, empty scene, 8k",
+      "search_query": "landscape background",
       "type": "background",
       "width": 1080,
       "height": 1080,
@@ -398,125 +360,135 @@ Return your response AS A VALID JSON OBJECT EXACTLY matching this format:
     },
     {
       "id": "fg1",
-      "prompt": "a cute golden retriever wearing a wizard hat, isolated on plain white background",
-      "search_query": "golden retriever wizard hat",
+      "prompt": "main subject isolated on plain white background",
+      "search_query": "main subject clean background",
       "type": "foreground",
       "width": 600,
       "height": 600,
       "left": 540,
-      "top": 750
+      "top": 600
     }
   ]
-}
-No other text, just the JSON.
-`;
+}`;
 
         const result = await model.generateContent(systemPrompt);
-        const responseText = result.response.text();
-
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-            throw new Error('AI failed to return valid JSON for project structure.');
+        let responseText = result.response.text();
+        
+        // Ensure no markdown block wraps the JSON
+        responseText = responseText.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
+        
+        let projectPlan;
+        try {
+            projectPlan = JSON.parse(responseText);
+        } catch (err) {
+            console.error("Gemini failed to generate valid JSON:", responseText);
+            throw new Error('AI failed to return valid project structure.');
         }
 
-        const projectPlan = JSON.parse(jsonMatch[0]);
         if (!projectPlan.assets || !Array.isArray(projectPlan.assets)) {
             throw new Error('Invalid project plan format from AI.');
         }
 
-        // 2. Create the project
+        // 2. CREATE PROJECT DB ENTRY
         const newProject = await createNewProject(`AI Gen: ${prompt.substring(0, 20)}...`, 1080, 1080);
         const projectId = newProject.projectInfo.id;
         const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
         const assetsPath = path.join(projectPath, 'assets');
 
-        // 3. Generate each image using HuggingFace
-        const models = [
-            "black-forest-labs/FLUX.1-schnell",
-            "stabilityai/stable-diffusion-xl-base-1.0",
-            "runwayml/stable-diffusion-v1-5"
-        ];
-
+        // 3. FETCH IMAGES USING HYBRID APPROACH (Scraper -> HF)
         const generatedLayers = [];
         const previewLayers = [];
 
         for (const asset of projectPlan.assets) {
-            console.log(`Processing asset ${asset.id}: ${asset.prompt}`);
+            console.log(`\n--- Processing asset [${asset.id}]: ${asset.search_query}`);
             let imageBuffer = null;
-            let usedModel = "google-scrape";
-            let source = "google-images";
-
-            // --- STRATEGY 1: SCRAPE GOOGLE IMAGES ---
-            try {
-                const query = asset.search_query || asset.prompt.split(',')[0];
-                const scrapedUrls = await scrapeGoogleImage(query);
-                for (const url of scrapedUrls.slice(0, 5)) { // Try first 5 results
-                    console.log(`Trying to download scraped image: ${url}`);
-                    const buffer = await downloadImage(url);
-                    if (buffer) {
-                        imageBuffer = buffer;
-                        break;
+            let usedModel = "google-images";
+            let source = "google-images-scrape";
+            
+            // STRATEGY A: PUPPETEER/CHEERIO IMAGE SCRAPER
+            if (useWebSearch) {
+                try {
+                    const scrapedUrls = await scrapeImages(asset.search_query, { limit: 3 });
+                    for (const url of scrapedUrls) {
+                        console.log(`-> Found high-res link, downloading: ${url}`);
+                        const buffer = await downloadImage(url);
+                        if (buffer) {
+                            imageBuffer = buffer;
+                            break;
+                        }
                     }
+                } catch (err) {
+                    console.warn(`-> Scraping failed for ${asset.id}: ${err.message}`);
                 }
-            } catch (err) {
-                console.warn(`Scraping failed for asset ${asset.id}: ${err.message}`);
+            } else {
+                console.log(`-> Web Search is disabled. Skipping scraper for ${asset.id}...`);
             }
 
-            // --- STRATEGY 2: FALLBACK TO HUGGINGFACE AI ---
+            // STRATEGY B: AI TEXT-TO-IMAGE GENERATION (FALLBACK)
             if (!imageBuffer) {
-                console.log(`Falling back to AI generation for asset ${asset.id}`);
-                source = "huggingface-router";
+                console.log(`-> Scraper failed. Falling back to AI Generation...`);
+                source = "huggingface-ai";
+                
+                if (!hfToken) {
+                    console.error("-> Cannot fallback to AI: HUGGINGFACE_API_KEY is missing.");
+                    continue; // Skip this asset
+                }
+
+                const models = [
+                    "black-forest-labs/FLUX.1-schnell",
+                    "stabilityai/stable-diffusion-xl-base-1.0",
+                ];
+
                 for (const modelId of models) {
                     try {
+                        console.log(`--> Calling ${modelId}`);
                         const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
                         const response = await fetch(url, {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${hfToken}`,
-                                'Content-Type': 'application/json',
-                                'x-use-cache': 'false'
+                                'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ inputs: asset.prompt })
+                            body: JSON.stringify({ inputs: asset.type === 'foreground' ? `${asset.prompt}, plain white background isolated` : asset.prompt })
                         });
 
                         if (response.ok) {
-                            const arrayBuffer = await response.arrayBuffer();
-                            imageBuffer = Buffer.from(arrayBuffer);
+                            const ab = await response.arrayBuffer();
+                            imageBuffer = Buffer.from(ab);
                             usedModel = modelId;
+                            console.log(`--> Success with ${modelId}`);
                             break;
+                        } else {
+                            const errRaw = await response.text();
+                            console.warn(`--> ${modelId} failed: ${response.status}`, errRaw);
                         }
                     } catch (err) {
-                        console.warn(`Model ${modelId} failed for asset ${asset.id}`);
+                        console.warn(`--> ${modelId} error: ${err.message}`);
                     }
                 }
             }
 
-            // Get actual dimensions and calculate scaling
+            // IF BOTH FAILED, SKIP LAYER
+            if (!imageBuffer) {
+                console.warn(`[!] Skipping layer ${asset.id} because both Scraper and AI failed.`);
+                continue;
+            }
+
+            // PROCESS IMAGE AND REMOVE BACKGROUND
             const metadata = await sharp(imageBuffer).metadata();
             const actualWidth = metadata.width || 1024;
             const actualHeight = metadata.height || 1024;
             
-            let scaleX = 1;
-            let scaleY = 1;
-
+            let scale = 1;
             if (asset.type === 'background') {
-                // Background: Cover the entire 1080x1080 canvas
-                const scale = Math.max(1080 / actualWidth, 1080 / actualHeight);
-                scaleX = scale;
-                scaleY = scale;
+                scale = Math.max(1080 / actualWidth, 1080 / actualHeight);
             } else {
-                // Foreground: Fit into planned size but maintain aspect ratio
-                const targetW = asset.width || 600;
-                const targetH = asset.height || 600;
-                const scale = Math.min(targetW / actualWidth, targetH / actualHeight);
-                scaleX = scale;
-                scaleY = scale;
+                scale = Math.min((asset.width || 600) / actualWidth, (asset.height || 600) / actualHeight);
             }
 
-            // Remove Background if foreground
+            // Smart Flood-Fill Background Removal for Foregrounds
             if (asset.type === 'foreground') {
-                console.log(`Removing background for ${asset.id}...`);
-                // Re-process with sharp to get alpha channel and perform flood fill
+                console.log(`-> Extracting foreground object (removing background)...`);
                 const { data, info } = await sharp(imageBuffer)
                     .ensureAlpha()
                     .raw()
@@ -524,22 +496,23 @@ No other text, just the JSON.
                 
                 const width = info.width;
                 const height = info.height;
-                const threshold = 240;
+                const threshold = 240; // High tolerance for white/bright colors
                 const visited = new Uint8Array(width * height);
                 const queue = [];
 
-                const isWhite = (x, y) => {
-                    const pos = (y * width + x) * 4;
-                    return data[pos] > threshold && data[pos + 1] > threshold && data[pos + 2] > threshold;
+                const isBg = (x, y) => {
+                    const idx = (y * width + x) * 4;
+                    // Check if pixel is white/very bright
+                    return data[idx] > threshold && data[idx + 1] > threshold && data[idx + 2] > threshold;
                 };
 
                 for (let x = 0; x < width; x++) {
-                    if (isWhite(x, 0)) { visited[x] = 1; queue.push(x, 0); }
-                    if (isWhite(x, height - 1)) { visited[(height - 1) * width + x] = 1; queue.push(x, height - 1); }
+                    if (isBg(x, 0)) { visited[x] = 1; queue.push(x, 0); }
+                    if (isBg(x, height - 1)) { visited[(height - 1) * width + x] = 1; queue.push(x, height - 1); }
                 }
                 for (let y = 1; y < height - 1; y++) {
-                    if (isWhite(0, y)) { visited[y * width] = 1; queue.push(0, y); }
-                    if (isWhite(width - 1, y)) { visited[y * width + (width - 1)] = 1; queue.push(width - 1, y); }
+                    if (isBg(0, y)) { visited[y * width] = 1; queue.push(0, y); }
+                    if (isBg(width - 1, y)) { visited[y * width + (width - 1)] = 1; queue.push(width - 1, y); }
                 }
 
                 let head = 0;
@@ -547,13 +520,14 @@ No other text, just the JSON.
                     const x = queue[head++];
                     const y = queue[head++];
                     const idx = y * width + x;
-                    data[idx * 4 + 3] = 0;
+                    
+                    data[idx * 4 + 3] = 0; // Set Alpha to 0
 
                     const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
                     for (const [nx, ny] of neighbors) {
                         if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
                             const nIdx = ny * width + nx;
-                            if (!visited[nIdx] && isWhite(nx, ny)) {
+                            if (!visited[nIdx] && isBg(nx, ny)) {
                                 visited[nIdx] = 1;
                                 queue.push(nx, ny);
                             }
@@ -566,14 +540,14 @@ No other text, just the JSON.
                 }).png().toBuffer();
             }
 
-            // Save asset to folder
-            const filename = `ai_${asset.id}_${Date.now()}.png`;
+            // 4. WRITE ASSET TO DISK
+            const filename = `layer_${asset.id}_${Date.now()}.png`;
             const filePath = path.join(assetsPath, filename);
             await fs.writeFile(filePath, imageBuffer);
 
-            // Add layer to composition
+            // 5. UPDATE FABRIC JSON
             generatedLayers.push({
-                id: `layer_${asset.id}_${Date.now()}`,
+                id: `obj_${asset.id}_${Date.now()}`,
                 type: "image",
                 version: "5.3.0",
                 originX: "center",
@@ -582,8 +556,8 @@ No other text, just the JSON.
                 top: asset.top || 540,
                 width: actualWidth,
                 height: actualHeight,
-                scaleX: scaleX,
-                scaleY: scaleY,
+                scaleX: scale,
+                scaleY: scale,
                 angle: 0,
                 flipX: false,
                 flipY: false,
@@ -591,7 +565,6 @@ No other text, just the JSON.
                 visible: true,
                 selectable: true,
                 src: `assets/${filename}`,
-                crossOrigin: "anonymous",
                 metadata: {
                     source: source,
                     model: usedModel,
@@ -599,47 +572,46 @@ No other text, just the JSON.
                 }
             });
 
-            // Prepare for preview composition
+            // Prepare preview buffers
             try {
-                const resizedBuffer = await sharp(imageBuffer)
-                    .resize(Math.round(actualWidth * scaleX), Math.round(actualHeight * scaleY))
+                const resized = await sharp(imageBuffer)
+                    .resize(Math.round(actualWidth * scale), Math.round(actualHeight * scale))
                     .toBuffer();
-                
                 previewLayers.push({
-                    input: resizedBuffer,
-                    top: Math.round((asset.top || 540) - (actualHeight * scaleY / 2)),
-                    left: Math.round((asset.left || 540) - (actualWidth * scaleX / 2))
+                    input: resized,
+                    top: Math.round((asset.top || 540) - (actualHeight * Math.abs(scale) / 2)),
+                    left: Math.round((asset.left || 540) - (actualWidth * Math.abs(scale) / 2))
                 });
             } catch (err) {
-                console.warn(`Failed to add layer ${asset.id} to preview:`, err.message);
+                console.warn(`-> Preview composition failed for ${asset.id}:`, err.message);
             }
         }
 
-        // Update the project's index.json
+        // 6. SAVE PROJECT DATA AND PREVIEW
         const indexPath = path.join(projectPath, 'index.json');
-        const projectData = await fs.readJson(indexPath);
-        projectData.layers = generatedLayers;
-        await fs.writeJson(indexPath, projectData, { spaces: 2 });
+        await fs.writeJson(indexPath, { 
+            version: "5.3.0",
+            projectInfo: newProject.projectInfo,
+            objects: [],
+            background: "#ffffff",
+            canvas: { width: 1080, height: 1080 },
+            layers: generatedLayers 
+        }, { spaces: 2 });
 
-        // Generate preview.png
         if (previewLayers.length > 0) {
             try {
-                console.log(`Generating preview.png for project ${projectId}...`);
                 await sharp({
-                    create: {
-                        width: 1080,
-                        height: 1080,
-                        channels: 4,
-                        background: { r: 255, g: 255, b: 255, alpha: 1 }
-                    }
+                    create: { width: 1080, height: 1080, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } }
                 })
                 .composite(previewLayers)
                 .png()
                 .toFile(path.join(projectPath, 'preview.png'));
             } catch (err) {
-                console.error('Failed to generate preview.png:', err);
+                console.error('Failed to generate preview.png:', err.message);
             }
         }
+
+        console.log(`Project generation complete: ${projectId}`);
 
         res.json({
             success: true,

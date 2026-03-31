@@ -6,6 +6,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
     const [prompt, setPrompt] = useState('');
     const [generating, setGenerating] = useState(false);
     const [transparent, setTransparent] = useState(false);
+    const [useWebSearch, setUseWebSearch] = useState(false);
     const [error, setError] = useState('');
 
     const handleGenerate = async () => {
@@ -16,14 +17,15 @@ const AIPrompt = ({ canvasRef, projectId }) => {
 
         try {
             const res = await api.post('/ai/generate', {
-                prompt: transparent ? `${prompt}, isolated on a plain white background` : prompt,
+                prompt: transparent && !useWebSearch ? `${prompt}, isolated on a plain white background` : prompt,
                 projectId,
-                removeBackground: transparent
+                removeBackground: transparent,
+                useWebSearch
             });
             if (res.data.success && res.data.asset) {
                 // Add to canvas with metadata
                 canvasRef.current?.addImage(res.data.asset.displayUrl, {
-                    source: 'gemini-ai',
+                    source: res.data.metadata?.source || 'gemini-ai',
                     prompt: prompt
                 });
                 setPrompt(''); // Clear after success
@@ -58,17 +60,31 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                     disabled={generating}
                 />
 
-                <div className="flex items-center gap-2 mb-4">
-                    <input
-                        type="checkbox"
-                        id="transparent-bg"
-                        checked={transparent}
-                        onChange={(e) => setTransparent(e.target.checked)}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                    />
-                    <label htmlFor="transparent-bg" className="text-sm font-medium text-gray-700 cursor-pointer select-none">   
-                        Transparent Background (Alpha)
-                    </label>
+                <div className="flex flex-col gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="web-search"
+                            checked={useWebSearch}
+                            onChange={(e) => setUseWebSearch(e.target.checked)}
+                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                        />
+                        <label htmlFor="web-search" className="text-sm font-medium text-gray-700 cursor-pointer select-none">   
+                            Enable Web Search (Scrape Image)
+                        </label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="transparent-bg"
+                            checked={transparent}
+                            onChange={(e) => setTransparent(e.target.checked)}
+                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                        />
+                        <label htmlFor="transparent-bg" className="text-sm font-medium text-gray-700 cursor-pointer select-none">   
+                            Transparent Background (Alpha)
+                        </label>
+                    </div>
                 </div>
 
                 {error && (

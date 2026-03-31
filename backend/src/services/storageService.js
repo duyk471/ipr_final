@@ -61,13 +61,21 @@ export const listProjects = async () => {
     for (const dir of dirs) {
         const indexPath = path.join(PROJECTS_DIR, dir, 'index.json');
         if (await fs.pathExists(indexPath)) {
-            const data = await fs.readJson(indexPath);
-            projects.push({
-                id: data.projectInfo.id,
-                name: data.projectInfo.name,
-                updatedAt: data.projectInfo.updatedAt,
-                previewUrl: `/storage/projects/${dir}/preview.png`
-            });
+            try {
+                const data = await fs.readJson(indexPath);
+                if (data && data.projectInfo) {
+                    projects.push({
+                        id: data.projectInfo.id,
+                        name: data.projectInfo.name,
+                        updatedAt: data.projectInfo.updatedAt,
+                        previewUrl: `/storage/projects/${dir}/preview.png`
+                    });
+                } else {
+                    console.warn(`Project directory ${dir} has an index.json but no projectInfo. Skipping.`);
+                }
+            } catch (err) {
+                console.error(`Error reading ${indexPath}:`, err.message);
+            }
         }
     }
 

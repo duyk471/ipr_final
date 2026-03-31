@@ -9,6 +9,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
+    const [useWebSearch, setUseWebSearch] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const navigate = useNavigate();
 
@@ -31,7 +32,7 @@ const Dashboard = () => {
         if (!aiPrompt.trim()) return;
         setIsGenerating(true);
         try {
-            const res = await api.post('/ai/generate-project', { prompt: aiPrompt });
+            const res = await api.post('/ai/generate-project', { prompt: aiPrompt, useWebSearch });
             if (res.data.success) {
                 navigate(`/editor/${res.data.projectId}`);
             } else {
@@ -159,10 +160,21 @@ const Dashboard = () => {
 
                 <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden mb-2">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
-                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                        <Sparkles className="text-indigo-500" /> AI Magic Generation
-                    </h2>
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            <Sparkles className="text-indigo-500" /> AI Magic Generation
+                        </h2>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={useWebSearch}
+                                onChange={(e) => setUseWebSearch(e.target.checked)}
+                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            />
+                            <span className="text-sm font-medium text-gray-700">Enable Web Search</span>
+                        </label>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4 mb-2">
                         <input 
                             type="text" 
                             placeholder="Describe your scene: e.g., A golden retriever wearing sunglasses on a sunny beach..."
