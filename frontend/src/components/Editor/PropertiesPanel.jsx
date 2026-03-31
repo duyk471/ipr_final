@@ -366,6 +366,48 @@ const PropertiesPanel = ({ canvasRef }) => {
                         Move Down
                     </button>
                 </div>
+                
+                <label className="text-xs font-semibold text-gray-500 uppercase mt-2">Actions</label>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        onClick={() => canvasRef.current?.toggleLock()}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2 ${
+                            selectedObject.isLocked 
+                                ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                    >
+                        {selectedObject.isLocked ? (
+                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Un-Lock</>
+                        ) : (
+                            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Lock Layer</>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => canvasRef.current?.deleteActiveObject()}
+                        className="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete
+                    </button>
+                    
+                    {/* Conditional Group/Ungroup */}
+                    {selectedObject.isActiveSelection && (
+                        <button
+                            onClick={() => canvasRef.current?.groupElements()}
+                            className="px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-medium transition-colors col-span-2"
+                        >
+                            Group Selected Elements
+                        </button>
+                    )}
+                    {selectedObject.isGroup && (
+                        <button
+                            onClick={() => canvasRef.current?.ungroupElements()}
+                            className="px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-medium transition-colors col-span-2"
+                        >
+                            Ungroup Elements
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

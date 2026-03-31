@@ -336,6 +336,43 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 queueSave();
             }
         },
+        toggleLock: () => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject) {
+                const isLocked = activeObject.locked || false;
+                activeObject.set({
+                    locked: !isLocked,
+                    lockMovementX: !isLocked,
+                    lockMovementY: !isLocked,
+                    lockScalingX: !isLocked,
+                    lockScalingY: !isLocked,
+                    lockRotation: !isLocked,
+                    hasControls: isLocked, // true when unlocked, false when locked
+                });
+                activeObject.setOptions({ hoverCursor: !isLocked ? 'not-allowed' : 'move' });
+                fabricCanvas.current.renderAll();
+                updateSelectedState();
+                queueSave();
+            }
+        },
+        groupElements: () => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject && activeObject.type === 'activeSelection') {
+                activeObject.toGroup();
+                fabricCanvas.current.renderAll();
+                updateSelectedState();
+                queueSave();
+            }
+        },
+        ungroupElements: () => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject && activeObject.type === 'group') {
+                activeObject.toActiveSelection();
+                fabricCanvas.current.renderAll();
+                updateSelectedState();
+                queueSave();
+            }
+        },
         exportImage: (format) => {
             if (!fabricCanvas.current) return;
             const dataUrl = fabricCanvas.current.toDataURL({
@@ -530,7 +567,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 top: Math.round(top),
                 right: Math.round(right),
                 bottom: Math.round(bottom),
-                filters: filters
+                filters: filters,
+                isLocked: activeObject.locked || false,
+                isGroup: activeObject.type === 'group',
+                isActiveSelection: activeObject.type === 'activeSelection'
             });
 
             // Update floating toolbar position (hide if rotating)
