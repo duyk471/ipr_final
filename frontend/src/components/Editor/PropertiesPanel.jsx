@@ -5,6 +5,7 @@ const PropertiesPanel = ({ canvasRef }) => {
     const { selectedObject } = useCanvasStore();
     const [canvasSize, setCanvasSize] = useState({ width: 1080, height: 1080 });
     const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+    const [removingBg, setRemovingBg] = useState(false);
 
     // Update canvas info when not selecting any object
     useEffect(() => {
@@ -77,6 +78,17 @@ const PropertiesPanel = ({ canvasRef }) => {
         if (!selectedObject.filters) return;
         const newFilters = { ...selectedObject.filters, [filterType]: value };
         canvasRef.current?.applyFilters({ ...selectedObject.filters, ...newFilters });
+    };
+
+    const handleRemoveBackground = async () => {
+        setRemovingBg(true);
+        try {
+            await canvasRef.current?.removeBackgroundActiveObject();
+        } catch (err) {
+            console.error('Failed to remove background:', err);
+        } finally {
+            setRemovingBg(false);
+        }
     };
 
     const isText = selectedObject.type.includes('text');
@@ -213,6 +225,41 @@ const PropertiesPanel = ({ canvasRef }) => {
                         />
                     </div>
                 </>
+            )}
+
+            {/* AI Tools */}
+            {isImage && (
+                <div className="flex flex-col gap-3 pt-4 border-t">
+                    <label className="text-xs font-semibold text-gray-500 uppercase flex items-center justify-between">
+                        AI Magic Tools
+                    </label>
+                    <button
+                        onClick={handleRemoveBackground}
+                        disabled={removingBg}
+                        className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                            removingBg 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100 hover:border-indigo-200 shadow-sm grow-effect'
+                        }`}
+                    >
+                        {removingBg ? (
+                            <>
+                                <span className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
+                                Removing Background...
+                            </>
+                        ) : (
+                            <>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 3c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2Z"/><path d="m19 15-7-7-7 7"/><path d="m17 21-5-5-5 5"/>
+                                </svg>
+                                Xóa nền AI (Remove BG)
+                            </>
+                        )}
+                    </button>
+                    <p className="text-[10px] text-gray-400 text-center">
+                        Sử dụng AI trực tiếp trên máy của bạn (Browser WASM). Có thể mất vài giây.
+                    </p>
+                </div>
             )}
 
             {/* Image Filters */}

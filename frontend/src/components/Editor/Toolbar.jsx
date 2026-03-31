@@ -1,10 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Type, Square, Circle, Triangle, Image as ImageIcon, Upload, Shapes, ChevronRight } from 'lucide-react';
+import { Type, Square, Circle, Triangle, Image as ImageIcon, Upload, Shapes, ChevronRight, Frame, Star } from 'lucide-react';
 import { api } from '../../store/useCanvasStore';
 
 const Toolbar = ({ canvasRef, projectId }) => {
     const fileInputRef = useRef(null);
     const [showShapes, setShowShapes] = useState(false);
+    const [showFrames, setShowFrames] = useState(false);
     const submenuRef = useRef(null);
 
     const handleUploadClick = () => {
@@ -39,6 +40,7 @@ const Toolbar = ({ canvasRef, projectId }) => {
         const handleClickOutside = (event) => {
             if (submenuRef.current && !submenuRef.current.contains(event.target)) {
                 setShowShapes(false);
+                setShowFrames(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -51,10 +53,17 @@ const Toolbar = ({ canvasRef, projectId }) => {
         { icon: <Triangle size={18} />, label: "Triangle", action: () => { canvasRef.current?.addShape('triangle'); setShowShapes(false); } },
     ];
 
+    const frameOptions = [
+        { icon: <Circle size={18} />, label: "Circle Box", action: () => { canvasRef.current?.addFrame('circle'); setShowFrames(false); } },
+        { icon: <Star size={18} />, label: "Star Box", action: () => { canvasRef.current?.addFrame('star'); setShowFrames(false); } },
+        { icon: <Type size={18} />, label: "Text Box", action: () => { canvasRef.current?.addFrame('text'); setShowFrames(false); } },
+    ];
+
     const mainTools = [
-        { id: 'text', icon: <Type size={20} />, label: "Text", action: () => canvasRef.current?.addText() },
-        { id: 'shapes', icon: <Shapes size={20} />, label: "Shapes", action: () => setShowShapes(!showShapes), hasSubmenu: true },
-        { id: 'upload', icon: <Upload size={20} />, label: "Upload", action: handleUploadClick },
+        { id: 'text', icon: <Type size={20} />, label: "Text", action: () => { canvasRef.current?.addText(); setShowShapes(false); setShowFrames(false); } },
+        { id: 'shapes', icon: <Shapes size={20} />, label: "Shapes", action: () => { setShowShapes(!showShapes); setShowFrames(false); }, hasSubmenu: true },
+        { id: 'frames', icon: <Frame size={20} />, label: "Frames", action: () => { setShowFrames(!showFrames); setShowShapes(false); }, hasSubmenu: true },
+        { id: 'upload', icon: <Upload size={20} />, label: "Upload", action: () => { handleUploadClick(); setShowShapes(false); setShowFrames(false); } },
     ];
 
     return (
@@ -97,6 +106,31 @@ const Toolbar = ({ canvasRef, projectId }) => {
                                     key={idx}
                                     onClick={option.action}
                                     className="flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all text-sm font-medium group/item"
+                                >
+                                    <div className="text-gray-400 group-hover/item:text-indigo-600 transition-colors">
+                                        {option.icon}
+                                    </div>
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Frames Submenu */}
+                    {tool.id === 'frames' && showFrames && (
+                        <div
+                            ref={submenuRef}
+                            className="absolute left-full ml-4 top-0 bg-white shadow-2xl border border-gray-100 rounded-2xl p-2 flex flex-col gap-1 min-w-[150px] z-50 animate-in slide-in-from-left-2 fade-in duration-200"
+                        >
+                            <div className="px-3 py-2 border-b border-gray-50 mb-1">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Smart Frames</span>
+                            </div>
+                            {frameOptions.map((option, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={option.action}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all text-sm font-medium group/item"
+                                    title="Add frame to drop images into"
                                 >
                                     <div className="text-gray-400 group-hover/item:text-indigo-600 transition-colors">
                                         {option.icon}
