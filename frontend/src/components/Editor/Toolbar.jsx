@@ -81,8 +81,8 @@ const Toolbar = ({ canvasRef, projectId }) => {
                     <button
                         onClick={tool.action}
                         className={`flex flex-col items-center justify-center p-3 gap-1.5 rounded-xl transition-all w-full select-none ${tool.id === 'shapes' && showShapes
-                                ? 'text-indigo-600 bg-indigo-50 shadow-inner'
-                                : 'text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'
+                                ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-inner'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-700'
                             }`}
                     >
                         {tool.icon}
@@ -96,18 +96,18 @@ const Toolbar = ({ canvasRef, projectId }) => {
                     {tool.id === 'shapes' && showShapes && (
                         <div
                             ref={submenuRef}
-                            className="absolute left-full ml-4 top-0 bg-white shadow-2xl border border-gray-100 rounded-2xl p-2 flex flex-col gap-1 min-w-[140px] z-50 animate-in slide-in-from-left-2 fade-in duration-200"
+                            className="absolute left-full ml-4 top-0 bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700 rounded-2xl p-2 flex flex-col gap-1 min-w-[140px] z-50 animate-in slide-in-from-left-2 fade-in duration-200"
                         >
-                            <div className="px-3 py-2 border-b border-gray-50 mb-1">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Shape</span>
+                            <div className="px-3 py-2 border-b border-gray-50 dark:border-gray-700 mb-1">
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Select Shape</span>
                             </div>
                             {shapeOptions.map((option, idx) => (
                                 <button
                                     key={idx}
                                     onClick={option.action}
-                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all text-sm font-medium group/item"
+                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-xl transition-all text-sm font-medium group/item"
                                 >
-                                    <div className="text-gray-400 group-hover/item:text-indigo-600 transition-colors">
+                                    <div className="text-gray-400 dark:text-gray-500 group-hover/item:text-indigo-600 dark:group-hover/item:text-indigo-400 transition-colors">
                                         {option.icon}
                                     </div>
                                     {option.label}
@@ -120,19 +120,19 @@ const Toolbar = ({ canvasRef, projectId }) => {
                     {tool.id === 'frames' && showFrames && (
                         <div
                             ref={submenuRef}
-                            className="absolute left-full ml-4 top-0 bg-white shadow-2xl border border-gray-100 rounded-2xl p-2 flex flex-col gap-1 min-w-[150px] z-50 animate-in slide-in-from-left-2 fade-in duration-200"
+                            className="absolute left-full ml-4 top-0 bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700 rounded-2xl p-2 flex flex-col gap-1 min-w-[150px] z-50 animate-in slide-in-from-left-2 fade-in duration-200"
                         >
-                            <div className="px-3 py-2 border-b border-gray-50 mb-1">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Smart Frames</span>
+                            <div className="px-3 py-2 border-b border-gray-50 dark:border-gray-700 mb-1">
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Smart Frames</span>
                             </div>
                             {frameOptions.map((option, idx) => (
                                 <button
                                     key={idx}
                                     onClick={option.action}
-                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all text-sm font-medium group/item"
+                                    className="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-xl transition-all text-sm font-medium group/item"
                                     title="Add frame to drop images into"
                                 >
-                                    <div className="text-gray-400 group-hover/item:text-indigo-600 transition-colors">
+                                    <div className="text-gray-400 dark:text-gray-500 group-hover/item:text-indigo-600 dark:group-hover/item:text-indigo-400 transition-colors">
                                         {option.icon}
                                     </div>
                                     {option.label}

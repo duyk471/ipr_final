@@ -33,8 +33,8 @@ const PropertiesPanel = ({ canvasRef }) => {
 
     if (!selectedObject) {
         return (
-            <div className="flex flex-col h-full bg-white p-6 gap-6">
-                <h3 className="font-bold text-gray-800 border-b pb-2 uppercase text-xs tracking-widest flex items-center gap-2">
+            <div className="flex flex-col h-full bg-white dark:bg-gray-800 p-6 gap-6 transition-colors">
+                <h3 className="font-bold text-gray-800 dark:text-gray-200 border-b dark:border-gray-700 pb-2 uppercase text-xs tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                     CANVAS PROPERTIES
                 </h3>
@@ -100,8 +100,8 @@ const PropertiesPanel = ({ canvasRef }) => {
     const isImage = selectedObject.type === 'image';
 
     return (
-        <div className="flex flex-col h-full bg-white p-6 gap-6">
-            <h3 className="font-bold text-gray-800 border-b pb-2 uppercase text-xs tracking-widest flex items-center gap-2">
+        <div className="flex flex-col h-full bg-white dark:bg-gray-800 p-6 gap-6 transition-colors">
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 border-b dark:border-gray-700 pb-2 uppercase text-xs tracking-widest flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                 {selectedObject.type.toUpperCase()} Properties
             </h3>
