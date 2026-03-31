@@ -243,8 +243,125 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     delete props.bottom;
                 }
                 
-                activeObject.set(props);
-                activeObject.setCoords();
+                // Handle dynamic font loading
+                if (props.fontFamily && props.fontFamily !== activeObject.fontFamily) {
+                    const fontName = props.fontFamily;
+                    const fontID = fontName.replace(/\s+/g, '+');
+                    const linkId = `font-${fontID}`;
+                    
+                    if (!document.getElementById(linkId) && fontName !== 'Inter') {
+                        const link = document.createElement('link');
+                        link.id = linkId;
+                        link.rel = 'stylesheet';
+                        link.href = `https://fonts.googleapis.com/css2?family=${fontID}:wght@400;700&display=swap`;
+                        document.head.appendChild(link);
+                    }
+                    
+                    // Apply immediately 
+                    activeObject.set('fontFamily', fontName);
+                    fabricCanvas.current.renderAll();
+                    updateSelectedState();
+                    
+                    // Re-render once loaded in browser
+                    document.fonts.load(`16px "${fontName}"`).then(() => {
+                        fabricCanvas.current.renderAll();
+                        queueSave();
+                    }).catch(err => console.error("Font load error:", err));
+                    
+                    delete props.fontFamily;
+                }
+
+                if (Object.keys(props).length > 0) {
+                    activeObject.set(props);
+                    activeObject.setCoords();
+                    fabricCanvas.current.renderAll();
+                    updateSelectedState();
+                    queueSave();
+                }
+            }
+        },
+        applyTextEffect: (effectType) => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject && activeObject.type.includes('text')) {
+                if (effectType === 'none') {
+                    activeObject.set({
+                        shadow: null,
+                        stroke: null,
+                        strokeWidth: 0,
+                        fill: activeObject.fill === 'transparent' ? '#000000' : activeObject.fill
+                    });
+                } else if (effectType === 'shadow') {
+                    activeObject.set({
+                        shadow: new fabric.Shadow({
+                            color: 'rgba(0,0,0,0.5)',
+                            blur: 4,
+                            offsetX: 4,
+                            offsetY: 4
+                        }),
+                        stroke: null, strokeWidth: 0,
+                        fill: activeObject.fill === 'transparent' ? '#000000' : activeObject.fill
+                    });
+                } else if (effectType === 'glow') {
+                    const color = activeObject.fill !== 'transparent' && typeof activeObject.fill === 'string' ? activeObject.fill : '#6366f1';
+                    activeObject.set({
+                        shadow: new fabric.Shadow({
+                            color: color,
+                            blur: 20,
+                            offsetX: 0,
+                            offsetY: 0
+                        }),
+                        stroke: null, strokeWidth: 0,
+                        fill: activeObject.fill === 'transparent' ? '#000000' : activeObject.fill
+                    });
+                } else if (effectType === 'outline') {
+                    activeObject.set({
+                        stroke: '#000000',
+                        strokeWidth: 2,
+                        shadow: null,
+                        fill: activeObject.fill === 'transparent' ? '#ffffff' : activeObject.fill
+                    });
+                } else if (effectType === 'hollow') {
+                    activeObject.set({
+                        fill: 'transparent',
+                        stroke: '#000000',
+                        strokeWidth: 2,
+                        shadow: null
+                    });
+                }
+                
+                fabricCanvas.current.renderAll();
+                updateSelectedState();
+                queueSave();
+            }
+        },
+        toggleCurvedText: (isCurved) => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject && activeObject.type.includes('text')) {
+                if (isCurved) {
+                    const radius = activeObject.curveRadius || 50;
+                    const r = Math.max(Math.abs(radius) * 3, Math.max(activeObject.width, 100) / 2);
+                    const sweep = radius > 0 ? 1 : 0;
+                    activeObject.set('path', new fabric.Path(`M 0 0 A ${r} ${r} 0 0 ${sweep} ${activeObject.width} 0`));
+                    activeObject.set('pathAlign', 'center');
+                    activeObject.set('pathSide', 'left');
+                    activeObject.set('isCurved', true);
+                    activeObject.set('curveRadius', radius);
+                } else {
+                    activeObject.set('path', null);
+                    activeObject.set('isCurved', false);
+                }
+                fabricCanvas.current.renderAll();
+                updateSelectedState();
+                queueSave();
+            }
+        },
+        updateCurveRadius: (radius) => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject && activeObject.type.includes('text') && activeObject.isCurved) {
+                const r = Math.max(Math.abs(radius) * 3, Math.max(activeObject.width, 100) / 2);
+                const sweep = radius > 0 ? 1 : 0;
+                activeObject.set('curveRadius', radius);
+                activeObject.set('path', new fabric.Path(`M 0 0 A ${r} ${r} 0 0 ${sweep} ${activeObject.width} 0`));
                 fabricCanvas.current.renderAll();
                 updateSelectedState();
                 queueSave();
@@ -570,7 +687,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 filters: filters,
                 isLocked: activeObject.locked || false,
                 isGroup: activeObject.type === 'group',
-                isActiveSelection: activeObject.type === 'activeSelection'
+                isActiveSelection: activeObject.type === 'activeSelection',
+                isCurved: activeObject.isCurved || false,
+                curveRadius: activeObject.curveRadius || 50
             });
 
             // Update floating toolbar position (hide if rotating)

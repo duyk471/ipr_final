@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import useCanvasStore from '../../store/useCanvasStore';
 
+const FONTS = [
+    "Inter", "Roboto", "Open Sans", "Oswald", "Lora", "Merriweather", 
+    "Playfair Display", "Montserrat", "Pacifico", "Dancing Script", "Caveat", "Anton"
+];
+
 const PropertiesPanel = ({ canvasRef }) => {
     const { selectedObject } = useCanvasStore();
     const [canvasSize, setCanvasSize] = useState({ width: 1080, height: 1080 });
@@ -207,22 +212,108 @@ const PropertiesPanel = ({ canvasRef }) => {
             {/* Text Specific */}
             {isText && (
                 <>
-                    <div className="flex flex-col gap-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Font Size</label>
-                        <input
-                            type="number"
-                            value={selectedObject.fontSize || 12}
-                            onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
-                            className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                        />
+                    <div className="flex flex-col gap-2 pt-4 border-t">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Typography</label>
+                        
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] text-gray-400">Font Family</label>
+                            <select
+                                value={selectedObject.fontFamily || 'Inter'}
+                                onChange={(e) => handleChange('fontFamily', e.target.value)}
+                                className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                                style={{ fontFamily: selectedObject.fontFamily || 'Inter' }}
+                            >
+                                {FONTS.map(font => (
+                                    <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
+
                     <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase mt-2">Text Properties</label>
+                        <div className="flex justify-between items-center gap-2">
+                            <label className="text-xs text-gray-400 flex-1">Size</label>
+                            <input
+                                type="number"
+                                value={selectedObject.fontSize || 12}
+                                onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
+                                className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none w-20"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2 pt-2">
                         <label className="text-xs font-semibold text-gray-500 uppercase">Text Content</label>
                         <textarea
                             value={selectedObject.text || ''}
                             onChange={(e) => handleChange('text', e.target.value)}
                             className="px-3 py-2 text-sm border rounded-lg h-24 resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                         />
+                    </div>
+
+                    {/* Text Effects */}
+                    <div className="flex flex-col gap-2 pt-4 border-t">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Text Effects</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => canvasRef.current?.applyTextEffect('none')}
+                                className="px-2 py-1.5 bg-gray-50 hover:bg-gray-100 border text-gray-600 rounded-lg text-xs font-medium"
+                            >None</button>
+                            <button
+                                onClick={() => canvasRef.current?.applyTextEffect('shadow')}
+                                className="px-2 py-1.5 bg-gray-50 hover:bg-gray-100 border text-gray-600 rounded-lg text-xs font-medium drop-shadow-md"
+                            >Shadow</button>
+                            <button
+                                onClick={() => canvasRef.current?.applyTextEffect('glow')}
+                                className="px-2 py-1.5 bg-gray-50 hover:bg-gray-100 border text-gray-600 rounded-lg text-xs font-medium"
+                                style={{ textShadow: "0 0 4px rgba(99,102,241,0.8)" }}
+                            >Glow</button>
+                            <button
+                                onClick={() => canvasRef.current?.applyTextEffect('outline')}
+                                className="px-2 py-1.5 bg-gray-50 hover:bg-gray-100 border text-gray-800 rounded-lg text-xs font-black"
+                                style={{ WebkitTextStroke: "1px black", color: "white" }}
+                            >Outline</button>
+                            <button
+                                onClick={() => canvasRef.current?.applyTextEffect('hollow')}
+                                className="px-2 py-1.5 bg-gray-50 hover:bg-gray-100 border text-gray-800 rounded-lg text-xs font-bold col-span-2"
+                                style={{ WebkitTextStroke: "1px black", color: "transparent" }}
+                            >Hollow</button>
+                        </div>
+                    </div>
+
+                    {/* Curved Text */}
+                    <div className="flex flex-col gap-2 pt-4 border-t">
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Curved Text</label>
+                            <label className="flex items-center cursor-pointer">
+                                <div className="relative">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only" 
+                                        checked={!!selectedObject.isCurved}
+                                        onChange={(e) => canvasRef.current?.toggleCurvedText(e.target.checked)}
+                                    />
+                                    <div className={`block w-8 h-4 rounded-full transition-colors ${selectedObject.isCurved ? 'bg-indigo-500' : 'bg-gray-300'}`}></div>
+                                    <div className={`dot absolute left-1 top-1 bg-white w-2 h-2 rounded-full transition-transform ${selectedObject.isCurved ? 'transform translate-x-4' : ''}`}></div>
+                                </div>
+                            </label>
+                        </div>
+                        {selectedObject.isCurved && (
+                            <div className="flex flex-col gap-1 mt-1">
+                                <div className="flex justify-between">
+                                    <label className="text-[10px] text-gray-400">Curve Radius</label>
+                                    <span className="text-[10px] text-gray-400 font-mono">{selectedObject.curveRadius || 50}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="-150"
+                                    max="150"
+                                    value={selectedObject.curveRadius || 50}
+                                    onChange={(e) => canvasRef.current?.updateCurveRadius(parseInt(e.target.value))}
+                                    className="w-full accent-indigo-600"
+                                />
+                            </div>
+                        )}
                     </div>
                 </>
             )}
