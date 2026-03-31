@@ -6,7 +6,9 @@ import {
     removeProject,
     exportProjectZip,
     importProjectFromZip,
-    createProjectFromImage
+    createProjectFromImage,
+    getProjectHistory,
+    restoreProjectHistory
 } from '../services/storageService.js';
 
 export const getAllProjects = async (req, res) => {
@@ -114,3 +116,27 @@ export const importImage = async (req, res) => {
         res.status(500).json({ success: false, message: error.message || 'Failed to import image' });
     }
 };
+
+export const getHistory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const history = await getProjectHistory(id);
+        res.json({ success: true, history });
+    } catch (error) {
+        console.error('Get history error:', error);
+        res.status(500).json({ success: false, message: 'Failed to get history' });
+    }
+};
+
+export const restoreHistory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { date } = req.body;
+        const project = await restoreProjectHistory(id, date);
+        res.json({ success: true, project });
+    } catch (error) {
+        console.error('Restore history error:', error);
+        res.status(500).json({ success: false, message: 'Failed to restore history' });
+    }
+};
+

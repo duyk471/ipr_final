@@ -7,7 +7,9 @@ import {
     deleteProject,
     exportProject,
     importProject,
-    importImage
+    importImage,
+    getHistory,
+    restoreHistory
 } from '../controllers/projectController.js';
 import multer from 'multer';
 
@@ -23,5 +25,8 @@ router.get('/:id/export', exportProject); // Move this up
 router.get('/:id', getProjectById);
 router.put('/:id', updateProject);
 router.delete('/:id', deleteProject);
+
+router.get('/:id/history', getHistory);
+router.post('/:id/history/restore', restoreHistory);
 
 export default router;

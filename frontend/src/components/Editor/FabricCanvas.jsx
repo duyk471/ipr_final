@@ -16,6 +16,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
     // Selection UI State
     const [toolbarPos, setToolbarPos] = useState(null);
+    const [contextMenu, setContextMenu] = useState(null);
     const isRotating = useRef(false);
 
     // Undo/Redo Stacks
@@ -95,6 +96,86 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         fabricCanvas.current.renderAll();
         updateSelectedState();
         queueSave();
+    };
+
+    const handleContextMenuAction = (action) => (e) => {
+        e.stopPropagation();
+        setContextMenu(null);
+        if (!fabricCanvas.current) return;
+        const activeObject = fabricCanvas.current.getActiveObject();
+
+        switch (action) {
+            case 'copy':
+                if (activeObject) {
+                    activeObject.clone(['id', 'metadata']).then(cloned => {
+                        clipboard.current = cloned;
+                    });
+                }
+                break;
+            case 'paste':
+                if (clipboard.current) {
+                    clipboard.current.clone(['id', 'metadata']).then(clonedObj => {
+                        fabricCanvas.current.discardActiveObject();
+                        clonedObj.set({
+                            left: clonedObj.left + 20,
+                            top: clonedObj.top + 20,
+                            evented: true,
+                        });
+                        if (clonedObj.type === 'activeSelection') {
+                            clonedObj.canvas = fabricCanvas.current;
+                            clonedObj.forEachObject(obj => {
+                                fabricCanvas.current.add(obj);
+                            });
+                            clonedObj.setCoords();
+                        } else {
+                            fabricCanvas.current.add(clonedObj);
+                        }
+                        clipboard.current.top += 20;
+                        clipboard.current.left += 20;
+                        fabricCanvas.current.setActiveObject(clonedObj);
+                        fabricCanvas.current.requestRenderAll();
+                        updateSelectedState();
+                        queueSave();
+                    });
+                }
+                break;
+            case 'duplicate':
+                duplicateActiveObject();
+                break;
+            case 'delete':
+                deleteActiveObject();
+                break;
+            case 'bringForward':
+                if (activeObject) {
+                    fabricCanvas.current.bringObjectForward(activeObject);
+                    fabricCanvas.current.renderAll();
+                    queueSave();
+                }
+                break;
+            case 'sendBackwards':
+                if (activeObject) {
+                    fabricCanvas.current.sendObjectBackwards(activeObject);
+                    fabricCanvas.current.renderAll();
+                    queueSave();
+                }
+                break;
+            case 'bringToFront':
+                if (activeObject) {
+                    fabricCanvas.current.bringObjectToFront(activeObject);
+                    fabricCanvas.current.renderAll();
+                    queueSave();
+                }
+                break;
+            case 'sendToBack':
+                if (activeObject) {
+                    fabricCanvas.current.sendObjectToBack(activeObject);
+                    fabricCanvas.current.renderAll();
+                    queueSave();
+                }
+                break;
+            default:
+                break;
+        }
     };
 
     useImperativeHandle(ref, () => ({
@@ -816,6 +897,85 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     }
                 }
 
+                // Arrow keys for moving
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+                    const activeObject = fabricCanvas.current.getActiveObject();
+                    const isEditingText = activeObject && activeObject.type.includes('text') && activeObject.isEditing;
+
+                    if (!isInputField && !isEditingText && activeObject) {
+                        e.preventDefault();
+                        const step = e.shiftKey ? 10 : 1;
+                        if (e.key === 'ArrowUp') activeObject.set('top', activeObject.top - step);
+                        if (e.key === 'ArrowDown') activeObject.set('top', activeObject.top + step);
+                        if (e.key === 'ArrowLeft') activeObject.set('left', activeObject.left - step);
+                        if (e.key === 'ArrowRight') activeObject.set('left', activeObject.left + step);
+                        
+                        activeObject.setCoords();
+                        fabricCanvas.current.requestRenderAll();
+                        updateSelectedState();
+                        queueSave();
+                    }
+                }
+
+                // Undo / Redo
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+                    if (!isInputField) {
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            // Redo
+                            if (redoStack.current.length > 0) {
+                                isActionInProgress.current = true;
+                                const nextState = redoStack.current.pop();
+                                undoStack.current.push(nextState);
+                                fabricCanvas.current.loadFromJSON(JSON.parse(nextState)).then(() => {
+                                    fabricCanvas.current.renderAll();
+                                    isActionInProgress.current = false;
+                                    updateSelectedState();
+                                    queueSave(true);
+                                });
+                            }
+                        } else {
+                            // Undo
+                            if (undoStack.current.length > 1) {
+                                isActionInProgress.current = true;
+                                const currentState = undoStack.current.pop();
+                                redoStack.current.push(currentState);
+                                const prevState = undoStack.current[undoStack.current.length - 1];
+                                fabricCanvas.current.loadFromJSON(JSON.parse(prevState)).then(() => {
+                                    fabricCanvas.current.renderAll();
+                                    isActionInProgress.current = false;
+                                    updateSelectedState();
+                                    queueSave(true);
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                    const target = e.target;
+                    const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+                    if (!isInputField) {
+                        e.preventDefault();
+                        if (redoStack.current.length > 0) {
+                            isActionInProgress.current = true;
+                            const nextState = redoStack.current.pop();
+                            undoStack.current.push(nextState);
+                            fabricCanvas.current.loadFromJSON(JSON.parse(nextState)).then(() => {
+                                fabricCanvas.current.renderAll();
+                                isActionInProgress.current = false;
+                                updateSelectedState();
+                                queueSave(true);
+                            });
+                        }
+                    }
+                }
+
+                // Delete
                 if (e.key === 'Delete' || e.key === 'Backspace') {
                     // Check if not typing in text object or input field
                     const target = e.target;
@@ -1226,8 +1386,37 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     }, []);
 
     return (
-        <div ref={containerRef} className="origin-center shadow-2xl bg-white border border-gray-200 relative">
+        <div 
+            ref={containerRef} 
+            className="origin-center shadow-2xl bg-white border border-gray-200 relative"
+            onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY });
+            }}
+            onClick={() => {
+                if (contextMenu) setContextMenu(null);
+            }}
+        >
             <canvas ref={canvasEl} />
+
+            {/* Context Menu */}
+            {contextMenu && (
+                <div 
+                    className="fixed bg-white border shadow-xl rounded-xl p-1.5 z-[200] flex flex-col min-w-[180px]"
+                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                >
+                    <button onClick={handleContextMenuAction('copy')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Copy</button>
+                    <button onClick={handleContextMenuAction('paste')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Paste</button>
+                    <button onClick={handleContextMenuAction('duplicate')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Duplicate</button>
+                    <div className="h-px bg-gray-200 my-1 mx-1"></div>
+                    <button onClick={handleContextMenuAction('bringToFront')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Bring to Front</button>
+                    <button onClick={handleContextMenuAction('bringForward')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Bring Forward</button>
+                    <button onClick={handleContextMenuAction('sendBackwards')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Send Backward</button>
+                    <button onClick={handleContextMenuAction('sendToBack')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Send to Back</button>
+                    <div className="h-px bg-gray-200 my-1 mx-1"></div>
+                    <button onClick={handleContextMenuAction('delete')} className="px-3 py-1.5 text-sm text-left font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">Delete</button>
+                </div>
+            )}
 
             {/* Floating Deletion Toolbar */}
             {toolbarPos && (

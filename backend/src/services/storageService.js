@@ -93,6 +93,17 @@ export const saveProject = async (projectId, canvasState, previewBase64) => {
 
     const data = await fs.readJson(indexPath);
     
+    // Snapshot feature: backup the state before overwriting
+    const historyDir = path.join(projectPath, 'history');
+    await fs.ensureDir(historyDir);
+    const today = new Date().toISOString().split('T')[0];
+    const historyFile = path.join(historyDir, `${today}.json`);
+    
+    // If today's backup doesn't exist, this creates a snapshot of how it looked at the START of the day
+    if (!(await fs.pathExists(historyFile))) {
+        await fs.copy(indexPath, historyFile);
+    }
+
     // Process layers to ensure relative paths for local assets
     const processedLayers = (canvasState.layers || data.layers).map(layer => {
         if ((layer.type === 'Image' || layer.type === 'image') && layer.src && typeof layer.src === 'string') {
@@ -256,4 +267,35 @@ export const createProjectFromImage = async (imageBuffer, originalFilename) => {
     await fs.writeJson(path.join(projectPath, 'index.json'), projectData, { spaces: 2 });
     
     return projectData;
+};
+
+export const getProjectHistory = async (projectId) => {
+    const historyDir = path.join(PROJECTS_DIR, projectId, 'history');
+    if (!(await fs.pathExists(historyDir))) return [];
+    
+    const files = await fs.readdir(historyDir);
+    return files
+        .filter(f => f.endsWith('.json'))
+        .map(f => {
+            const date = f.replace('.json', '');
+            return { date, filename: f };
+        })
+        .sort((a, b) => b.date.localeCompare(a.date));
+};
+
+export const restoreProjectHistory = async (projectId, dateString) => {
+    const historyFile = path.join(PROJECTS_DIR, projectId, 'history', `${dateString}.json`);
+    const indexPath = path.join(PROJECTS_DIR, projectId, 'index.json');
+    
+    if (!(await fs.pathExists(historyFile))) {
+        throw new Error('History snapshot not found');
+    }
+    
+    // Backup current state to a manual rollback file just in case
+    const backupName = `rollback_${Date.now()}.json`;
+    await fs.copy(indexPath, path.join(PROJECTS_DIR, projectId, 'history', backupName));
+    
+    // Restore
+    await fs.copy(historyFile, indexPath);
+    return await fs.readJson(indexPath);
 };

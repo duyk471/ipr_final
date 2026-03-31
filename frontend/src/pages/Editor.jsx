@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Undo2, Redo2, Settings, Sparkles, Sliders, Wand2 } from 'lucide-react';
-import useCanvasStore from '../store/useCanvasStore';
+import { ArrowLeft, Download, Undo2, Redo2, Settings, History, Sparkles, Sliders, Wand2 } from 'lucide-react';
+import useCanvasStore, { api } from '../store/useCanvasStore';
 import FabricCanvas from '../components/Editor/FabricCanvas';
 import Toolbar from '../components/Editor/Toolbar';
 import AIPrompt from '../components/Editor/AIPrompt';
@@ -15,14 +15,55 @@ const Editor = () => {
     const { fetchProject, currentProject, isLoading, selectedObject } = useCanvasStore();
     const [activeTab, setActiveTab] = useState('properties'); // 'properties', 'ai', or 'assistant'
     const [showSettings, setShowSettings] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+    const [historyList, setHistoryList] = useState([]);
 
     const canvasRef = useRef(null);
+    const historyDropdownRef = useRef(null);
 
     useEffect(() => {
         if (id) {
             fetchProject(id);
         }
     }, [id, fetchProject]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (historyDropdownRef.current && !historyDropdownRef.current.contains(event.target)) {
+                setShowHistory(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const fetchHistory = async () => {
+        if (showHistory) {
+            setShowHistory(false);
+            return;
+        }
+        try {
+            const res = await api.get(`/projects/${id}/history`);
+            if (res.data.success) {
+                setHistoryList(res.data.history);
+                setShowHistory(true);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const restoreHistory = async (date) => {
+        if (!window.confirm(`Restore to snapshot ${date}? Current state will be backed up.`)) return;
+        try {
+            const res = await api.post(`/projects/${id}/history/restore`, { date });
+            if (res.data.success) {
+                window.location.reload();
+            }
+        } catch (error) {
+            alert('Failed to restore history');
+        }
+    };
 
     // Switch to properties tab when an object is selected
     useEffect(() => {
@@ -64,6 +105,38 @@ const Editor = () => {
                         <button className="p-2 hover:bg-gray-50 text-gray-600" title="Redo" onClick={() => canvasRef.current?.handleRedo()}>
                             <Redo2 size={18} />
                         </button>
+                    </div>
+
+                    <div className="relative" ref={historyDropdownRef}>
+                        <button
+                            onClick={fetchHistory}
+                            className={`p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all ${showHistory ? 'bg-indigo-50 text-indigo-600' : ''}`}
+                            title="Version History"
+                        >
+                            <History size={20} />
+                        </button>
+                        
+                        {showHistory && (
+                            <div className="absolute top-full right-0 mt-2 w-64 bg-white border shadow-xl rounded-xl p-2 z-50">
+                                <h3 className="text-sm font-semibold text-gray-700 px-2 py-1 border-b mb-2">Version History</h3>
+                                {historyList.length === 0 ? (
+                                    <p className="text-xs text-gray-500 p-2">No history snapshots found. (Saved daily upon first edit).</p>
+                                ) : (
+                                    <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                                        {historyList.map((item, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => restoreHistory(item.date)}
+                                                className="text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center group"
+                                            >
+                                                <span>{item.date}</span>
+                                                <span className="text-xs text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">Restore</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <button
