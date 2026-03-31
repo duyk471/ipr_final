@@ -40,6 +40,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const clipboard = useRef(null);
     const isPasting = useRef(false);
 
+    // Snapping Guides
+    const guideLines = useRef([]);
+
     const pushToUndo = () => {
         if (isActionInProgress.current || !fabricCanvas.current) return;
         const json = fabricCanvas.current.toObject(['id', 'metadata']);
@@ -182,6 +185,28 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 
                 activeObject.set(props);
                 activeObject.setCoords();
+                fabricCanvas.current.renderAll();
+                updateSelectedState();
+                queueSave();
+            }
+        },
+        applyFilters: (filterProps) => {
+            const activeObject = fabricCanvas.current?.getActiveObject();
+            if (activeObject && activeObject.type === 'image') {
+                activeObject.filters = [];
+                if (filterProps.brightness !== 0) {
+                    activeObject.filters.push(new fabric.filters.Brightness({ brightness: filterProps.brightness }));
+                }
+                if (filterProps.contrast !== 0) {
+                    activeObject.filters.push(new fabric.filters.Contrast({ contrast: filterProps.contrast }));
+                }
+                if (filterProps.hue !== 0) {
+                    activeObject.filters.push(new fabric.filters.HueRotation({ rotation: filterProps.hue }));
+                }
+                if (filterProps.blur !== 0) {
+                    activeObject.filters.push(new fabric.filters.Blur({ blur: filterProps.blur }));
+                }
+                activeObject.applyFilters();
                 fabricCanvas.current.renderAll();
                 updateSelectedState();
                 queueSave();
@@ -371,6 +396,16 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const right = canvasWidth - (left + width);
             const bottom = canvasHeight - (top + height);
 
+            const filters = { brightness: 0, contrast: 0, hue: 0, blur: 0 };
+            if (activeObject.type === 'image' && activeObject.filters) {
+                activeObject.filters.forEach(f => {
+                    if (f.type === 'Brightness') filters.brightness = f.brightness || 0;
+                    if (f.type === 'Contrast') filters.contrast = f.contrast || 0;
+                    if (f.type === 'HueRotation') filters.hue = f.rotation || 0;
+                    if (f.type === 'Blur') filters.blur = f.blur || 0;
+                });
+            }
+
             setSelectedObject({
                 type: activeObject.type,
                 fill: activeObject.fill,
@@ -384,6 +419,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 top: Math.round(top),
                 right: Math.round(right),
                 bottom: Math.round(bottom),
+                filters: filters
             });
 
             // Update floating toolbar position (hide if rotating)
@@ -646,7 +682,99 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.on('selection:updated', updateSelectedState);
             fabricCanvas.current.on('selection:cleared', updateSelectedState);
             fabricCanvas.current.on('object:scaling', updateSelectedState);
-            fabricCanvas.current.on('object:moving', updateSelectedState);
+            
+            // Magnetic Snapping Logic
+            const SNAP_THRESHOLD = 5;
+            
+            const clearGuideLines = () => {
+                if (guideLines.current.length > 0) {
+                    guideLines.current.forEach(line => fabricCanvas.current.remove(line));
+                    guideLines.current = [];
+                }
+            };
+
+            const drawGuideLine = (coords) => {
+                const line = new fabric.Line(coords, {
+                    stroke: '#bd93f9',
+                    strokeWidth: 1,
+                    selectable: false,
+                    evented: false,
+                    strokeDashArray: [5, 5],
+                    opacity: 0.8,
+                    id: 'guide'
+                });
+                fabricCanvas.current.add(line);
+                guideLines.current.push(line);
+            };
+
+            fabricCanvas.current.on('object:moving', (e) => {
+                const activeObj = e.target;
+                if (!activeObj) return;
+
+                clearGuideLines();
+
+                const canvasWidth = fabricCanvas.current.width;
+                const canvasHeight = fabricCanvas.current.height;
+                
+                const objBounds = activeObj.getBoundingRect();
+                const objCenter = activeObj.getCenterPoint();
+                
+                const targetXs = [0, canvasWidth / 2, canvasWidth];
+                const targetYs = [0, canvasHeight / 2, canvasHeight];
+
+                fabricCanvas.current.getObjects().forEach(obj => {
+                    if (obj === activeObj || obj.id === 'guide') return;
+                    const bounds = obj.getBoundingRect();
+                    const center = obj.getCenterPoint();
+                    targetXs.push(bounds.left, center.x, bounds.left + bounds.width);
+                    targetYs.push(bounds.top, center.y, bounds.top + bounds.height);
+                });
+
+                let snappedX = false;
+                let snappedY = false;
+
+                const activeXs = [
+                    { type: 'left', val: objBounds.left },
+                    { type: 'center', val: objCenter.x },
+                    { type: 'right', val: objBounds.left + objBounds.width }
+                ];
+
+                for (let i = 0; i < targetXs.length && !snappedX; i++) {
+                    const targetX = targetXs[i];
+                    for (const { val } of activeXs) {
+                        if (Math.abs(val - targetX) < SNAP_THRESHOLD) {
+                            const offset = targetX - val;
+                            activeObj.set({ left: activeObj.left + offset });
+                            drawGuideLine([targetX, 0, targetX, canvasHeight]);
+                            snappedX = true;
+                            break;
+                        }
+                    }
+                }
+
+                const activeYs = [
+                    { type: 'top', val: objBounds.top },
+                    { type: 'center', val: objCenter.y },
+                    { type: 'bottom', val: objBounds.top + objBounds.height }
+                ];
+
+                for (let i = 0; i < targetYs.length && !snappedY; i++) {
+                    const targetY = targetYs[i];
+                    for (const { val } of activeYs) {
+                        if (Math.abs(val - targetY) < SNAP_THRESHOLD) {
+                            const offset = targetY - val;
+                            activeObj.set({ top: activeObj.top + offset });
+                            drawGuideLine([0, targetY, canvasWidth, targetY]);
+                            snappedY = true;
+                            break;
+                        }
+                    }
+                }
+
+                updateSelectedState();
+            });
+
+            fabricCanvas.current.on('mouse:up', clearGuideLines);
             
             // Handle rotation - hide toolbar while rotating
             fabricCanvas.current.on('object:rotating', () => {

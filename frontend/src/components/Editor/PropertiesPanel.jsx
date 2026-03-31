@@ -73,7 +73,14 @@ const PropertiesPanel = ({ canvasRef }) => {
         canvasRef.current?.updateObject({ [prop]: value });
     };
 
+    const handleFilterChange = (filterType, value) => {
+        if (!selectedObject.filters) return;
+        const newFilters = { ...selectedObject.filters, [filterType]: value };
+        canvasRef.current?.applyFilters({ ...selectedObject.filters, ...newFilters });
+    };
+
     const isText = selectedObject.type.includes('text');
+    const isImage = selectedObject.type === 'image';
 
     return (
         <div className="flex flex-col h-full bg-white p-6 gap-6">
@@ -206,6 +213,81 @@ const PropertiesPanel = ({ canvasRef }) => {
                         />
                     </div>
                 </>
+            )}
+
+            {/* Image Filters */}
+            {isImage && (
+                <div className="flex flex-col gap-3 pt-4 border-t">
+                    <label className="text-xs font-semibold text-gray-500 uppercase flex items-center justify-between">
+                        Image Filters
+                        <button 
+                            onClick={() => canvasRef.current?.applyFilters({ brightness: 0, contrast: 0, hue: 0, blur: 0 })}
+                            className="text-[10px] text-indigo-500 hover:text-indigo-700 font-normal normal-case"
+                        >
+                            Reset
+                        </button>
+                    </label>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex justify-between">
+                            <label className="text-xs text-gray-400">Brightness</label>
+                            <span className="text-[10px] text-gray-400 font-mono">{selectedObject.filters?.brightness?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="-1"
+                            max="1"
+                            step="0.05"
+                            value={selectedObject.filters?.brightness || 0}
+                            onChange={(e) => handleFilterChange('brightness', parseFloat(e.target.value))}
+                            className="w-full accent-indigo-600"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex justify-between">
+                            <label className="text-xs text-gray-400">Contrast</label>
+                            <span className="text-[10px] text-gray-400 font-mono">{selectedObject.filters?.contrast?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="-1"
+                            max="1"
+                            step="0.05"
+                            value={selectedObject.filters?.contrast || 0}
+                            onChange={(e) => handleFilterChange('contrast', parseFloat(e.target.value))}
+                            className="w-full accent-indigo-600"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex justify-between">
+                            <label className="text-xs text-gray-400">Hue Rotation</label>
+                            <span className="text-[10px] text-gray-400 font-mono">{selectedObject.filters?.hue?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="-2"
+                            max="2"
+                            step="0.05"
+                            value={selectedObject.filters?.hue || 0}
+                            onChange={(e) => handleFilterChange('hue', parseFloat(e.target.value))}
+                            className="w-full accent-indigo-600"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex justify-between">
+                            <label className="text-xs text-gray-400">Blur</label>
+                            <span className="text-[10px] text-gray-400 font-mono">{selectedObject.filters?.blur?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={selectedObject.filters?.blur || 0}
+                            onChange={(e) => handleFilterChange('blur', parseFloat(e.target.value))}
+                            className="w-full accent-indigo-600"
+                        />
+                    </div>
+                </div>
             )}
 
             {/* Layer Control */}
