@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Type, Upload, Shapes, Sparkles, Wand2 } from 'lucide-react';
+import { Type, Upload, Shapes, Sparkles, Wand2, Image } from 'lucide-react';
 import { api } from '../../store/useCanvasStore';
 
 const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) => {
@@ -55,6 +55,12 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
             icon: <Wand2 size={22} />, 
             label: "AI Assist", 
             action: () => setActiveLeftPanel(activeLeftPanel === 'assistant' ? null : 'assistant') 
+        },
+        { 
+            id: 'images', 
+            icon: <Image size={22} />, 
+            label: "Images", 
+            action: () => setActiveLeftPanel(activeLeftPanel === 'images' ? null : 'images') 
         },
         { 
             id: 'upload', 

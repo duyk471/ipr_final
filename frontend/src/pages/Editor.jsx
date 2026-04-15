@@ -12,6 +12,7 @@ import ConfirmModal from '../components/UI/ConfirmModal';
 import ExportModal from '../components/UI/ExportModal';
 import ElementsPanel from '../components/Editor/ElementsPanel';
 import TextPanel from '../components/Editor/TextPanel';
+import ImageLibraryPanel from '../components/Editor/ImageLibraryPanel';
 
 const Editor = () => {
     const { id } = useParams();
@@ -223,6 +224,7 @@ const Editor = () => {
                                     {activeLeftPanel === 'text' && 'Text Elements'}
                                     {activeLeftPanel === 'ai' && 'AI Generator'}
                                     {activeLeftPanel === 'assistant' && 'Design Assistant'}
+                                    {activeLeftPanel === 'images' && 'Image Library'}
                                 </h3>
                                 <button 
                                     onClick={() => setActiveLeftPanel(null)}
@@ -236,6 +238,7 @@ const Editor = () => {
                                 {activeLeftPanel === 'text' && <TextPanel canvasRef={canvasRef} />}
                                 {activeLeftPanel === 'ai' && <AIPrompt canvasRef={canvasRef} projectId={id} />}
                                 {activeLeftPanel === 'assistant' && <AIDesignAssistant canvasRef={canvasRef} projectId={id} />}
+                                {activeLeftPanel === 'images' && <ImageLibraryPanel canvasRef={canvasRef} />}
                             </div>
                         </aside>
                     )}
