@@ -10,8 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STORAGE_ROOT = path.join(__dirname, '../../../storage');
 
-import { scrapeImages } from '../utils/scraper.js';
-
 /**
  * Enhanced Download Image Helper
  */
@@ -143,77 +141,53 @@ export const analyzeDesign = async (req, res) => {
 
 export const generateImage = async (req, res) => {
     try {
-        const { prompt, projectId, removeBackground, useWebSearch } = req.body;
+        const { prompt, projectId, removeBackground } = req.body;
 
         if (!prompt || !projectId) {
             return res.status(400).json({ success: false, message: 'Missing prompt or projectId' });
         }
 
-        console.log(`Generating image for project ${projectId}: "${prompt}" (WebSearch: ${!!useWebSearch})`);
+        console.log(`Generating AI image for project ${projectId}: "${prompt}"`);
 
         let imageBuffer = null;
-        let usedModel = "google-images";
-        let source = "google-images-scrape";
+        let usedModel = "unknown";
+        let source = "huggingface-ai";
         let lastError = "";
 
-        // --- STRATEGY 1: ONLINE IMAGE SEARCH VIA PUPPETEER/CHEERIO ---
-        if (useWebSearch) {
+        const hfToken = process.env.HUGGINGFACE_API_KEY;
+        const models = [
+            "black-forest-labs/FLUX.1-schnell",
+            "stabilityai/stable-diffusion-xl-base-1.0",
+            "runwayml/stable-diffusion-v1-5"
+        ];
+
+        for (const modelId of models) {
             try {
-                const scrapedUrls = await scrapeImages(prompt, { limit: 5 });
-                for (const url of scrapedUrls) {
-                    console.log(`Attempting download scraped high-res link: ${url}`);
-                    const buffer = await downloadImage(url);
-                    if (buffer) {
-                        imageBuffer = buffer;
-                        break;
-                    }
+                console.log(`Trying AI model: ${modelId}...`);
+                const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${hfToken}`,
+                        'Content-Type': 'application/json',
+                        'x-use-cache': 'false'
+                    },
+                    body: JSON.stringify({
+                        inputs: removeBackground ? `${prompt}, isolated on white background` : prompt
+                    })
+                });
+
+                if (response.ok) {
+                    const arrayBuffer = await response.arrayBuffer();
+                    imageBuffer = Buffer.from(arrayBuffer);
+                    usedModel = modelId;
+                    break;
+                } else {
+                    const err = await response.json().catch(() => ({ error: 'Unknown' }));
+                    lastError = err.error || "Request failed";
                 }
             } catch (err) {
-                console.warn("Image search failed, falling back to AI:", err.message);
-            }
-        } else {
-            console.log("Web Search is disabled. Skipping scrape Strategy.");
-        }
-
-        // --- STRATEGY 2: AI FALLBACK (Or Default) ---
-        if (!imageBuffer) {
-            console.log(`Falling back to AI generation for project ${projectId}`);
-            source = "huggingface-ai";
-            const hfToken = process.env.HUGGINGFACE_API_KEY;
-            const models = [
-                "black-forest-labs/FLUX.1-schnell",
-                "stabilityai/stable-diffusion-xl-base-1.0",
-                "runwayml/stable-diffusion-v1-5"
-            ];
-
-            for (const modelId of models) {
-                try {
-                    console.log(`Trying AI model: ${modelId}...`);
-                    const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${hfToken}`,
-                            'Content-Type': 'application/json',
-                            'x-use-cache': 'false'
-                        },
-                        body: JSON.stringify({
-                            inputs: removeBackground ? `${prompt}, isolated on white background` : prompt
-                        })
-                    });
-
-                    if (response.ok) {
-                        const arrayBuffer = await response.arrayBuffer();
-                        imageBuffer = Buffer.from(arrayBuffer);
-                        usedModel = modelId;
-                        break;
-                    } else {
-                        const err = await response.json().catch(() => ({ error: 'Unknown' }));
-                        lastError = err.error || "Request failed";
-                    }
-                } catch (err) {
-                    lastError = err.message;
-                }
+                lastError = err.message;
             }
         }
 
@@ -309,7 +283,7 @@ export const generateImage = async (req, res) => {
 
 export const generateProjectFromPrompt = async (req, res) => {
     try {
-        const { prompt, useWebSearch } = req.body;
+        const { prompt } = req.body;
         if (!prompt) {
             return res.status(400).json({ success: false, message: 'Missing prompt' });
         }
@@ -324,49 +298,65 @@ export const generateProjectFromPrompt = async (req, res) => {
             });
         }
 
-        console.log(`\n=========================================\nGenerating entirely new Project from prompt: "${prompt}" (WebSearch: ${!!useWebSearch})\n=========================================`);
+        console.log(`\n=========================================\nGenerating entirely new Project from prompt: "${prompt}"\n=========================================`);
 
         // 1. SMART LAYOUT GENERATION WITH GEMINI
         const genAI = new GoogleGenerativeAI(geminiToken);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const systemPrompt = `
-You are an expert Art Director and strict JSON API turning a user's prompt into a layered image composition.
+You are an expert Art Director and strict JSON API turning a user's prompt into a native Canva-like canvas composition.
 The user wants to generate: "${prompt}".
 
 RULES FOR ASSETS:
-- Produce EXACTLY ONE "background" layer.
-- Produce ALONG WITH IT 1 to 3 "foreground" layers.
-- For each layer, define:
-  - "id": a unique short alphanumeric string.
-  - "prompt": highly descriptive AI generation prompt (e.g. "cinematic lighting, 8k, photorealistic").
-  - "search_query": a very precise, concise 2-4 word keyword phase to find the real image on Google.
-  - "type": "background" or "foreground".
-  - "width" & "height": integer dimensions. Background must be 1080x1080.
-  - "left" & "top": Canvas center coordinates for placement. (Background is always 540, 540).
+- Produce an array of visual elements to represent the design.
+- The canvas size is 1080x1080. Center is {left: 540, top: 540}.
+- Elements MUST be in z-index order (background first, then details, then foreground subjects, then texts on top).
+
+ELEMENT TYPES:
+1. "image": A photo or illustration that needs to be generated by AI.
+   - define: "id", "type": "image", "prompt" (detailed AI text-to-image prompt), "width", "height", "left", "top", "removeBackground": boolean (true if it's a cutout foreground).
+2. "text": Editable typography.
+   - define: "id", "type": "text", "text" (the actual string), "fontSize", "fontFamily" (e.g., "Arial", "Impact", "Times New Roman", "Comic Sans MS"), "fill" (hex color code), "fontWeight" ("normal" or "bold"), "left", "top".
+3. "rect" or "circle": Simple geometric shapes for backgrounds or accents.
+   - define (rect): "id", "type": "rect", "width", "height", "fill" (hex color code), "left", "top".
+   - define (circle): "id", "type": "circle", "radius", "fill" (hex color code), "left", "top".
+
+IMPORTANT COORDINATE RULES:
+- "left" and "top" define the CENTER of the object.
 
 Return ONLY the raw JSON object formatted like this, no markdown backticks, no extra text:
 {
   "assets": [
     {
-      "id": "bg1",
-      "prompt": "detailed landscape background, empty scene, 8k",
-      "search_query": "landscape background",
-      "type": "background",
+      "id": "bg_rect",
+      "type": "rect",
+      "fill": "#F5EFE6",
       "width": 1080,
       "height": 1080,
       "left": 540,
       "top": 540
     },
     {
-      "id": "fg1",
-      "prompt": "main subject isolated on plain white background",
-      "search_query": "main subject clean background",
-      "type": "foreground",
+      "id": "hero_img",
+      "type": "image",
+      "prompt": "orange cat wearing sunglasses on a sunny beach, highly detailed",
+      "removeBackground": true,
       "width": 600,
       "height": 600,
       "left": 540,
-      "top": 600
+      "top": 540
+    },
+    {
+      "id": "main_text",
+      "type": "text",
+      "text": "SUMMER VIBES",
+      "fontSize": 96,
+      "fontFamily": "Impact",
+      "fill": "#E55C31",
+      "fontWeight": "bold",
+      "left": 540,
+      "top": 150
     }
   ]
 }`;
@@ -395,39 +385,80 @@ Return ONLY the raw JSON object formatted like this, no markdown backticks, no e
         const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
         const assetsPath = path.join(projectPath, 'assets');
 
-        // 3. FETCH IMAGES USING HYBRID APPROACH (Scraper -> HF)
+        // 3. BUILD LAYERS
         const generatedLayers = [];
         const previewLayers = [];
 
         for (const asset of projectPlan.assets) {
-            console.log(`\n--- Processing asset [${asset.id}]: ${asset.search_query}`);
-            let imageBuffer = null;
-            let usedModel = "google-images";
-            let source = "google-images-scrape";
+            console.log(`\n--- Processing asset [${asset.id}]: ${asset.type}`);
             
-            // STRATEGY A: PUPPETEER/CHEERIO IMAGE SCRAPER
-            if (useWebSearch) {
-                try {
-                    const scrapedUrls = await scrapeImages(asset.search_query, { limit: 3 });
-                    for (const url of scrapedUrls) {
-                        console.log(`-> Found high-res link, downloading: ${url}`);
-                        const buffer = await downloadImage(url);
-                        if (buffer) {
-                            imageBuffer = buffer;
-                            break;
-                        }
-                    }
-                } catch (err) {
-                    console.warn(`-> Scraping failed for ${asset.id}: ${err.message}`);
-                }
-            } else {
-                console.log(`-> Web Search is disabled. Skipping scraper for ${asset.id}...`);
+            if (asset.type === 'text') {
+                generatedLayers.push({
+                    id: `obj_${asset.id}_${Date.now()}`,
+                    type: "textbox",
+                    version: "5.3.0",
+                    originX: "center",
+                    originY: "center",
+                    left: asset.left || 540,
+                    top: asset.top || 540,
+                    width: asset.width || 400,
+                    text: asset.text || "Text",
+                    fontSize: asset.fontSize || 48,
+                    fontFamily: asset.fontFamily || "Arial",
+                    fontWeight: asset.fontWeight || "normal",
+                    fill: asset.fill || "#000000",
+                    opacity: 1,
+                    visible: true,
+                    selectable: true,
+                    metadata: { source: "gemini-ai" }
+                });
+                continue;
             }
 
-            // STRATEGY B: AI TEXT-TO-IMAGE GENERATION (FALLBACK)
-            if (!imageBuffer) {
-                console.log(`-> Scraper failed. Falling back to AI Generation...`);
-                source = "huggingface-ai";
+            if (asset.type === 'rect') {
+                generatedLayers.push({
+                    id: `obj_${asset.id}_${Date.now()}`,
+                    type: "rect",
+                    version: "5.3.0",
+                    originX: "center",
+                    originY: "center",
+                    left: asset.left || 540,
+                    top: asset.top || 540,
+                    width: asset.width || 100,
+                    height: asset.height || 100,
+                    fill: asset.fill || "#000000",
+                    opacity: 1,
+                    visible: true,
+                    selectable: true,
+                    metadata: { source: "gemini-ai" }
+                });
+                continue;
+            }
+
+            if (asset.type === 'circle') {
+                generatedLayers.push({
+                    id: `obj_${asset.id}_${Date.now()}`,
+                    type: "circle",
+                    version: "5.3.0",
+                    originX: "center",
+                    originY: "center",
+                    left: asset.left || 540,
+                    top: asset.top || 540,
+                    radius: asset.radius || 50,
+                    fill: asset.fill || "#000000",
+                    opacity: 1,
+                    visible: true,
+                    selectable: true,
+                    metadata: { source: "gemini-ai" }
+                });
+                continue;
+            }
+
+            // Image generation
+            if (asset.type === 'image') {
+                let imageBuffer = null;
+                let usedModel = "unknown";
+                let source = "huggingface-ai";
                 
                 if (!hfToken) {
                     console.error("-> Cannot fallback to AI: HUGGINGFACE_API_KEY is missing.");
@@ -449,7 +480,7 @@ Return ONLY the raw JSON object formatted like this, no markdown backticks, no e
                                 'Authorization': `Bearer ${hfToken}`,
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ inputs: asset.type === 'foreground' ? `${asset.prompt}, plain white background isolated` : asset.prompt })
+                            body: JSON.stringify({ inputs: asset.removeBackground ? `${asset.prompt}, plain white background isolated` : asset.prompt })
                         });
 
                         if (response.ok) {
@@ -466,124 +497,123 @@ Return ONLY the raw JSON object formatted like this, no markdown backticks, no e
                         console.warn(`--> ${modelId} error: ${err.message}`);
                     }
                 }
-            }
 
-            // IF BOTH FAILED, SKIP LAYER
-            if (!imageBuffer) {
-                console.warn(`[!] Skipping layer ${asset.id} because both Scraper and AI failed.`);
-                continue;
-            }
+                if (!imageBuffer) {
+                    console.warn(`[!] Skipping layer ${asset.id} because AI failed.`);
+                    continue;
+                }
 
-            // PROCESS IMAGE AND REMOVE BACKGROUND
-            const metadata = await sharp(imageBuffer).metadata();
-            const actualWidth = metadata.width || 1024;
-            const actualHeight = metadata.height || 1024;
-            
-            let scale = 1;
-            if (asset.type === 'background') {
-                scale = Math.max(1080 / actualWidth, 1080 / actualHeight);
-            } else {
-                scale = Math.min((asset.width || 600) / actualWidth, (asset.height || 600) / actualHeight);
-            }
-
-            // Smart Flood-Fill Background Removal for Foregrounds
-            if (asset.type === 'foreground') {
-                console.log(`-> Extracting foreground object (removing background)...`);
-                const { data, info } = await sharp(imageBuffer)
-                    .ensureAlpha()
-                    .raw()
-                    .toBuffer({ resolveWithObject: true });
+                // PROCESS IMAGE AND REMOVE BACKGROUND
+                const metadata = await sharp(imageBuffer).metadata();
+                const actualWidth = metadata.width || 1024;
+                const actualHeight = metadata.height || 1024;
                 
-                const width = info.width;
-                const height = info.height;
-                const threshold = 240; // High tolerance for white/bright colors
-                const visited = new Uint8Array(width * height);
-                const queue = [];
-
-                const isBg = (x, y) => {
-                    const idx = (y * width + x) * 4;
-                    // Check if pixel is white/very bright
-                    return data[idx] > threshold && data[idx + 1] > threshold && data[idx + 2] > threshold;
-                };
-
-                for (let x = 0; x < width; x++) {
-                    if (isBg(x, 0)) { visited[x] = 1; queue.push(x, 0); }
-                    if (isBg(x, height - 1)) { visited[(height - 1) * width + x] = 1; queue.push(x, height - 1); }
-                }
-                for (let y = 1; y < height - 1; y++) {
-                    if (isBg(0, y)) { visited[y * width] = 1; queue.push(0, y); }
-                    if (isBg(width - 1, y)) { visited[y * width + (width - 1)] = 1; queue.push(width - 1, y); }
+                let scale = 1;
+                if (!asset.removeBackground) {
+                    scale = Math.max((asset.width || 500) / actualWidth, (asset.height || 500) / actualHeight);
+                } else {
+                    scale = Math.min((asset.width || 500) / actualWidth, (asset.height || 500) / actualHeight);
                 }
 
-                let head = 0;
-                while (head < queue.length) {
-                    const x = queue[head++];
-                    const y = queue[head++];
-                    const idx = y * width + x;
+                // Smart Flood-Fill Background Removal for Foregrounds
+                if (asset.removeBackground) {
+                    console.log(`-> Extracting foreground object (removing background)...`);
+                    const { data, info } = await sharp(imageBuffer)
+                        .ensureAlpha()
+                        .raw()
+                        .toBuffer({ resolveWithObject: true });
                     
-                    data[idx * 4 + 3] = 0; // Set Alpha to 0
+                    const width = info.width;
+                    const height = info.height;
+                    const threshold = 240; // High tolerance for white/bright colors
+                    const visited = new Uint8Array(width * height);
+                    const queue = [];
 
-                    const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
-                    for (const [nx, ny] of neighbors) {
-                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                            const nIdx = ny * width + nx;
-                            if (!visited[nIdx] && isBg(nx, ny)) {
-                                visited[nIdx] = 1;
-                                queue.push(nx, ny);
+                    const isBg = (x, y) => {
+                        const idx = (y * width + x) * 4;
+                        // Check if pixel is white/very bright
+                        return data[idx] > threshold && data[idx + 1] > threshold && data[idx + 2] > threshold;
+                    };
+
+                    for (let x = 0; x < width; x++) {
+                        if (isBg(x, 0)) { visited[x] = 1; queue.push(x, 0); }
+                        if (isBg(x, height - 1)) { visited[(height - 1) * width + x] = 1; queue.push(x, height - 1); }
+                    }
+                    for (let y = 1; y < height - 1; y++) {
+                        if (isBg(0, y)) { visited[y * width] = 1; queue.push(0, y); }
+                        if (isBg(width - 1, y)) { visited[y * width + (width - 1)] = 1; queue.push(width - 1, y); }
+                    }
+
+                    let head = 0;
+                    while (head < queue.length) {
+                        const x = queue[head++];
+                        const y = queue[head++];
+                        const idx = y * width + x;
+                        
+                        data[idx * 4 + 3] = 0; // Set Alpha to 0
+
+                        const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
+                        for (const [nx, ny] of neighbors) {
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                const nIdx = ny * width + nx;
+                                if (!visited[nIdx] && isBg(nx, ny)) {
+                                    visited[nIdx] = 1;
+                                    queue.push(nx, ny);
+                                }
                             }
                         }
                     }
+
+                    imageBuffer = await sharp(data, {
+                        raw: { width, height, channels: 4 }
+                    }).png().toBuffer();
                 }
 
-                imageBuffer = await sharp(data, {
-                    raw: { width, height, channels: 4 }
-                }).png().toBuffer();
-            }
+                // 4. WRITE ASSET TO DISK
+                const filename = `layer_${asset.id}_${Date.now()}.png`;
+                const filePath = path.join(assetsPath, filename);
+                await fs.writeFile(filePath, imageBuffer);
 
-            // 4. WRITE ASSET TO DISK
-            const filename = `layer_${asset.id}_${Date.now()}.png`;
-            const filePath = path.join(assetsPath, filename);
-            await fs.writeFile(filePath, imageBuffer);
-
-            // 5. UPDATE FABRIC JSON
-            generatedLayers.push({
-                id: `obj_${asset.id}_${Date.now()}`,
-                type: "image",
-                version: "5.3.0",
-                originX: "center",
-                originY: "center",
-                left: asset.left || 540,
-                top: asset.top || 540,
-                width: actualWidth,
-                height: actualHeight,
-                scaleX: scale,
-                scaleY: scale,
-                angle: 0,
-                flipX: false,
-                flipY: false,
-                opacity: 1,
-                visible: true,
-                selectable: true,
-                src: `assets/${filename}`,
-                metadata: {
-                    source: source,
-                    model: usedModel,
-                    prompt: asset.prompt
-                }
-            });
-
-            // Prepare preview buffers
-            try {
-                const resized = await sharp(imageBuffer)
-                    .resize(Math.round(actualWidth * scale), Math.round(actualHeight * scale))
-                    .toBuffer();
-                previewLayers.push({
-                    input: resized,
-                    top: Math.round((asset.top || 540) - (actualHeight * Math.abs(scale) / 2)),
-                    left: Math.round((asset.left || 540) - (actualWidth * Math.abs(scale) / 2))
+                // 5. UPDATE FABRIC JSON
+                generatedLayers.push({
+                    id: `obj_${asset.id}_${Date.now()}`,
+                    type: "image",
+                    version: "5.3.0",
+                    originX: "center",
+                    originY: "center",
+                    left: asset.left || 540,
+                    top: asset.top || 540,
+                    width: actualWidth,
+                    height: actualHeight,
+                    scaleX: scale,
+                    scaleY: scale,
+                    angle: 0,
+                    flipX: false,
+                    flipY: false,
+                    opacity: 1,
+                    visible: true,
+                    selectable: true,
+                    src: `assets/${filename}`,
+                    metadata: {
+                        source: source,
+                        model: usedModel,
+                        prompt: asset.prompt
+                    }
                 });
-            } catch (err) {
-                console.warn(`-> Preview composition failed for ${asset.id}:`, err.message);
+
+                // Prepare preview buffers
+                try {
+                    const resized = await sharp(imageBuffer)
+                        .resize(Math.round(actualWidth * scale), Math.round(actualHeight * scale))
+                        .toBuffer();
+                    previewLayers.push({
+                        input: resized,
+                        top: Math.round((asset.top || 540) - (actualHeight * Math.abs(scale) / 2)),
+                        left: Math.round((asset.left || 540) - (actualWidth * Math.abs(scale) / 2))
+                    });
+                } catch (err) {
+                    console.warn(`-> Preview composition failed for ${asset.id}:`, err.message);
+                }
             }
         }
 

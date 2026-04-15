@@ -9,7 +9,6 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
-    const [useWebSearch, setUseWebSearch] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const navigate = useNavigate();
 
@@ -32,7 +31,7 @@ const Dashboard = () => {
         if (!aiPrompt.trim()) return;
         setIsGenerating(true);
         try {
-            const res = await api.post('/ai/generate-project', { prompt: aiPrompt, useWebSearch });
+            const res = await api.post('/ai/generate-project', { prompt: aiPrompt });
             if (res.data.success) {
                 navigate(`/editor/${res.data.projectId}`);
             } else {
@@ -164,15 +163,6 @@ const Dashboard = () => {
                         <h2 className="text-xl font-semibold flex items-center gap-2">
                             <Sparkles className="text-indigo-500" /> AI Magic Generation
                         </h2>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={useWebSearch}
-                                onChange={(e) => setUseWebSearch(e.target.checked)}
-                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            />
-                            <span className="text-sm font-medium text-gray-700">Enable Web Search</span>
-                        </label>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4 mb-2">
                         <input 

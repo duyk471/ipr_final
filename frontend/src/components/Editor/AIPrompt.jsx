@@ -6,7 +6,6 @@ const AIPrompt = ({ canvasRef, projectId }) => {
     const [prompt, setPrompt] = useState('');
     const [generating, setGenerating] = useState(false);
     const [transparent, setTransparent] = useState(false);
-    const [useWebSearch, setUseWebSearch] = useState(false);
     const [error, setError] = useState('');
 
     const handleGenerate = async () => {
@@ -17,10 +16,9 @@ const AIPrompt = ({ canvasRef, projectId }) => {
 
         try {
             const res = await api.post('/ai/generate', {
-                prompt: transparent && !useWebSearch ? `${prompt}, isolated on a plain white background` : prompt,
+                prompt: transparent ? `${prompt}, isolated on a plain white background` : prompt,
                 projectId,
-                removeBackground: transparent,
-                useWebSearch
+                removeBackground: transparent
             });
             if (res.data.success && res.data.asset) {
                 // Add to canvas with metadata
@@ -61,18 +59,6 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                 />
 
                 <div className="flex flex-col gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            id="web-search"
-                            checked={useWebSearch}
-                            onChange={(e) => setUseWebSearch(e.target.checked)}
-                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                        />
-                        <label htmlFor="web-search" className="text-sm font-medium text-gray-700 cursor-pointer select-none">   
-                            Enable Web Search (Scrape Image)
-                        </label>
-                    </div>
                     <div className="flex items-center gap-2">
                         <input
                             type="checkbox"
