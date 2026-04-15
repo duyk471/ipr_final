@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as fabric from 'fabric';
-import { removeBackground } from '@imgly/background-removal';
 import { Trash2, Copy, MoreVertical, RotateCw } from 'lucide-react';
 import useCanvasStore from '../../store/useCanvasStore';
 import { api } from '../../store/useCanvasStore';
@@ -192,14 +191,15 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
     useImperativeHandle(ref, () => ({
         canvas: fabricCanvas.current,
-        addText: () => {
+        addText: (options = {}) => {
             if (!fabricCanvas.current) return;
-            const text = new fabric.IText('Hello World', {
-                left: 100,
-                top: 100,
-                fontFamily: 'Inter',
-                fill: '#000000',
-                fontSize: 40
+            const text = new fabric.IText(options.text || 'Hello World', {
+                left: options.left || 100,
+                top: options.top || 100,
+                fontFamily: options.fontFamily || 'Inter',
+                fill: options.fill || '#000000',
+                fontSize: options.fontSize || 40,
+                fontWeight: options.fontWeight || 'normal'
             });
             fabricCanvas.current.add(text);
             fabricCanvas.current.bringObjectToFront(text);
@@ -486,30 +486,31 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const activeObject = fabricCanvas.current?.getActiveObject();
             if (activeObject && activeObject.type === 'image') {
                 try {
-                    // Extract the source URL
-                    // For Fabric Image v7, src is a property or getSrc()
-                    const src = activeObject.src || activeObject.getSrc();
+                    // Extract the source URL (relative to project or storage URL)
+                    let src = activeObject.src || activeObject.getSrc();
                     
-                    // Call the library
-                    const blob = await removeBackground(src);
-                    
-                    // Convert blob to base64 for persistence in index.json
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const base64data = reader.result;
-                        const img = new Image();
-                        img.onload = () => {
-                            activeObject.setElement(img);
-                            activeObject.set('src', base64data); // Persist in JSON
+                    // Call our backend API
+                    const res = await api.post(`/projects/${projectId}/assets/remove-bg`, {
+                        imagePath: src
+                    });
+
+                    if (res.data.success) {
+                        const newUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
+                        
+                        // Create a new Image element to update the Fabric object
+                        const imgEl = new Image();
+                        imgEl.crossOrigin = 'anonymous';
+                        imgEl.onload = () => {
+                            activeObject.setElement(imgEl);
+                            activeObject.set('src', res.data.asset.displayUrl); // Store relative/clean path
                             fabricCanvas.current.renderAll();
                             updateSelectedState();
                             queueSave();
                         };
-                        img.src = base64data;
-                    };
-                    reader.readAsDataURL(blob);
+                        imgEl.src = newUrl;
+                    }
                 } catch (err) {
-                    console.error('Background removal error:', err);
+                    console.error('Server-side Background removal error:', err);
                     throw err;
                 }
             }
@@ -1055,6 +1056,44 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('keyup', handleKeyUp);
 
+            // Handle Paste Events
+            const handlePasteEvent = async (e) => {
+                const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+                if (!items) return;
+                for (const item of items) {
+                    if (item.type.indexOf('image/') === 0) {
+                        e.preventDefault();
+                        const blob = item.getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = async (event) => {
+                            const base64data = event.target.result;
+                            try {
+                                const res = await api.post(`/projects/${projectId}/assets/pasted`, {
+                                    imageBase64: base64data
+                                });
+                                if (res.data.success) {
+                                    const fullUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
+                                    const img = await fabric.FabricImage.fromURL(fullUrl, { crossOrigin: 'anonymous' });
+                                    img.set('metadata', { source: "clipboard" });
+                                    fabricCanvas.current.add(img);
+                                    fabricCanvas.current.centerObject(img);
+                                    img.setCoords();
+                                    fabricCanvas.current.bringObjectToFront(img);
+                                    fabricCanvas.current.setActiveObject(img);
+                                    fabricCanvas.current.renderAll();
+                                    queueSave();
+                                }
+                            } catch(err) {
+                                console.error("Paste upload error:", err);
+                            }
+                        };
+                        reader.readAsDataURL(blob);
+                        break; 
+                    }
+                }
+            };
+            window.addEventListener('paste', handlePasteEvent);
+
             // Mouse Wheel Zoom (with Ctrl)
             const handleWheel = (e) => {
                 if (e.ctrlKey) {
@@ -1378,6 +1417,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 window.removeEventListener('mousedown', handleMouseDown);
                 window.removeEventListener('mousemove', handleMouseMove);
                 window.removeEventListener('mouseup', handleMouseUp);
+                window.removeEventListener('paste', handlePasteEvent); // <--- Add this
                 if (containerRef.current) {
                     containerRef.current.removeEventListener('wheel', handleWheel);
                     containerRef.current.removeEventListener('mouseenter', handleCanvasMouseEnter);

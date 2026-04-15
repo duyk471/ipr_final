@@ -58,7 +58,7 @@ const UserManual = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="h-screen overflow-y-auto bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 custom-scrollbar">
             <div className="max-w-4xl mx-auto">
                 <button
                     onClick={() => navigate('/')}

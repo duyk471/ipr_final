@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Image as ImageIcon, Trash2, Download, FileJson, Upload, Sparkles, BookOpen } from 'lucide-react';
 import { api } from '../store/useCanvasStore';
 import NewProjectModal from '../components/Dashboard/NewProjectModal';
+import ConfirmModal from '../components/UI/ConfirmModal';
 
 const Dashboard = () => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, title: '', message: '', isDestructive: true });
     const [aiPrompt, setAiPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const navigate = useNavigate();
@@ -59,13 +61,20 @@ const Dashboard = () => {
 
     const handleDelete = async (e, id) => {
         e.stopPropagation();
-        if (!window.confirm("Are you sure you want to delete this project?")) return;
-        try {
-            await api.delete(`/projects/${id}`);
-            fetchProjects();
-        } catch (error) {
-            console.error('Error deleting project:', error);
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: "Delete Project",
+            message: "Are you sure you want to delete this project? This action cannot be undone.",
+            isDestructive: true,
+            action: async () => {
+                try {
+                    await api.delete(`/projects/${id}`);
+                    fetchProjects();
+                } catch (error) {
+                    console.error('Error deleting project:', error);
+                }
+            }
+        });
     };
 
     const handleExport = async (e, id) => {
@@ -155,6 +164,18 @@ const Dashboard = () => {
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     onCreate={handleCreateProject}
+                />
+
+                <ConfirmModal 
+                    isOpen={confirmModal.isOpen}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    isDestructive={confirmModal.isDestructive}
+                    onConfirm={() => {
+                        if (confirmModal.action) confirmModal.action();
+                        setConfirmModal({ ...confirmModal, isOpen: false });
+                    }}
+                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
                 />
 
                 <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden mb-2">

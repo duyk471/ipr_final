@@ -8,6 +8,7 @@ import AIPrompt from '../components/Editor/AIPrompt';
 import PropertiesPanel from '../components/Editor/PropertiesPanel';
 import ProjectSettings from '../components/Editor/ProjectSettings';
 import AIDesignAssistant from '../components/Editor/AIDesignAssistant';
+import ConfirmModal from '../components/UI/ConfirmModal';
 import ElementsPanel from '../components/Editor/ElementsPanel';
 import TextPanel from '../components/Editor/TextPanel';
 
@@ -20,6 +21,7 @@ const Editor = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [historyList, setHistoryList] = useState([]);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, title: '', message: '', isDestructive: true });
     
     // Default to system preference for dark mode
     const [isDarkMode, setIsDarkMode] = useState(() => 
@@ -70,15 +72,22 @@ const Editor = () => {
     };
 
     const restoreHistory = async (date) => {
-        if (!window.confirm(`Restore to snapshot ${date}? Current state will be backed up.`)) return;
-        try {
-            const res = await api.post(`/projects/${id}/history/restore`, { date });
-            if (res.data.success) {
-                window.location.reload();
+        setConfirmModal({
+            isOpen: true,
+            title: "Restore Snapshot",
+            message: `Restore to snapshot ${date}? Your current unsaved state will be backed up.`,
+            isDestructive: false,
+            action: async () => {
+                try {
+                    const res = await api.post(`/projects/${id}/history/restore`, { date });
+                    if (res.data.success) {
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    alert('Failed to restore history');
+                }
             }
-        } catch (error) {
-            alert('Failed to restore history');
-        }
+        });
     };
 
     // Switch to properties tab when an object is selected
@@ -249,6 +258,17 @@ const Editor = () => {
 
             {/* Modals */}
             {showSettings && <ProjectSettings onClose={() => setShowSettings(false)} />}
+            {/* Confirm Modal */}
+            <ConfirmModal 
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDestructive={confirmModal.isDestructive}
+                onConfirm={() => {
+                    if (confirmModal.action) confirmModal.action();
+                }}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+            />
         </div>
     );
 };

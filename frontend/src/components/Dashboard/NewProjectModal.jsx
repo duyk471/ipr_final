@@ -84,20 +84,24 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
 
                     {/* Presets */}
                     <div className="flex flex-col gap-3 pt-2">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase ml-1">Quick Presets</span>
-                        <div className="flex gap-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase ml-1">Popular Templates</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {[
-                                { label: 'Square (1:1)', w: 1080, h: 1080 },
-                                { label: 'Portrait (4:5)', w: 1080, h: 1350 },
-                                { label: 'Story (9:16)', w: 1080, h: 1920 }
+                                { label: 'Instagram (1:1)', w: 1080, h: 1080 },
+                                { label: 'Instagram Story', w: 1080, h: 1920 },
+                                { label: 'FB Cover', w: 851, h: 315 },
+                                { label: 'YouTube Thumb', w: 1280, h: 720 },
+                                { label: 'A4 Document', w: 794, h: 1123 },
+                                { label: 'Business Card', w: 1050, h: 600 }
                             ].map((preset) => (
                                 <button
                                     key={preset.label}
                                     type="button"
                                     onClick={() => { setWidth(preset.w); setHeight(preset.h); }}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border-2 ${width === preset.w && height === preset.h ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' : 'bg-white text-gray-600 border-gray-100 hover:border-indigo-200 hover:text-indigo-600'}`}
+                                    className={`px-3 py-2.5 rounded-xl text-[10px] font-bold transition-all border-2 text-center flex flex-col items-center justify-center gap-1 ${width === preset.w && height === preset.h ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' : 'bg-white text-gray-600 border-gray-100 hover:border-indigo-200 hover:text-indigo-600'}`}
                                 >
-                                    {preset.label}
+                                    <span>{preset.label}</span>
+                                    <span className="opacity-60 font-medium">{preset.w}x{preset.h}</span>
                                 </button>
                             ))}
                         </div>

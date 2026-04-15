@@ -99,6 +99,7 @@ const PropertiesPanel = ({ canvasRef }) => {
             await canvasRef.current?.removeBackgroundActiveObject();
         } catch (err) {
             console.error('Failed to remove background:', err);
+            alert('Lỗi: ' + (err.response?.data?.message || err.message || 'Không thể xóa nền. Bật console ở backend để xem lỗi chi tiết.'));
         } finally {
             setRemovingBg(false);
         }
@@ -422,7 +423,7 @@ const PropertiesPanel = ({ canvasRef }) => {
                         )}
                     </button>
                     <p className="text-[10px] text-gray-400 text-center">
-                        Sử dụng AI trực tiếp trên máy của bạn (Browser WASM). Có thể mất vài giây.
+                        Xử lý AI chuyên nghiệp trên Server. Có thể mất vài giây.
                     </p>
                 </div>
             )}

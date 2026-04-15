@@ -94,8 +94,10 @@ export const analyzeDesign = async (req, res) => {
             3. Generate a modified version of the "layers" array that implements your best suggestions.
             
             REQUIREMENTS:
-                        - Treat the user's additional creative direction as a high-priority instruction unless it conflicts with the project structure.
+            - Treat the user's additional creative direction as a high-priority instruction unless it conflicts with the project structure.
             - Keep the EXACT SAME object structure as Fabric.js found in the source JSON.
+            - **IMPORTANT**: If you believe adding a NEW AI-generated image (e.g. element, person, object) or text/rect would improve the design, you CAN insert new layer objects into the "layers" array!
+            - For NEW images: Set type: "image", leave out the "src" property completely, and instead include a property "prompt" with a highly detailed description of the image to generate!
             - Return your response EQUIVALENT to this JSON format:
             {
               "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"],
@@ -126,6 +128,90 @@ export const analyzeDesign = async (req, res) => {
         }
 
         const assistantRes = JSON.parse(jsonMatch[0]);
+
+        // Post-process to generate new images if the AI suggested any
+        if (assistantRes.updatedJson && Array.isArray(assistantRes.updatedJson.layers)) {
+            const assetsPath = path.join(projectPath, 'assets');
+            await fs.ensureDir(assetsPath);
+
+            for (let i = 0; i < assistantRes.updatedJson.layers.length; i++) {
+                const layer = assistantRes.updatedJson.layers[i];
+                
+                // If it's a new image requested by AI Assistant
+                if (layer.type === 'image' && !layer.src && layer.prompt) {
+                    console.log(`Assistant requested new image gen: ${layer.prompt}`);
+                    try {
+                        const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(layer.prompt + ", isolated on plain white background")}?nologo=true`;
+                        const imgRes = await fetch(pollUrl);
+                        if (imgRes.ok) {
+                            let imgBuf = Buffer.from(await imgRes.arrayBuffer());
+
+                            // Transparent Background extraction
+                            const { data, info } = await sharp(imgBuf)
+                                .ensureAlpha()
+                                .raw()
+                                .toBuffer({ resolveWithObject: true });
+                            
+                            const w = info.width;
+                            const h = info.height;
+                            const threshold = 240; 
+                            const visited = new Uint8Array(w * h);
+                            const queue = [];
+
+                            const isBg = (x, y) => {
+                                const idx = (y * w + x) * 4;
+                                return data[idx] > threshold && data[idx + 1] > threshold && data[idx + 2] > threshold;
+                            };
+
+                            for (let x = 0; x < w; x++) {
+                                if (isBg(x, 0)) { visited[x] = 1; queue.push(x, 0); }
+                                if (isBg(x, h - 1)) { visited[(h - 1) * w + x] = 1; queue.push(x, h - 1); }
+                            }
+                            for (let y = 1; y < h - 1; y++) {
+                                if (isBg(0, y)) { visited[y * w] = 1; queue.push(0, y); }
+                                if (isBg(w - 1, y)) { visited[y * w + (w - 1)] = 1; queue.push(w - 1, y); }
+                            }
+
+                            let head = 0;
+                            while (head < queue.length) {
+                                const x = queue[head++];
+                                const y = queue[head++];
+                                const idx = y * w + x;
+                                data[idx * 4 + 3] = 0; 
+                                const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
+                                for (const [nx, ny] of neighbors) {
+                                    if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                                        const nIdx = ny * w + nx;
+                                        if (!visited[nIdx] && isBg(nx, ny)) {
+                                            visited[nIdx] = 1;
+                                            queue.push(nx, ny);
+                                        }
+                                    }
+                                }
+                            }
+
+                            imgBuf = await sharp(data, {
+                                raw: { width: w, height: h, channels: 4 }
+                            }).png().toBuffer();
+
+                            const filename = `assistant_gen_${Date.now()}_${i}.png`;
+                            const filePath = path.join(assetsPath, filename);
+                            await fs.writeFile(filePath, imgBuf);
+                            
+                            layer.src = `assets/${filename}`;
+                            layer.width = w;
+                            layer.height = h;
+                            // Reset scaling since we provided actual dimensions
+                            layer.scaleX = 500 / w;
+                            layer.scaleY = 500 / h;
+                            delete layer.prompt;
+                        }
+                    } catch (e) {
+                         console.error("Failed to generate assistant image:", e);
+                    }
+                }
+            }
+        }
 
         res.json({
             success: true,
@@ -187,6 +273,24 @@ export const generateImage = async (req, res) => {
                     lastError = err.error || "Request failed";
                 }
             } catch (err) {
+                lastError = err.message;
+            }
+        }
+
+        if (!imageBuffer) {
+            console.log(`--> Falling back to pollinations.ai for manual generation...`);
+            try {
+                const query = removeBackground ? `${prompt}, isolated on plain white background` : prompt;
+                const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?nologo=true`;
+                const response = await fetch(pollUrl);
+                if (response.ok) {
+                    const ab = await response.arrayBuffer();
+                    imageBuffer = Buffer.from(ab);
+                    usedModel = "pollinations.ai";
+                    source = "pollinations";
+                    console.log(`--> Success with pollinations.ai`);
+                }
+            } catch(err) {
                 lastError = err.message;
             }
         }
@@ -495,6 +599,24 @@ Return ONLY the raw JSON object formatted like this, no markdown backticks, no e
                         }
                     } catch (err) {
                         console.warn(`--> ${modelId} error: ${err.message}`);
+                    }
+                }
+
+                if (!imageBuffer) {
+                    console.log(`--> Falling back to pollinations.ai for ${asset.id}...`);
+                    try {
+                        const query = asset.removeBackground ? `${asset.prompt}, isolated on plain white background` : asset.prompt;
+                        const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?nologo=true`;
+                        const response = await fetch(pollUrl);
+                        if (response.ok) {
+                            const ab = await response.arrayBuffer();
+                            imageBuffer = Buffer.from(ab);
+                            usedModel = "pollinations.ai";
+                            source = "pollinations";
+                            console.log(`--> Success with pollinations.ai`);
+                        }
+                    } catch(err) {
+                        console.warn(`--> Pollinations failed: ${err.message}`);
                     }
                 }
 
