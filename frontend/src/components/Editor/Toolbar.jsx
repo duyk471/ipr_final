@@ -75,22 +75,26 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
             />
 
             {mainTools.map((tool) => (
-                <div key={tool.id} className="relative group">
+                <div key={tool.id} className="relative group w-full">
                     <button
                         onClick={tool.action}
-                        className={`flex flex-col items-center justify-center p-3.5 gap-1.5 rounded-xl transition-all w-full select-none ${
+                        className={`flex flex-col items-center justify-center p-3 gap-1.5 rounded-xl transition-all duration-200 ease-out w-full select-none ${
                             activeLeftPanel === tool.id
-                                ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/40 dark:text-indigo-400 shadow-inner'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-700'
+                                ? 'text-slate-900 bg-slate-100 dark:bg-slate-700/80 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]'
+                                : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B]/60'
                         }`}
                         title={tool.label}
                     >
-                        {tool.icon}
+                        {React.cloneElement(tool.icon, { 
+                            size: 20, 
+                            strokeWidth: activeLeftPanel === tool.id ? 2.5 : 2 
+                        })}
                         <span className="text-[9px] font-bold uppercase tracking-[0.05em]">{tool.label}</span>
-                        {activeLeftPanel === tool.id && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full bg-indigo-600 transition-all shadow-[0_0_8px_rgba(79,70,229,0.5)]" />
-                        )}
                     </button>
+                    {/* Tooltip delay hover */}
+                    <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1E293B] text-white text-[10px] font-medium rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 delay-100 whitespace-nowrap z-50">
+                        {tool.label}
+                    </div>
                 </div>
             ))}
         </div>

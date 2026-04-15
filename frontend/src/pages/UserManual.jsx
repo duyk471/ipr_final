@@ -42,7 +42,7 @@ const UserManual = () => {
         },
         {
             title: "Elements Library",
-            icon: <Layers className="text-indigo-500" />,
+            icon: <Layers className="text-slate-600" />,
             content: "Access the 'Elements' tab in the left sidebar to add Shapes, SVGs, and Smart Frames. You can search thousands of vector icons to enhance your design."
         },
         {
@@ -58,42 +58,42 @@ const UserManual = () => {
     ];
 
     return (
-        <div className="h-screen overflow-y-auto bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 custom-scrollbar">
+        <div className="h-screen overflow-y-auto bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 custom-scrollbar">
             <div className="max-w-4xl mx-auto">
                 <button
                     onClick={() => navigate('/')}
-                    className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 mb-8 transition-colors group"
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-8 transition-colors group"
                 >
                     <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                     <span className="font-medium">Back to Dashboard</span>
                 </button>
 
                 <header className="mb-12 text-center">
-                    <h1 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">User Manual</h1>
-                    <p className="text-lg text-gray-600">Everything you need to know to create stunning designs with AI.</p>
+                    <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">User Manual</h1>
+                    <p className="text-lg text-slate-600">Everything you need to know to create stunning designs with AI.</p>
                 </header>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {sections.map((section, idx) => (
-                        <div key={idx} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                        <div key={idx} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                             <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-gray-50 rounded-xl">
+                                <div className="p-3 bg-slate-50 rounded-xl">
                                     {section.icon}
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800">{section.title}</h3>
+                                <h3 className="text-xl font-bold text-slate-800">{section.title}</h3>
                             </div>
                             
                             {section.isList ? (
                                 <ul className="space-y-2">
                                     {section.items.map((item, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-gray-600 text-sm">
-                                            <span className="text-indigo-500 mt-1">•</span>
+                                        <li key={i} className="flex items-start gap-2 text-slate-600 text-sm">
+                                            <span className="text-slate-600 mt-1">•</span>
                                             {item}
                                         </li>
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-gray-600 leading-relaxed text-sm">
+                                <p className="text-slate-600 leading-relaxed text-sm">
                                     {section.content}
                                 </p>
                             )}
@@ -101,7 +101,7 @@ const UserManual = () => {
                     ))}
                 </div>
 
-                <footer className="mt-16 pt-8 border-t border-gray-200 text-center text-gray-400 text-sm">
+                <footer className="mt-16 pt-8 border-t border-slate-200 text-center text-slate-400 text-sm">
                     © 2026 AI Image Editor • Built for Creativity.
                 </footer>
             </div>

@@ -42,11 +42,11 @@ const AIPrompt = ({ canvasRef, projectId }) => {
         <div className="flex flex-col h-full bg-white">
             <div className="p-4 border-b flex items-center gap-2">
                 <Sparkles className="text-purple-600" size={20} />
-                <h3 className="font-semibold text-gray-800">AI Image Generator</h3>
+                <h3 className="font-semibold text-slate-800">AI Image Generator</h3>
             </div>
 
             <div className="p-4 flex-1 flex flex-col">
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-slate-500 mb-4">
                     Describe the image you want to create and AI will generate it directly onto your canvas.
                 </p>
 
@@ -54,7 +54,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="E.g. A cute orange cat wearing traditional Vietnamese Ao Dai, 3d render..."
-                    className="w-full h-32 p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/50 mb-4 text-sm text-gray-700"
+                    className="w-full h-32 p-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/50 mb-4 text-sm text-slate-700"
                     disabled={generating}
                 />
 
@@ -65,9 +65,9 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                             id="transparent-bg"
                             checked={transparent}
                             onChange={(e) => setTransparent(e.target.checked)}
-                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                            className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
                         />
-                        <label htmlFor="transparent-bg" className="text-sm font-medium text-gray-700 cursor-pointer select-none">   
+                        <label htmlFor="transparent-bg" className="text-sm font-medium text-slate-700 cursor-pointer select-none">   
                             Transparent Background (Alpha)
                         </label>
                     </div>
@@ -83,7 +83,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                 <button
                     onClick={handleGenerate}
                     disabled={generating || !prompt.trim()}
-                    className="mt-auto w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="mt-auto w-full py-3 bg-gradient-to-r from-purple-600 to-slate-800 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {generating ? (
                         <>
@@ -99,8 +99,8 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                 </button>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t mt-auto">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="p-4 bg-slate-50 border-t mt-auto">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
                     <Info size={14} />
                     <p>Generated images are automatically saved to the project's assets folder.</p>
                 </div>

@@ -99,51 +99,51 @@ const Editor = () => {
 
     if (isLoading || !currentProject) {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border-4 border-t-indigo-600 animate-spin"></div>
+            <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full border-4 border-t-slate-800 animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="h-screen flex flex-col bg-[#F3F4F6] dark:bg-gray-900 overflow-hidden">
+        <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 overflow-hidden font-sans tracking-tight">
             {/* Header */}
-            <header className="h-16 bg-white dark:bg-gray-800 border-b dark:border-gray-700 flex items-center justify-between px-6 shrink-0 z-10 shadow-sm relative">
+            <header className="h-14 bg-white dark:bg-[#1E293B] border-b border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between px-6 shrink-0 z-10 relative">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate('/')}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-600 dark:text-gray-300"
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 rounded-lg transition-colors"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                     </button>
                     <div className="flex items-center gap-3">
-                        <h2 className="font-semibold text-lg text-gray-800 dark:text-gray-100">{currentProject.name}</h2>
-                        <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full font-medium border border-green-200 dark:border-green-800">Auto-saving</span>
+                        <h2 className="font-semibold text-[15px]">{currentProject.name}</h2>
+                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-slate-100/50 dark:bg-indigo-900/30 text-slate-600 dark:text-slate-400 rounded-lg font-medium border border-slate-200/50 dark:border-slate-950/50">Auto-saving</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <button
                         onClick={() => setIsDarkMode(!isDarkMode)}
-                        className="p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-lg transition-all"
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-all ease-out"
                         title="Toggle Dark Mode"
                     >
-                        {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                        {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                     </button>
 
-                    <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded-md overflow-hidden bg-white dark:bg-gray-800 mr-2">
-                        <button className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 border-r dark:border-gray-600" title="Undo" onClick={() => canvasRef.current?.handleUndo()}>
-                            <Undo2 size={18} />
+                    <div className="flex items-center bg-slate-50 dark:bg-slate-700/50 rounded-lg p-0.5 mr-2">
+                        <button className="p-1.5 text-slate-400 hover:bg-white dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-all shadow-sm" title="Undo" onClick={() => canvasRef.current?.handleUndo()}>
+                            <Undo2 size={16} />
                         </button>
-                        <button className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" title="Redo" onClick={() => canvasRef.current?.handleRedo()}>
-                            <Redo2 size={18} />
+                        <button className="p-1.5 text-slate-400 hover:bg-white dark:hover:bg-slate-600 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-all" title="Redo" onClick={() => canvasRef.current?.handleRedo()}>
+                            <Redo2 size={16} />
                         </button>
                     </div>
 
                     <div className="relative" ref={historyDropdownRef}>
                         <button
                             onClick={fetchHistory}
-                            className={`p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-lg transition-all ${showHistory ? 'bg-indigo-50 dark:bg-gray-700 text-indigo-600' : ''}`}
+                            className={`p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all ${showHistory ? 'bg-slate-100 dark:bg-slate-700 text-slate-800' : ''}`}
                             title="Version History"
                         >
                             <History size={20} />
@@ -151,19 +151,19 @@ const Editor = () => {
                         
                         {showHistory && (
                             <div className="absolute top-full right-0 mt-2 w-64 bg-white border shadow-xl rounded-xl p-2 z-50">
-                                <h3 className="text-sm font-semibold text-gray-700 px-2 py-1 border-b mb-2">Version History</h3>
+                                <h3 className="text-sm font-semibold text-slate-700 px-2 py-1 border-b mb-2">Version History</h3>
                                 {historyList.length === 0 ? (
-                                    <p className="text-xs text-gray-500 p-2">No history snapshots found. (Saved daily upon first edit).</p>
+                                    <p className="text-xs text-slate-500 p-2">No history snapshots found. (Saved daily upon first edit).</p>
                                 ) : (
                                     <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
                                         {historyList.map((item, idx) => (
                                             <button
                                                 key={idx}
                                                 onClick={() => restoreHistory(item.date)}
-                                                className="text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center group"
+                                                className="text-left px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors flex justify-between items-center group"
                                             >
                                                 <span>{item.date}</span>
-                                                <span className="text-xs text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">Restore</span>
+                                                <span className="text-xs text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">Restore</span>
                                             </button>
                                         ))}
                                     </div>
@@ -174,22 +174,22 @@ const Editor = () => {
 
                     <button
                         onClick={() => setShowSettings(true)}
-                        className="p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all mr-2"
+                        className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all mr-2"
                         title="Project Settings"
                     >
                         <Settings size={20} />
                     </button>
 
-                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                    <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-700/50 p-1 rounded-xl">
                         <button
                             onClick={() => canvasRef.current?.exportImage('png')}
-                            className="px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                            className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 hover:bg-white hover:text-slate-800 dark:hover:bg-slate-600 dark:hover:text-slate-200 hover:shadow-sm rounded-lg transition-all"
                         >
                             PNG
                         </button>
                         <button
                             onClick={() => canvasRef.current?.exportImage('jpeg')}
-                            className="px-3 py-1.5 text-xs font-bold text-gray-600 hover:bg-white hover:shadow-sm rounded-lg transition-all"
+                            className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 hover:bg-white hover:text-slate-800 dark:hover:bg-slate-600 dark:hover:text-slate-200 hover:shadow-sm rounded-lg transition-all"
                         >
                             JPG
                         </button>
@@ -197,63 +197,69 @@ const Editor = () => {
 
                     <button
                         onClick={() => window.location.href = `http://localhost:5000/api/projects/${id}/export`}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md active:scale-95"
+                        className="flex items-center gap-1.5 bg-[#1E293B] dark:bg-slate-100 hover:bg-[#0B1120] dark:hover:bg-white text-white dark:text-slate-900 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all shadow-sm active:scale-[0.98] ml-2"
                     >
-                        <Download size={16} /> ZIP
+                        <Download size={14} /> Export ZIP
                     </button>
                 </div>
             </header>
 
             {/* Main Editing Area */}
-            <div className="flex flex-1 overflow-hidden relative">
-                {/* Left Sidebar Toolbar */}
-                <aside className="w-20 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 items-center py-6 shadow-sm z-20 transition-colors">
-                    <Toolbar 
-                        canvasRef={canvasRef} 
-                        projectId={id} 
-                        activeLeftPanel={activeLeftPanel}
-                        setActiveLeftPanel={setActiveLeftPanel}
-                    />
-                </aside>
-
-                {/* Left Panel Expansion (Canva Style) */}
-                {activeLeftPanel && (
-                    <aside className="w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shrink-0 shadow-lg z-10 animate-in slide-in-from-left duration-300">
-                        <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
-                            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                {activeLeftPanel === 'elements' && 'Elements Library'}
-                                {activeLeftPanel === 'text' && 'Add Text Elements'}
-                                {activeLeftPanel === 'ai' && 'AI Magic Generation'}
-                                {activeLeftPanel === 'assistant' && 'AI Design Assistant'}
-                            </h3>
-                            <button 
-                                onClick={() => setActiveLeftPanel(null)}
-                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                            >
-                                <ArrowLeft size={16} />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto">
-                            {activeLeftPanel === 'elements' && <ElementsPanel canvasRef={canvasRef} />}
-                            {activeLeftPanel === 'text' && <TextPanel canvasRef={canvasRef} />}
-                            {activeLeftPanel === 'ai' && <AIPrompt canvasRef={canvasRef} projectId={id} />}
-                            {activeLeftPanel === 'assistant' && <AIDesignAssistant canvasRef={canvasRef} projectId={id} />}
-                        </div>
+            <div className="flex flex-1 overflow-hidden relative p-4 gap-4 bg-slate-50 dark:bg-[#0B1120]">
+                
+                {/* Left Floating Toolbars Wrapper */}
+                <div className="flex z-20 h-full gap-3 pointer-events-none">
+                    {/* Toolbar Island */}
+                    <aside className="w-[68px] bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-slate-700/60 rounded-2xl flex flex-col items-center py-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all flex-shrink-0 pointer-events-auto">
+                        <Toolbar 
+                            canvasRef={canvasRef} 
+                            projectId={id} 
+                            activeLeftPanel={activeLeftPanel}
+                            setActiveLeftPanel={setActiveLeftPanel}
+                        />
                     </aside>
-                )}
+
+                    {/* Left Panel Expansion Island */}
+                    {activeLeftPanel && (
+                        <aside className="w-[320px] bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-2xl flex flex-col shrink-0 shadow-xl overflow-hidden animate-in slide-in-from-left-4 duration-300 ease-out pointer-events-auto">
+                            <div className="flex items-center justify-between px-5 pt-5 pb-3 bg-transparent">
+                                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    {activeLeftPanel === 'elements' && 'Elements Library'}
+                                    {activeLeftPanel === 'text' && 'Text Elements'}
+                                    {activeLeftPanel === 'ai' && 'AI Generator'}
+                                    {activeLeftPanel === 'assistant' && 'Design Assistant'}
+                                </h3>
+                                <button 
+                                    onClick={() => setActiveLeftPanel(null)}
+                                    className="p-1 text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
+                                    <ArrowLeft size={16} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                {activeLeftPanel === 'elements' && <ElementsPanel canvasRef={canvasRef} />}
+                                {activeLeftPanel === 'text' && <TextPanel canvasRef={canvasRef} />}
+                                {activeLeftPanel === 'ai' && <AIPrompt canvasRef={canvasRef} projectId={id} />}
+                                {activeLeftPanel === 'assistant' && <AIDesignAssistant canvasRef={canvasRef} projectId={id} />}
+                            </div>
+                        </aside>
+                    )}
+                </div>
 
                 {/* Central Canvas Workspace */}
-                <main className="flex-1 bg-gray-200 dark:bg-gray-900 relative overflow-hidden flex items-center justify-center p-4 transition-colors">
+                <main className="absolute inset-0 z-0 flex items-center justify-center transition-colors">
                     <FabricCanvas
                         ref={canvasRef}
                         projectId={id}
                     />
                 </main>
 
-                {/* Right Sidebar - Selection Properties */}
-                <aside className="w-80 bg-white dark:bg-gray-800 border-l dark:border-gray-700 flex flex-col shrink-0 shadow-lg z-10 relative transition-colors overflow-y-auto custom-scrollbar">
-                    <PropertiesPanel canvasRef={canvasRef} />
-                </aside>
+                {/* Right Sidebar - Properties Island */}
+                <div className="absolute right-4 top-4 bottom-4 z-10 pointer-events-none flex justify-end">
+                    <aside className="w-[320px] bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-2xl flex flex-col shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.02)] relative overflow-y-auto custom-scrollbar pointer-events-auto">
+                        <PropertiesPanel canvasRef={canvasRef} />
+                    </aside>
+                </div>
             </div>
 
             {/* Modals */}

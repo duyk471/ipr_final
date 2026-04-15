@@ -1472,7 +1472,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     return (
         <div 
             ref={containerRef} 
-            className="origin-center shadow-2xl bg-white border border-gray-200 relative"
+            className="origin-center shadow-2xl bg-white border border-slate-200 relative"
             onContextMenu={(e) => {
                 e.preventDefault();
                 setContextMenu({ x: e.clientX, y: e.clientY });
@@ -1489,17 +1489,17 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     className="fixed bg-white border shadow-xl rounded-xl p-1.5 z-[200] flex flex-col min-w-[180px]"
                     style={{ left: contextMenu.x, top: contextMenu.y }}
                 >
-                    <button onClick={handleContextMenuAction('copy')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Copy</button>
-                    <button onClick={handleContextMenuAction('paste')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Paste</button>
-                    <button onClick={handleContextMenuAction('duplicate')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Duplicate</button>
-                    <div className="h-px bg-gray-200 my-1 mx-1"></div>
-                    <button onClick={handleContextMenuAction('bringToFront')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Bring to Front</button>
-                    <button onClick={handleContextMenuAction('bringForward')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Bring Forward</button>
-                    <button onClick={handleContextMenuAction('sendBackwards')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Send Backward</button>
-                    <button onClick={handleContextMenuAction('sendToBack')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Send to Back</button>
-                    <div className="h-px bg-gray-200 my-1 mx-1"></div>
-                    <button onClick={handleContextMenuAction('group')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Group/Ungroup</button>
-                    <div className="h-px bg-gray-200 my-1 mx-1"></div>
+                    <button onClick={handleContextMenuAction('copy')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Copy</button>
+                    <button onClick={handleContextMenuAction('paste')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Paste</button>
+                    <button onClick={handleContextMenuAction('duplicate')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Duplicate</button>
+                    <div className="h-px bg-slate-200 my-1 mx-1"></div>
+                    <button onClick={handleContextMenuAction('bringToFront')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Bring to Front</button>
+                    <button onClick={handleContextMenuAction('bringForward')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Bring Forward</button>
+                    <button onClick={handleContextMenuAction('sendBackwards')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Send Backward</button>
+                    <button onClick={handleContextMenuAction('sendToBack')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Send to Back</button>
+                    <div className="h-px bg-slate-200 my-1 mx-1"></div>
+                    <button onClick={handleContextMenuAction('group')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Group/Ungroup</button>
+                    <div className="h-px bg-slate-200 my-1 mx-1"></div>
                     <button onClick={handleContextMenuAction('delete')} className="px-3 py-1.5 text-sm text-left font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">Delete</button>
                 </div>
             )}

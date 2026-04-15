@@ -76,34 +76,34 @@ const ElementsPanel = ({ canvasRef }) => {
     };
 
     return (
-        <div className="p-5 overflow-y-auto h-full space-y-8 bg-gray-50/50 dark:bg-gray-800 transition-colors">
+        <div className="p-5 overflow-y-auto h-full space-y-8 bg-slate-50/50 dark:bg-[#1E293B] transition-colors">
             {/* Search */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input 
                     type="text" 
                     placeholder="Search icons..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-slate-600/20 focus:border-slate-600 outline-none transition-all shadow-sm"
                 />
             </div>
 
             {/* Basic Shapes */}
             <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Base Shapes</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Base Shapes</h3>
                 <div className="grid grid-cols-3 gap-3">
                     {SHAPES.map((shape) => (
                         <button
                             key={shape.name}
                             onClick={() => handleAddShape(shape.type)}
-                            className="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group"
+                            className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 hover:shadow-md transition-all group"
                             title={shape.name}
                         >
-                            <div className="text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors mb-2">
+                            <div className="text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-400 transition-colors mb-2">
                                 {shape.icon}
                             </div>
-                            <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{shape.name}</span>
+                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-400">{shape.name}</span>
                         </button>
                     ))}
                 </div>
@@ -111,7 +111,7 @@ const ElementsPanel = ({ canvasRef }) => {
 
             {/* Icons */}
             <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Libraries</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Libraries</h3>
                 <div className="grid grid-cols-4 gap-2">
                     {filteredIcons.map(name => {
                         const IconComponent = LucideIcons[name];
@@ -120,7 +120,7 @@ const ElementsPanel = ({ canvasRef }) => {
                             <button
                                 key={name}
                                 onClick={() => handleAddIcon(IconComponent)}
-                                className="flex items-center justify-center p-3 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-md transition-all group text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                                className="flex items-center justify-center p-3 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 hover:shadow-md transition-all group text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-400"
                                 title={name}
                             >
                                 <IconComponent size={24} />
@@ -129,7 +129,7 @@ const ElementsPanel = ({ canvasRef }) => {
                     })}
                 </div>
                 {filteredIcons.length === 0 && (
-                    <div className="text-center py-8 text-sm text-gray-400">
+                    <div className="text-center py-8 text-sm text-slate-400">
                         No icons found for "{searchTerm}"
                     </div>
                 )}

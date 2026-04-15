@@ -43,16 +43,16 @@ const TextPanel = ({ canvasRef }) => {
     };
 
     return (
-        <div className="p-5 h-full flex flex-col gap-8 bg-gray-50/50 dark:bg-gray-800 transition-colors">
+        <div className="p-5 h-full flex flex-col gap-8 bg-slate-50/50 dark:bg-[#1E293B] transition-colors">
             {/* Input Preview */}
             <div className="space-y-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Add Text</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Add Text</h3>
                 <input
                     type="text"
                     placeholder="Type your message..."
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none shadow-sm"
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-600/20 outline-none shadow-sm"
                 />
             </div>
 
@@ -60,27 +60,27 @@ const TextPanel = ({ canvasRef }) => {
             <div className="space-y-3">
                 <button
                     onClick={() => { setSelectedSize('heading'); handleAddText('heading'); }}
-                    className="w-full py-4 px-6 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-500 text-left transition-all group"
+                    className="w-full py-4 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 text-left transition-all group"
                 >
-                    <span className="block text-2xl font-bold dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Add a heading</span>
+                    <span className="block text-2xl font-bold dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a heading</span>
                 </button>
                 <button
                     onClick={() => { setSelectedSize('subheading'); handleAddText('subheading'); }}
-                    className="w-full py-3 px-6 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-500 text-left transition-all group"
+                    className="w-full py-3 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 text-left transition-all group"
                 >
-                    <span className="block text-lg font-semibold dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Add a subheading</span>
+                    <span className="block text-lg font-semibold dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a subheading</span>
                 </button>
                 <button
                     onClick={() => { setSelectedSize('body'); handleAddText('body'); }}
-                    className="w-full py-2 px-6 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-500 text-left transition-all group"
+                    className="w-full py-2 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 text-left transition-all group"
                 >
-                    <span className="block text-sm dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Add a little bit of body text</span>
+                    <span className="block text-sm dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a little bit of body text</span>
                 </button>
             </div>
 
             {/* Font Selector */}
             <div className="space-y-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Choose Font</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Choose Font</h3>
                 <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {FONTS.map(font => (
                         <button
@@ -89,8 +89,8 @@ const TextPanel = ({ canvasRef }) => {
                             style={{ fontFamily: font }}
                             className={`w-full px-4 py-3 rounded-lg text-left transition-all border ${
                                 selectedFont === font 
-                                ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300' 
-                                : 'bg-white dark:bg-gray-700 border-transparent hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                                ? 'bg-slate-100 dark:bg-indigo-900/30 border-slate-300 dark:border-slate-950 text-slate-900 dark:text-indigo-300' 
+                                : 'bg-white dark:bg-slate-700 border-transparent hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                             }`}
                         >
                             {font}
@@ -101,7 +101,7 @@ const TextPanel = ({ canvasRef }) => {
             
             <button
                 onClick={() => handleAddText(selectedSize)}
-                className="mt-auto w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
+                className="mt-auto w-full py-3 bg-[#1E293B] hover:bg-[#0B1120] text-white rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
             >
                 <Plus size={18} />
                 Add text to design

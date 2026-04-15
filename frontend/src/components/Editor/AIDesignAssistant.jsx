@@ -57,15 +57,15 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
     return (
         <div className="p-6 flex flex-col h-full">
             <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                     <Sparkles className="text-purple-600" size={20} />
                     Design Assistant
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                     Let AI review your design and suggest professional improvements.
                 </p>
                 <div className="mt-4">
-                    <label htmlFor="design-assistant-prompt" className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    <label htmlFor="design-assistant-prompt" className="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
                         Prompt For AI
                     </label>
                     <textarea
@@ -73,22 +73,22 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                         value={assistantPrompt}
                         onChange={(e) => setAssistantPrompt(e.target.value)}
                         placeholder="E.g. Make it look more premium, cleaner, and suitable for a fashion brand."
-                        className="w-full min-h-24 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20"
+                        className="w-full min-h-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20"
                         disabled={loading}
                     />
-                    <p className="mt-2 text-[11px] text-gray-400">
+                    <p className="mt-2 text-[11px] text-slate-400">
                         Optional. If you enter a prompt here, AI will use it when you press Analyze My Design.
                     </p>
                 </div>
             </div>
 
             {!suggestions.length && !loading && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                     <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4">
                         <Wand2 size={32} />
                     </div>
-                    <p className="text-sm font-medium text-gray-700">Ready to help?</p>
-                    <p className="text-xs text-gray-400 mt-2 mb-6 max-w-[200px]">
+                    <p className="text-sm font-medium text-slate-700">Ready to help?</p>
+                    <p className="text-xs text-slate-400 mt-2 mb-6 max-w-[200px]">
                         I'll analyze your current layout, colors, and typography.
                     </p>
                     <button
@@ -103,8 +103,8 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
             {loading && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <Loader2 className="animate-spin text-purple-600 mb-4" size={40} />
-                    <p className="text-sm font-medium text-gray-700">Reviewing your masterpiece...</p>
-                    <p className="text-xs text-gray-400 mt-2">Gemini is thinking about improvements.</p>
+                    <p className="text-sm font-medium text-slate-700">Reviewing your masterpiece...</p>
+                    <p className="text-xs text-slate-400 mt-2">Gemini is thinking about improvements.</p>
                 </div>
             )}
 
@@ -114,7 +114,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                         <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3">AI Suggestions</h4>
                         <ul className="space-y-3">
                             {suggestions.map((s, i) => (
-                                <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
+                                <li key={i} className="flex gap-2 text-sm text-slate-700 leading-relaxed">
                                     <CheckCircle2 size={16} className="text-purple-500 shrink-0 mt-0.5" />
                                     {s}
                                 </li>
@@ -123,7 +123,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                     </div>
 
                     <div className="mt-auto">
-                        <p className="text-[10px] text-gray-400 text-center mb-3">
+                        <p className="text-[10px] text-slate-400 text-center mb-3">
                             Click below to automatically apply these changes.
                         </p>
                         <button
@@ -135,7 +135,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                         </button>
                         <button
                             onClick={() => setSuggestions([])}
-                            className="w-full py-3 mt-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-all"
+                            className="w-full py-3 mt-2 text-slate-500 hover:text-slate-700 font-medium text-sm transition-all"
                         >
                             Dismiss
                         </button>
