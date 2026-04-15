@@ -41,7 +41,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
     return (
         <div className="flex flex-col h-full bg-white">
             <div className="p-4 border-b flex items-center gap-2">
-                <Sparkles className="text-purple-600" size={20} />
+                <Sparkles className="text-slate-500" size={20} />
                 <h3 className="font-semibold text-slate-800">AI Image Generator</h3>
             </div>
 
@@ -54,7 +54,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="E.g. A cute orange cat wearing traditional Vietnamese Ao Dai, 3d render..."
-                    className="w-full h-32 p-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/50 mb-4 text-sm text-slate-700"
+                    className="w-full h-32 p-3 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-slate-400/50 mb-4 text-sm text-slate-700"
                     disabled={generating}
                 />
 
@@ -65,7 +65,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                             id="transparent-bg"
                             checked={transparent}
                             onChange={(e) => setTransparent(e.target.checked)}
-                            className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
+                            className="w-4 h-4 text-slate-800 border-slate-300 rounded focus:ring-slate-500"
                         />
                         <label htmlFor="transparent-bg" className="text-sm font-medium text-slate-700 cursor-pointer select-none">   
                             Transparent Background (Alpha)
@@ -83,7 +83,7 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                 <button
                     onClick={handleGenerate}
                     disabled={generating || !prompt.trim()}
-                    className="mt-auto w-full py-3 bg-gradient-to-r from-purple-600 to-slate-800 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="mt-auto w-full py-3 bg-slate-800 text-white rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {generating ? (
                         <>

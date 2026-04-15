@@ -8,12 +8,12 @@ const UserManual = () => {
     const sections = [
         {
             title: "Getting Started",
-            icon: <BookOpen className="text-blue-500" />,
+            icon: <BookOpen className="text-slate-600" />,
             content: "Welcome to AI Image Editor! You can start by creating a new blank project, importing an existing image, or using our AI Magic Generation to build a scene from a text description."
         },
         {
             title: "Keyboard Shortcuts",
-            icon: <Keyboard className="text-purple-500" />,
+            icon: <Keyboard className="text-slate-600" />,
             isList: true,
             items: [
                 "Ctrl + C: Copy selected object",
@@ -27,12 +27,12 @@ const UserManual = () => {
         },
         {
             title: "Mouse Interactions",
-            icon: <MousePointer2 className="text-green-500" />,
+            icon: <MousePointer2 className="text-slate-600" />,
             content: "Right-click on any object on the canvas to open the Context Menu. From there, you can quickly Duplicate, Delete, or change the Layer order (Bring to Front, Send to Back, etc.)."
         },
         {
             title: "AI Magic Features",
-            icon: <Sparkles className="text-amber-500" />,
+            icon: <Sparkles className="text-slate-600" />,
             isList: true,
             items: [
                 "AI Gen: Describe what you want to see, and the AI will generate layers for you.",
@@ -47,12 +47,12 @@ const UserManual = () => {
         },
         {
             title: "Smart Snap",
-            icon: <MousePointer2 className="text-red-500" />,
+            icon: <MousePointer2 className="text-slate-600" />,
             content: "When moving objects, purple guidelines will automatically appear to help you align elements perfectly with the canvas center or other objects."
         },
         {
             title: "Version History",
-            icon: <History className="text-teal-500" />,
+            icon: <History className="text-slate-600" />,
             content: "Your work is auto-saved. Click the clock icon in the top header to view and restore daily snapshots if you want to revert to an older version."
         }
     ];

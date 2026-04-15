@@ -97,7 +97,7 @@ const ElementsPanel = ({ canvasRef }) => {
                         <button
                             key={shape.name}
                             onClick={() => handleAddShape(shape.type)}
-                            className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 hover:shadow-md transition-all group"
+                            className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all group"
                             title={shape.name}
                         >
                             <div className="text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-400 transition-colors mb-2">
@@ -120,7 +120,7 @@ const ElementsPanel = ({ canvasRef }) => {
                             <button
                                 key={name}
                                 onClick={() => handleAddIcon(IconComponent)}
-                                className="flex items-center justify-center p-3 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 hover:shadow-md transition-all group text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-400"
+                                className="flex items-center justify-center p-3 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all group text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                                 title={name}
                             >
                                 <IconComponent size={24} />

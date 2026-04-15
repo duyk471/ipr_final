@@ -60,19 +60,19 @@ const TextPanel = ({ canvasRef }) => {
             <div className="space-y-3">
                 <button
                     onClick={() => { setSelectedSize('heading'); handleAddText('heading'); }}
-                    className="w-full py-4 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 text-left transition-all group"
+                    className="w-full py-4 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 text-left transition-all group"
                 >
                     <span className="block text-2xl font-bold dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a heading</span>
                 </button>
                 <button
                     onClick={() => { setSelectedSize('subheading'); handleAddText('subheading'); }}
-                    className="w-full py-3 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 text-left transition-all group"
+                    className="w-full py-3 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 text-left transition-all group"
                 >
                     <span className="block text-lg font-semibold dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a subheading</span>
                 </button>
                 <button
                     onClick={() => { setSelectedSize('body'); handleAddText('body'); }}
-                    className="w-full py-2 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-xl hover:border-indigo-300 dark:hover:border-slate-600 text-left transition-all group"
+                    className="w-full py-2 px-6 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 text-left transition-all group"
                 >
                     <span className="block text-sm dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a little bit of body text</span>
                 </button>
@@ -89,7 +89,7 @@ const TextPanel = ({ canvasRef }) => {
                             style={{ fontFamily: font }}
                             className={`w-full px-4 py-3 rounded-lg text-left transition-all border ${
                                 selectedFont === font 
-                                ? 'bg-slate-100 dark:bg-indigo-900/30 border-slate-300 dark:border-slate-950 text-slate-900 dark:text-indigo-300' 
+                                ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold' 
                                 : 'bg-white dark:bg-slate-700 border-transparent hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                             }`}
                         >
