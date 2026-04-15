@@ -101,64 +101,66 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="h-screen bg-slate-50 overflow-y-auto">
-            <div className="max-w-6xl mx-auto flex flex-col gap-8 p-8">
-                <header className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold text-slate-900">
-                        AI Image Editor
-                    </h1>
-                    <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-50 shadow-sm transition-all active:scale-95 cursor-pointer font-medium">
-                            <Upload size={20} />
-                            <span>Import ZIP</span>
-                            <input
-                                type="file"
-                                accept=".zip"
-                                className="hidden"
-                                onChange={async (e) => {
-                                    const file = e.target.files[0];
-                                    if (!file) return;
-                                    const formData = new FormData();
-                                    formData.append('file', file);
-                                    try {
-                                        const res = await api.post('/projects/import', formData);
-                                        if (res.data.success) {
-                                            fetchProjects();
-                                        }
-                                    } catch (err) {
-                                        alert(err.response?.data?.message || 'Error importing project zip. Please make sure it is a valid project archive.');
+        <div className="h-screen bg-[#FBFBFB] overflow-y-auto custom-scrollbar relative">
+            <header className="sticky top-6 z-50 mx-auto max-w-5xl w-full bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-3 px-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center justify-between mb-16">
+                <h1 className="text-xl font-black text-slate-900 tracking-tight">
+                    AI Image Editor
+                </h1>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => navigate('/manual')}
+                        className="flex items-center gap-2 bg-transparent text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-100/80 transition-all font-medium text-sm"
+                        title="Help & Tutorial"
+                    >
+                        <BookOpen size={18} className="text-slate-500" />
+                        <span>Manual</span>
+                    </button>
+                    <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                    <label className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all cursor-pointer font-medium text-sm active:scale-[0.98]">
+                        <Upload size={16} />
+                        <span className="hidden sm:inline">Import ZIP</span>
+                        <input
+                            type="file"
+                            accept=".zip"
+                            className="hidden"
+                            onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                try {
+                                    const res = await api.post('/projects/import', formData);
+                                    if (res.data.success) {
+                                        fetchProjects();
                                     }
-                                    e.target.value = '';
-                                }}
-                            />
-                        </label>
-                        <label className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-600 shadow-md transition-all active:scale-95 cursor-pointer font-medium">
-                            <ImageIcon size={20} />
-                            <span>Import Image</span>
-                            <input
-                                type="file"
-                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                className="hidden"
-                                onChange={handleImportImage}
-                            />
-                        </label>
-                        <button
-                            onClick={() => navigate('/manual')}
-                            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-50 shadow-sm transition-all active:scale-95 font-medium"
-                            title="Help & Tutorial"
-                        >
-                            <BookOpen size={20} className="text-blue-500" />
-                            <span>Manual</span>
-                        </button>
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="flex items-center gap-2 bg-[#1E293B] text-white px-6 py-3 rounded-lg hover:bg-[#0B1120] shadow-md transition-all active:scale-95 font-medium"
-                        >
-                            <Plus size={20} />
-                            <span>Create Project</span>
-                        </button>
-                    </div>
-                </header>
+                                } catch (err) {
+                                    alert(err.response?.data?.message || 'Error importing project zip. Please make sure it is a valid project archive.');
+                                }
+                                e.target.value = '';
+                            }}
+                        />
+                    </label>
+                    <label className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all cursor-pointer font-medium text-sm active:scale-[0.98]">
+                        <ImageIcon size={16} className="text-slate-500" />
+                        <span className="hidden sm:inline">Image</span>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                            className="hidden"
+                            onChange={handleImportImage}
+                        />
+                    </label>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 shadow-md shadow-slate-900/10 transition-all active:scale-[0.98] font-semibold text-sm ml-2"
+                    >
+                        <Plus size={18} />
+                        <span>Create Blank</span>
+                    </button>
+                </div>
+            </header>
+
+            <div className="max-w-6xl mx-auto flex flex-col px-8 pb-16">
 
                 <NewProjectModal
                     isOpen={isModalOpen}
@@ -178,18 +180,17 @@ const Dashboard = () => {
                     onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
                 />
 
-                <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden mb-2">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-slate-200 via-slate-500 to-slate-200"></div>
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold flex items-center gap-2">
-                            <Sparkles className="text-slate-600" /> AI Magic Generation
-                        </h2>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4 mb-2">
+                {/* Hero Command Palette */}
+                <section className="w-full max-w-4xl mx-auto mb-20 text-center relative z-10">
+                    <h2 className="text-[2.5rem] font-extrabold text-slate-900 mb-4 tracking-[-0.02em]">What will you design today?</h2>
+                    <p className="text-slate-500 mb-8 text-lg">Use AI to generate stunning starting points in seconds.</p>
+                    
+                    <div className="relative group bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] rounded-3xl border border-slate-200/80 transition-all duration-300 focus-within:shadow-[0_8px_40px_rgba(0,0,0,0.12)] focus-within:border-slate-300 p-2 pl-3 flex flex-col sm:flex-row items-center gap-2">
+                        <Sparkles className="absolute left-7 text-slate-400 group-focus-within:text-indigo-500 transition-colors duration-300" size={24} />
                         <input 
                             type="text" 
-                            placeholder="Describe your scene: e.g., A golden retriever wearing sunglasses on a sunny beach..."
-                            className="flex-1 border border-slate-200 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-600 text-slate-700"
+                            placeholder="Describe your scene: e.g., A minimalist coffee shop banner..."
+                            className="flex-1 w-full pl-14 pr-4 py-4 text-lg bg-transparent focus:outline-none text-slate-800 placeholder:text-slate-400"
                             value={aiPrompt}
                             onChange={(e) => setAiPrompt(e.target.value)}
                             onKeyDown={(e) => { if(e.key === 'Enter') handleAIGenerate(); }}
@@ -198,7 +199,7 @@ const Dashboard = () => {
                         <button 
                             onClick={handleAIGenerate}
                             disabled={isGenerating || !aiPrompt.trim()}
-                            className="bg-[#1E293B] text-white px-8 py-3 rounded-lg hover:bg-[#0B1120] font-medium transition-all focus:ring-4 focus:ring-slate-300 disabled:opacity-75 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[160px]"
+                            className="bg-slate-900 text-white px-8 py-4 rounded-2xl hover:bg-slate-800 font-semibold transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:w-auto w-full group/btn"
                         >
                             {isGenerating ? (
                                 <>
@@ -207,32 +208,39 @@ const Dashboard = () => {
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles size={20} />
                                     Generate
+                                    <Sparkles size={18} className="opacity-70 group-hover/btn:opacity-100 transition-opacity" />
                                 </>
                             )}
                         </button>
                     </div>
                     {isGenerating && (
-                        <p className="text-sm text-slate-800 mt-3 animate-pulse font-medium">
-                            ✨ AI is analyzing your prompt and generating layers... This might take 10-30 seconds.
-                        </p>
+                        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-full">
+                           <p className="text-sm text-slate-500 animate-pulse font-medium bg-slate-100 inline-block px-4 py-1.5 rounded-full">
+                               ✨ AI is analyzing your prompt and generating layers...
+                           </p>
+                        </div>
                     )}
                 </section>
 
-                <section>
-                    <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                        <ImageIcon className="text-slate-500" /> Recent Projects
-                    </h2>
+                <section className="w-full">
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                            <ImageIcon className="text-slate-400" size={20} /> Recent Projects
+                        </h2>
+                    </div>
 
                     {loading ? (
                         <div className="flex w-full h-40 items-center justify-center">
-                            <div className="w-8 h-8 rounded-full border-4 border-t-slate-800 animate-spin"></div>
+                            <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-slate-800 animate-spin"></div>
                         </div>
                     ) : projects.length === 0 ? (
-                        <div className="text-center p-12 bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                            <ImageIcon className="w-16 h-16 text-slate-300 mb-4" />
-                            <p className="text-slate-500 text-lg">No projects yet. Create one to get started!</p>
+                        <div className="text-center p-16 bg-white/50 rounded-3xl border border-slate-200/60 border-dashed flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-4 text-slate-300">
+                                <ImageIcon size={32} />
+                            </div>
+                            <h3 className="text-slate-900 font-bold text-lg mb-1">No projects yet</h3>
+                            <p className="text-slate-500 font-medium">Create a blank project or use AI magic to start.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -240,41 +248,41 @@ const Dashboard = () => {
                                 <div
                                     key={project.id}
                                     onClick={() => navigate(`/editor/${project.id}`)}
-                                    className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
+                                    className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-200/60 overflow-hidden cursor-pointer hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-300 transition-all duration-300 group flex flex-col"
                                 >
-                                    <div className="aspect-square bg-slate-100 relative group-hover:opacity-90 transition-opacity flex items-center justify-center">
+                                    <div className="aspect-[4/3] bg-[#F9FAFB] relative overflow-hidden flex items-center justify-center border-b border-slate-100">
                                         {project.previewUrl ? (
                                             <img
                                                 src={`http://localhost:5000${project.previewUrl}?t=${new Date().getTime()}`}
                                                 alt={project.name}
-                                                className="w-full h-full object-cover"
+                                                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
                                                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                             />
                                         ) : null}
-                                        <div className="absolute inset-0 flex items-center justify-center text-slate-400" style={{ display: project.previewUrl ? 'none' : 'flex' }}>
+                                        <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium text-sm" style={{ display: project.previewUrl ? 'none' : 'flex' }}>
                                             No Preview
                                         </div>
                                     </div>
-                                    <div className="p-4 flex flex-col gap-2">
-                                        <h3 className="font-semibold text-slate-800 truncate" title={project.name}>{project.name}</h3>
-                                        <div className="flex items-center justify-between mt-2">
-                                            <span className="text-xs text-slate-400">
+                                    <div className="p-5 flex flex-col gap-2">
+                                        <h3 className="font-bold text-slate-800 truncate text-[15px]" title={project.name}>{project.name}</h3>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                                 {new Date(project.updatedAt).toLocaleDateString()}
                                             </span>
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300 ease-out">
                                                 <button
                                                     onClick={(e) => handleExport(e, project.id)}
-                                                    className="p-1.5 text-slate-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 rounded"
+                                                    className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
                                                     title="Export ZIP"
                                                 >
-                                                    <Download size={14} />
+                                                    <Download size={16} />
                                                 </button>
                                                 <button
                                                     onClick={(e) => handleDelete(e, project.id)}
-                                                    className="p-1.5 text-slate-500 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded"
+                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                     title="Delete"
                                                 >
-                                                    <Trash2 size={14} />
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         </div>
