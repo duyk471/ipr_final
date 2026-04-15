@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as fabric from 'fabric';
-import { Trash2, Copy, MoreVertical, RotateCw } from 'lucide-react';
+import { Trash2, Copy, MoreVertical, RotateCw, Sparkles, FlipHorizontal, FlipVertical, Layers } from 'lucide-react';
 import useCanvasStore from '../../store/useCanvasStore';
 import { api } from '../../store/useCanvasStore';
 
@@ -8,7 +8,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const canvasEl = useRef(null);
     const fabricCanvas = useRef(null);
     const containerRef = useRef(null);
-    const { canvasData, currentProject, setCanvasData, saveProjectState, setSelectedObject } = useCanvasStore();
+    const { canvasData, currentProject, setCanvasData, saveProjectState, setSelectedObject, selectedObject } = useCanvasStore();
 
     const isInitializing = useRef(true);
     const saveTimeout = useRef(null);
@@ -60,6 +60,40 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.discardActiveObject();
             fabricCanvas.current.renderAll();
             queueSave();
+        }
+    };
+
+    const handleRemoveBackgroundActiveObject = async () => {
+        const activeObject = fabricCanvas.current?.getActiveObject();
+        if (activeObject && activeObject.type === 'image') {
+            try {
+                // Extract the source URL (relative to project or storage URL)
+                let src = activeObject.src || activeObject.getSrc();
+
+                // Call our backend API
+                const res = await api.post(`/projects/${projectId}/assets/remove-bg`, {
+                    imagePath: src
+                });
+
+                if (res.data.success) {
+                    const newUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
+
+                    // Create a new Image element to update the Fabric object
+                    const imgEl = new Image();
+                    imgEl.crossOrigin = 'anonymous';
+                    imgEl.onload = () => {
+                        activeObject.setElement(imgEl);
+                        activeObject.set('src', res.data.asset.displayUrl); // Store relative/clean path
+                        fabricCanvas.current.renderAll();
+                        updateSelectedState();
+                        queueSave();
+                    };
+                    imgEl.src = newUrl;
+                }
+            } catch (err) {
+                console.error('Server-side Background removal error:', err);
+                throw err;
+            }
         }
     };
 
@@ -140,6 +174,22 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 break;
             case 'duplicate':
                 duplicateActiveObject();
+                break;
+            case 'flipX':
+                if (activeObject) {
+                    activeObject.set('flipX', !activeObject.flipX);
+                    fabricCanvas.current.renderAll();
+                    updateSelectedState();
+                    queueSave();
+                }
+                break;
+            case 'flipY':
+                if (activeObject) {
+                    activeObject.set('flipY', !activeObject.flipY);
+                    fabricCanvas.current.renderAll();
+                    updateSelectedState();
+                    queueSave();
+                }
                 break;
             case 'group':
                 if (activeObject) {
@@ -231,9 +281,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 frame = new fabric.Circle({ ...commonProps, radius: 100 });
             } else if (type === 'star') {
                 frame = new fabric.Polygon([
-                    {x: 50, y: 0}, {x: 61, y: 35}, {x: 98, y: 35}, {x: 68, y: 57},
-                    {x: 79, y: 91}, {x: 50, y: 70}, {x: 21, y: 91}, {x: 32, y: 57},
-                    {x: 2, y: 35}, {x: 39, y: 35}
+                    { x: 50, y: 0 }, { x: 61, y: 35 }, { x: 98, y: 35 }, { x: 68, y: 57 },
+                    { x: 79, y: 91 }, { x: 50, y: 70 }, { x: 21, y: 91 }, { x: 32, y: 57 },
+                    { x: 2, y: 35 }, { x: 39, y: 35 }
                 ], commonProps);
                 frame.set({ scaleX: 3, scaleY: 3 });
             } else if (type === 'text') {
@@ -264,14 +314,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         const scaleX = activeObject.width / imgElement.width;
                         const scaleY = activeObject.height / imgElement.height;
                         const scale = Math.max(scaleX, scaleY);
-                        
+
                         const scaledW = imgElement.width * scale;
                         const scaledH = imgElement.height * scale;
                         const offsetX = (activeObject.width - scaledW) / 2;
                         const offsetY = (activeObject.height - scaledH) / 2;
-                        
+
                         pattern.patternTransform = [scale, 0, 0, scale, offsetX, offsetY];
-                        
+
                         activeObject.set({
                             fill: pattern,
                             stroke: null,
@@ -311,7 +361,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 if (props.width !== undefined || props.height !== undefined) {
                     const currentWidth = activeObject.getScaledWidth();
                     const currentHeight = activeObject.getScaledHeight();
-                    
+
                     if (props.width !== undefined) {
                         const scaleX = props.width / (activeObject.width * activeObject.scaleX);
                         activeObject.set('scaleX', activeObject.scaleX * scaleX);
@@ -323,7 +373,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     delete props.width;
                     delete props.height;
                 }
-                
+
                 // Handle right/bottom positioning (convert to left/top)
                 if (props.right !== undefined) {
                     const width = activeObject.getScaledWidth();
@@ -335,13 +385,13 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     props.top = fabricCanvas.current.height - props.bottom - height;
                     delete props.bottom;
                 }
-                
+
                 // Handle dynamic font loading
                 if (props.fontFamily && props.fontFamily !== activeObject.fontFamily) {
                     const fontName = props.fontFamily;
                     const fontID = fontName.replace(/\s+/g, '+');
                     const linkId = `font-${fontID}`;
-                    
+
                     if (!document.getElementById(linkId) && fontName !== 'Inter') {
                         const link = document.createElement('link');
                         link.id = linkId;
@@ -349,18 +399,18 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         link.href = `https://fonts.googleapis.com/css2?family=${fontID}:wght@400;700&display=swap`;
                         document.head.appendChild(link);
                     }
-                    
+
                     // Apply immediately 
                     activeObject.set('fontFamily', fontName);
                     fabricCanvas.current.renderAll();
                     updateSelectedState();
-                    
+
                     // Re-render once loaded in browser
                     document.fonts.load(`16px "${fontName}"`).then(() => {
                         fabricCanvas.current.renderAll();
                         queueSave();
                     }).catch(err => console.error("Font load error:", err));
-                    
+
                     delete props.fontFamily;
                 }
 
@@ -421,7 +471,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         shadow: null
                     });
                 }
-                
+
                 fabricCanvas.current.renderAll();
                 updateSelectedState();
                 queueSave();
@@ -482,39 +532,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 queueSave();
             }
         },
-        removeBackgroundActiveObject: async () => {
-            const activeObject = fabricCanvas.current?.getActiveObject();
-            if (activeObject && activeObject.type === 'image') {
-                try {
-                    // Extract the source URL (relative to project or storage URL)
-                    let src = activeObject.src || activeObject.getSrc();
-                    
-                    // Call our backend API
-                    const res = await api.post(`/projects/${projectId}/assets/remove-bg`, {
-                        imagePath: src
-                    });
+        removeBackgroundActiveObject: handleRemoveBackgroundActiveObject,
 
-                    if (res.data.success) {
-                        const newUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
-                        
-                        // Create a new Image element to update the Fabric object
-                        const imgEl = new Image();
-                        imgEl.crossOrigin = 'anonymous';
-                        imgEl.onload = () => {
-                            activeObject.setElement(imgEl);
-                            activeObject.set('src', res.data.asset.displayUrl); // Store relative/clean path
-                            fabricCanvas.current.renderAll();
-                            updateSelectedState();
-                            queueSave();
-                        };
-                        imgEl.src = newUrl;
-                    }
-                } catch (err) {
-                    console.error('Server-side Background removal error:', err);
-                    throw err;
-                }
-            }
-        },
+
         bringToFront: () => {
             const activeObject = fabricCanvas.current?.getActiveObject();
             if (activeObject) {
@@ -584,7 +604,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 queueSave();
             }
         },
-        exportImage: (format) => {
+        exportImage: (format, fileName) => {
             if (!fabricCanvas.current) return;
             const dataUrl = fabricCanvas.current.toDataURL({
                 format: format,
@@ -592,7 +612,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 multiplier: 2
             });
             const link = document.createElement('a');
-            link.download = `${currentProject.name}.${format}`;
+            const finalName = fileName || (currentProject?.name || 'design');
+            link.download = `${finalName}.${format}`;
             link.href = dataUrl;
             link.click();
         },
@@ -890,7 +911,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         e.preventDefault();
                         e.stopPropagation();
                         isPasting.current = true;
-                        
+
                         clipboard.current.clone(['id', 'metadata']).then((cloned) => {
                             cloned.set({
                                 left: cloned.left + 30,
@@ -924,7 +945,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         if (e.key === 'ArrowDown') activeObject.set('top', activeObject.top + step);
                         if (e.key === 'ArrowLeft') activeObject.set('left', activeObject.left - step);
                         if (e.key === 'ArrowRight') activeObject.set('left', activeObject.left + step);
-                        
+
                         activeObject.setCoords();
                         fabricCanvas.current.requestRenderAll();
                         updateSelectedState();
@@ -968,7 +989,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         }
                     }
                 }
-                
+
                 if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
                     const target = e.target;
                     const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
@@ -1005,7 +1026,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         e.preventDefault();
                         const activeObj = fabricCanvas.current.getActiveObject();
                         if (!activeObj) return;
-                        
+
                         if (activeObj.type === 'activeSelection') {
                             activeObj.toGroup();
                             fabricCanvas.current.requestRenderAll();
@@ -1083,12 +1104,12 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                     fabricCanvas.current.renderAll();
                                     queueSave();
                                 }
-                            } catch(err) {
+                            } catch (err) {
                                 console.error("Paste upload error:", err);
                             }
                         };
                         reader.readAsDataURL(blob);
-                        break; 
+                        break;
                     }
                 }
             };
@@ -1185,10 +1206,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         const imgRect = canvasEl.current.getBoundingClientRect();
                         const x = e.clientX - imgRect.left;
                         const y = e.clientY - imgRect.top;
-                        
+
                         // Apply zoom and pan inversion to get real canvas coords
                         const pointer = fabricCanvas.current.restorePointerVpt({ x, y });
-                        
+
                         const target = fabricCanvas.current.getObjects().reverse().find(obj => obj.isFrame && obj.containsPoint(pointer));
 
                         fabric.util.loadImage(f.target.result, (imgElement) => {
@@ -1214,7 +1235,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     reader.readAsDataURL(file);
                 }
             };
-            
+
             const handleNativeDragOver = (e) => {
                 e.preventDefault();
                 if (e.dataTransfer) {
@@ -1232,10 +1253,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.on('selection:updated', updateSelectedState);
             fabricCanvas.current.on('selection:cleared', updateSelectedState);
             fabricCanvas.current.on('object:scaling', updateSelectedState);
-            
+
             // Magnetic Snapping Logic
             const SNAP_THRESHOLD = 5;
-            
+
             const clearGuideLines = () => {
                 if (guideLines.current.length > 0) {
                     guideLines.current.forEach(line => fabricCanvas.current.remove(line));
@@ -1245,12 +1266,12 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
             const drawGuideLine = (coords) => {
                 const line = new fabric.Line(coords, {
-                    stroke: '#bd93f9',
-                    strokeWidth: 1,
+                    stroke: '#8b5cf6', // Clearer purple for guides
+                    strokeWidth: 1.5,
                     selectable: false,
                     evented: false,
-                    strokeDashArray: [5, 5],
-                    opacity: 0.8,
+                    strokeDashArray: [6, 4],
+                    opacity: 1,
                     id: 'guide'
                 });
                 fabricCanvas.current.add(line);
@@ -1265,10 +1286,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
                 const canvasWidth = fabricCanvas.current.width;
                 const canvasHeight = fabricCanvas.current.height;
-                
+
                 const objBounds = activeObj.getBoundingRect();
                 const objCenter = activeObj.getCenterPoint();
-                
+
                 const targetXs = [0, canvasWidth / 2, canvasWidth];
                 const targetYs = [0, canvasHeight / 2, canvasHeight];
 
@@ -1325,19 +1346,19 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             });
 
             fabricCanvas.current.on('mouse:up', clearGuideLines);
-            
+
             // Handle rotation - hide toolbar while rotating
             fabricCanvas.current.on('object:rotating', () => {
                 isRotating.current = true;
                 setToolbarPos(null); // Hide toolbar
             });
-            
-            fabricCanvas.current.on('object:modified', () => { 
+
+            fabricCanvas.current.on('object:modified', () => {
                 isRotating.current = false;
-                updateSelectedState(); 
-                queueSave(); 
+                updateSelectedState();
+                queueSave();
             });
-            
+
             fabricCanvas.current.on('object:added', () => queueSave());
             fabricCanvas.current.on('object:removed', () => queueSave());
 
@@ -1381,12 +1402,13 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         // Make shapes scale proportionally by default
                         fabric.Object.prototype.set({
                             transparentCorners: false,
-                            cornerColor: '#4f46e5',
-                            cornerStrokeColor: '#ffffff',
-                            borderColor: '#4f46e5',
+                            cornerColor: '#ffffff',
+                            cornerStrokeColor: '#1E293B',
+                            borderColor: '#1E293B',
                             cornerSize: 12,
-                            padding: 10,
+                            padding: 8,
                             cornerStyle: 'circle',
+                            borderScaleFactor: 2.5,
                             uniformScaling: true
                         });
 
@@ -1470,8 +1492,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     }, []);
 
     return (
-        <div 
-            ref={containerRef} 
+        <div
+            ref={containerRef}
             className="origin-center shadow-2xl bg-white border border-slate-200 relative"
             onContextMenu={(e) => {
                 e.preventDefault();
@@ -1485,65 +1507,75 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
             {/* Context Menu */}
             {contextMenu && (
-                <div 
-                    className="fixed bg-white border shadow-xl rounded-xl p-1.5 z-[200] flex flex-col min-w-[180px]"
+                <div
+                    className="fixed bg-white/95 border border-slate-200/60 shadow-[0_10px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl rounded-2xl p-2 z-[200] flex flex-col min-w-[220px]"
                     style={{ left: contextMenu.x, top: contextMenu.y }}
                 >
-                    <button onClick={handleContextMenuAction('copy')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Copy</button>
-                    <button onClick={handleContextMenuAction('paste')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Paste</button>
-                    <button onClick={handleContextMenuAction('duplicate')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Duplicate</button>
-                    <div className="h-px bg-slate-200 my-1 mx-1"></div>
-                    <button onClick={handleContextMenuAction('bringToFront')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Bring to Front</button>
-                    <button onClick={handleContextMenuAction('bringForward')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Bring Forward</button>
-                    <button onClick={handleContextMenuAction('sendBackwards')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Send Backward</button>
-                    <button onClick={handleContextMenuAction('sendToBack')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Send to Back</button>
-                    <div className="h-px bg-slate-200 my-1 mx-1"></div>
-                    <button onClick={handleContextMenuAction('group')} className="px-3 py-1.5 text-sm text-left font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">Group/Ungroup</button>
-                    <div className="h-px bg-slate-200 my-1 mx-1"></div>
-                    <button onClick={handleContextMenuAction('delete')} className="px-3 py-1.5 text-sm text-left font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">Delete</button>
+                    <button onClick={handleContextMenuAction('copy')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Copy</button>
+                    <button onClick={handleContextMenuAction('paste')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Paste</button>
+                    <button onClick={handleContextMenuAction('duplicate')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Duplicate</button>
+                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
+                    <button onClick={handleContextMenuAction('bringToFront')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Bring to Front</button>
+                    <button onClick={handleContextMenuAction('bringForward')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Bring Forward</button>
+                    <button onClick={handleContextMenuAction('sendBackwards')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Send Backward</button>
+                    <button onClick={handleContextMenuAction('sendToBack')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Send to Back</button>
+                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
+                    <button onClick={handleContextMenuAction('flipX')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all flex items-center justify-between">Flip Horizontal <FlipHorizontal size={16} /></button>
+                    <button onClick={handleContextMenuAction('flipY')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all flex items-center justify-between">Flip Vertical <FlipVertical size={16} /></button>
+                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
+                    <button onClick={handleContextMenuAction('group')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Group/Ungroup</button>
+                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
+                    <button onClick={handleContextMenuAction('delete')} className="px-4 py-2.5 text-[15px] text-left font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all">Delete</button>
                 </div>
             )}
 
-            {/* Floating Deletion Toolbar */}
-            {toolbarPos && (
+            {/* Floating Selection Toolbar */}
+            {toolbarPos && !isRotating.current && (
                 <div
-                    className="absolute rounded-xl shadow-2xl p-2 flex items-center gap-2 z-[100] -translate-x-1/2"
-                    style={{ left: toolbarPos.left, top: toolbarPos.top, backgroundColor: '#1d1f26' }}
+                    className="absolute rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.15)] p-3 flex items-center gap-1.5 z-[100] -translate-x-1/2 transform scale-150"
+                    style={{ left: toolbarPos.left, top: toolbarPos.top, backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}
                 >
-                    <button
-                        onClick={handleContextMenuAction('group')}
-                        className="px-3 hover:bg-white/10 text-white rounded-lg transition-all font-bold text-sm h-[44px] flex items-center"
-                        title="Group / Ungroup"
-                    >
-                        Group
-                    </button>
-                    <div className="w-px h-6 bg-white/20"></div>
-                    <button
-                        onClick={rotateActiveObject}
-                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
-                        title="Rotate 90°"
-                    >
-                        <RotateCw size={24} />
-                    </button>
-                    <div className="w-px h-6 bg-white/20"></div>
+                    {selectedObject?.type === 'image' && (
+                        <>
+                            <button
+                                onClick={handleRemoveBackgroundActiveObject}
+                                className="px-5 py-2.5 hover:bg-slate-100 text-slate-700 rounded-xl transition-all font-bold text-sm flex items-center gap-2"
+                                title="Remove Background"
+                            >
+                                <Sparkles size={18} className="text-violet-500" /> Remove BG
+                            </button>
+                            <div className="w-px h-8 bg-slate-200 mx-1.5"></div>
+                        </>
+                    )}
+
                     <button
                         onClick={duplicateActiveObject}
-                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
+                        className="p-3 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
                         title="Duplicate"
                     >
                         <Copy size={24} />
                     </button>
-                    <div className="w-px h-6 bg-white/20"></div>
+                    <button
+                        onClick={rotateActiveObject}
+                        className="p-3 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
+                        title="Rotate 90°"
+                    >
+                        <RotateCw size={24} />
+                    </button>
+                    <div className="w-px h-8 bg-slate-200 mx-1.5"></div>
                     <button
                         onClick={deleteActiveObject}
-                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
+                        className="p-3 hover:bg-red-50 text-red-500 rounded-xl transition-all"
                         title="Delete"
                     >
                         <Trash2 size={24} />
                     </button>
-                    <div className="w-px h-6 bg-white/20"></div>
                     <button
-                        className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setContextMenu({ x: toolbarPos.left + 50, y: toolbarPos.top + 40 });
+                        }}
+                        className="p-3 hover:bg-slate-100 text-slate-700 rounded-xl transition-all border border-transparent hover:border-slate-200 ml-1"
                         title="More options"
                     >
                         <MoreVertical size={24} />

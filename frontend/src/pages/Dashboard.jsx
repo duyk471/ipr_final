@@ -186,7 +186,7 @@ const Dashboard = () => {
                     <p className="text-slate-500 mb-8 text-lg">Use AI to generate stunning starting points in seconds.</p>
                     
                     <div className="relative group bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] rounded-3xl border border-slate-200/80 transition-all duration-300 focus-within:shadow-[0_8px_40px_rgba(0,0,0,0.12)] focus-within:border-slate-300 p-2 pl-3 flex flex-col sm:flex-row items-center gap-2">
-                        <Sparkles className="absolute left-7 text-slate-400 group-focus-within:text-indigo-500 transition-colors duration-300" size={24} />
+                        <Sparkles className="absolute left-7 text-slate-400 group-focus-within:text-slate-600 transition-colors duration-300" size={24} />
                         <input 
                             type="text" 
                             placeholder="Describe your scene: e.g., A minimalist coffee shop banner..."

@@ -91,6 +91,9 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                 { label: 'Instagram Story', w: 1080, h: 1920 },
                                 { label: 'FB Cover', w: 851, h: 315 },
                                 { label: 'YouTube Thumb', w: 1280, h: 720 },
+                                { label: 'Twitter Post', w: 1200, h: 675 },
+                                { label: 'LinkedIn Banner', w: 1584, h: 396 },
+                                { label: 'Pinterest Pin', w: 1000, h: 1500 },
                                 { label: 'A4 Document', w: 794, h: 1123 },
                                 { label: 'Business Card', w: 1050, h: 600 }
                             ].map((preset) => (

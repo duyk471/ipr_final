@@ -9,6 +9,7 @@ import PropertiesPanel from '../components/Editor/PropertiesPanel';
 import ProjectSettings from '../components/Editor/ProjectSettings';
 import AIDesignAssistant from '../components/Editor/AIDesignAssistant';
 import ConfirmModal from '../components/UI/ConfirmModal';
+import ExportModal from '../components/UI/ExportModal';
 import ElementsPanel from '../components/Editor/ElementsPanel';
 import TextPanel from '../components/Editor/TextPanel';
 
@@ -21,6 +22,7 @@ const Editor = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [historyList, setHistoryList] = useState([]);
+    const [showExportModal, setShowExportModal] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, title: '', message: '', isDestructive: true });
     
     // Default to system preference for dark mode
@@ -88,6 +90,14 @@ const Editor = () => {
                 }
             }
         });
+    };
+
+    const handleExport = (format, fileName) => {
+        if (format === 'zip') {
+            window.location.href = `http://localhost:5000/api/projects/${id}/export`;
+        } else {
+            canvasRef.current?.exportImage(format, fileName);
+        }
     };
 
     // Switch to properties tab when an object is selected
@@ -180,32 +190,17 @@ const Editor = () => {
                         <Settings size={20} />
                     </button>
 
-                    <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-700/50 p-1 rounded-xl">
-                        <button
-                            onClick={() => canvasRef.current?.exportImage('png')}
-                            className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 hover:bg-white hover:text-slate-800 dark:hover:bg-slate-600 dark:hover:text-slate-200 hover:shadow-sm rounded-lg transition-all"
-                        >
-                            PNG
-                        </button>
-                        <button
-                            onClick={() => canvasRef.current?.exportImage('jpeg')}
-                            className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 hover:bg-white hover:text-slate-800 dark:hover:bg-slate-600 dark:hover:text-slate-200 hover:shadow-sm rounded-lg transition-all"
-                        >
-                            JPG
-                        </button>
-                    </div>
-
                     <button
-                        onClick={() => window.location.href = `http://localhost:5000/api/projects/${id}/export`}
-                        className="flex items-center gap-1.5 bg-[#1E293B] dark:bg-slate-100 hover:bg-[#0B1120] dark:hover:bg-white text-white dark:text-slate-900 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all shadow-sm active:scale-[0.98] ml-2"
+                        onClick={() => setShowExportModal(true)}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 px-5 py-2 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-[0.98] ml-2"
                     >
-                        <Download size={14} /> Export ZIP
+                        <Download size={16} /> Export
                     </button>
                 </div>
             </header>
 
             {/* Main Editing Area */}
-            <div className="flex flex-1 overflow-hidden relative p-4 gap-4 bg-slate-50 dark:bg-[#0B1120]">
+            <div className="flex flex-1 overflow-hidden relative p-4 pt-2 gap-4 bg-slate-50 dark:bg-[#0B1120]">
                 
                 {/* Left Floating Toolbars Wrapper */}
                 <div className="flex z-20 h-full gap-3 pointer-events-none">
@@ -246,24 +241,32 @@ const Editor = () => {
                     )}
                 </div>
 
-                {/* Central Canvas Workspace */}
-                <main className="absolute inset-0 z-0 flex items-center justify-center transition-colors">
-                    <FabricCanvas
-                        ref={canvasRef}
-                        projectId={id}
-                    />
-                </main>
-
-                {/* Right Sidebar - Properties Island */}
-                <div className="absolute right-4 top-4 bottom-4 z-10 pointer-events-none flex justify-end">
-                    <aside className="w-[320px] bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-2xl flex flex-col shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.02)] relative overflow-y-auto custom-scrollbar pointer-events-auto">
+                {/* Content Area (Properties + Canvas) */}
+                <div className="flex-1 flex flex-col min-w-0 gap-3">
+                    {/* Horizontal Properties Context Bar */}
+                    <div className="h-12 bg-white/90 dark:bg-[#1E293B]/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-xl flex items-center px-4 overflow-x-auto overflow-y-hidden custom-scrollbar shadow-sm w-full max-w-4xl mx-auto shrink-0 transition-all">
                         <PropertiesPanel canvasRef={canvasRef} />
-                    </aside>
+                    </div>
+
+                    <main className="flex-1 relative overflow-hidden flex items-center justify-center">
+                        <FabricCanvas 
+                            ref={canvasRef} 
+                            projectId={id}
+                        />
+                    </main>
                 </div>
             </div>
 
             {/* Modals */}
-            {showSettings && <ProjectSettings onClose={() => setShowSettings(false)} />}
+            {showSettings && <ProjectSettings project={currentProject} onClose={() => setShowSettings(false)} />}
+            
+            <ExportModal 
+                isOpen={showExportModal} 
+                onClose={() => setShowExportModal(false)}
+                onExport={handleExport}
+                currentProject={currentProject}
+            />
+
             {/* Confirm Modal */}
             <ConfirmModal 
                 isOpen={confirmModal.isOpen}
