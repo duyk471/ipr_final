@@ -142,6 +142,18 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             case 'duplicate':
                 duplicateActiveObject();
                 break;
+            case 'group':
+                if (activeObject) {
+                    if (activeObject.type === 'activeSelection') {
+                        activeObject.toGroup();
+                    } else if (activeObject.type === 'group') {
+                        activeObject.toActiveSelection();
+                    }
+                    fabricCanvas.current.requestRenderAll();
+                    updateSelectedState();
+                    queueSave(false);
+                }
+                break;
             case 'delete':
                 deleteActiveObject();
                 break;
@@ -987,6 +999,26 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         return; // Allow normal delete/backspace in input fields
                     }
 
+                    // Ctrl+G grouping
+                    if ((e.ctrlKey || e.metaKey) && (e.key === 'g' || e.key === 'G')) {
+                        e.preventDefault();
+                        const activeObj = fabricCanvas.current.getActiveObject();
+                        if (!activeObj) return;
+                        
+                        if (activeObj.type === 'activeSelection') {
+                            activeObj.toGroup();
+                            fabricCanvas.current.requestRenderAll();
+                            updateSelectedState();
+                            queueSave(false);
+                        } else if (activeObj.type === 'group') {
+                            activeObj.toActiveSelection();
+                            fabricCanvas.current.requestRenderAll();
+                            updateSelectedState();
+                            queueSave(false);
+                        }
+                        return;
+                    }
+
                     const activeObject = fabricCanvas.current.getActiveObject();
                     if (activeObject && activeObject.type !== 'i-text' || (activeObject.type === 'i-text' && !activeObject.isEditing)) {
                         deleteActiveObject();
@@ -1018,9 +1050,6 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         obj.evented = true;
                     });
                     fabricCanvas.current.renderAll();
-                }
-                if (e.key === 'Control') {
-                    fabricCanvas.current.uniformScaling = false;
                 }
             };
             window.addEventListener('keydown', handleKeyDown);
@@ -1307,6 +1336,21 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
                 if (fabricCanvas.current) {
                     try {
+                        fabricCanvas.current.selectionLineWidth = 1;
+                        fabricCanvas.current.uniScaleKey = 'ctrlKey';
+
+                        // Make shapes scale proportionally by default
+                        fabric.Object.prototype.set({
+                            transparentCorners: false,
+                            cornerColor: '#4f46e5',
+                            cornerStrokeColor: '#ffffff',
+                            borderColor: '#4f46e5',
+                            cornerSize: 12,
+                            padding: 10,
+                            cornerStyle: 'circle',
+                            uniformScaling: true
+                        });
+
                         await fabricCanvas.current.loadFromJSON({
                             objects: cleanLayers,
                             background: (canvasData.canvas && canvasData.canvas.backgroundColor) || '#ffffff'
@@ -1414,6 +1458,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     <button onClick={handleContextMenuAction('sendBackwards')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Send Backward</button>
                     <button onClick={handleContextMenuAction('sendToBack')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Send to Back</button>
                     <div className="h-px bg-gray-200 my-1 mx-1"></div>
+                    <button onClick={handleContextMenuAction('group')} className="px-3 py-1.5 text-sm text-left font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors">Group/Ungroup</button>
+                    <div className="h-px bg-gray-200 my-1 mx-1"></div>
                     <button onClick={handleContextMenuAction('delete')} className="px-3 py-1.5 text-sm text-left font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">Delete</button>
                 </div>
             )}
@@ -1424,6 +1470,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     className="absolute rounded-xl shadow-2xl p-2 flex items-center gap-2 z-[100] -translate-x-1/2"
                     style={{ left: toolbarPos.left, top: toolbarPos.top, backgroundColor: '#1d1f26' }}
                 >
+                    <button
+                        onClick={handleContextMenuAction('group')}
+                        className="px-3 hover:bg-white/10 text-white rounded-lg transition-all font-bold text-sm h-[44px] flex items-center"
+                        title="Group / Ungroup"
+                    >
+                        Group
+                    </button>
+                    <div className="w-px h-6 bg-white/20"></div>
                     <button
                         onClick={rotateActiveObject}
                         className="p-2.5 hover:bg-white/10 text-white rounded-lg transition-all"

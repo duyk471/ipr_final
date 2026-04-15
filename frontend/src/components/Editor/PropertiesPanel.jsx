@@ -41,7 +41,7 @@ const PropertiesPanel = ({ canvasRef }) => {
 
     if (!selectedObject) {
         return (
-            <div className="flex flex-col h-full bg-white dark:bg-gray-800 p-6 gap-6 transition-colors">
+            <div className="flex flex-col h-full bg-white dark:bg-gray-800 p-6 gap-6 transition-colors overflow-y-auto">
                 <h3 className="font-bold text-gray-800 dark:text-gray-200 border-b dark:border-gray-700 pb-2 uppercase text-xs tracking-widest flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                     CANVAS PROPERTIES
@@ -149,7 +149,7 @@ const PropertiesPanel = ({ canvasRef }) => {
     const isImage = selectedObject.type === 'image';
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-gray-800 p-6 gap-6 transition-colors">
+        <div className="flex flex-col h-full bg-white dark:bg-gray-800 p-6 gap-6 transition-colors overflow-y-auto overflow-x-hidden">
             <h3 className="font-bold text-gray-800 dark:text-gray-200 border-b dark:border-gray-700 pb-2 uppercase text-xs tracking-widest flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                 {selectedObject.type.toUpperCase()} Properties
@@ -198,8 +198,9 @@ const PropertiesPanel = ({ canvasRef }) => {
                         <label className="text-xs text-gray-400">Width</label>
                         <input
                             type="number"
+                            min="1"
                             value={selectedObject.width || 0}
-                            onChange={(e) => handleChange('width', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleChange('width', Math.max(1, parseFloat(e.target.value) || 1))}
                             className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono"
                         />
                     </div>
@@ -207,8 +208,9 @@ const PropertiesPanel = ({ canvasRef }) => {
                         <label className="text-xs text-gray-400">Height</label>
                         <input
                             type="number"
+                            min="1"
                             value={selectedObject.height || 0}
-                            onChange={(e) => handleChange('height', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleChange('height', Math.max(1, parseFloat(e.target.value) || 1))}
                             className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono"
                         />
                     </div>
@@ -285,10 +287,37 @@ const PropertiesPanel = ({ canvasRef }) => {
                             <label className="text-xs text-gray-400 flex-1">Size</label>
                             <input
                                 type="number"
+                                min="1"
                                 value={selectedObject.fontSize || 12}
-                                onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
+                                onChange={(e) => handleChange('fontSize', Math.max(1, parseInt(e.target.value) || 1))}
                                 className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none w-20"
                             />
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2 pt-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Style</label>
+                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 p-1 rounded-lg w-max text-sm">
+                            <button
+                                onClick={() => handleChange('fontWeight', selectedObject.fontWeight === 'bold' ? 'normal' : 'bold')}
+                                className={`w-8 h-8 rounded flex items-center justify-center font-bold transition-colors ${selectedObject.fontWeight === 'bold' ? 'bg-white shadow text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
+                                title="Bold"
+                            >
+                                B
+                            </button>
+                            <button
+                                onClick={() => handleChange('fontStyle', selectedObject.fontStyle === 'italic' ? 'normal' : 'italic')}
+                                className={`w-8 h-8 rounded flex items-center justify-center font-serif italic transition-colors ${selectedObject.fontStyle === 'italic' ? 'bg-white shadow text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
+                                title="Italic"
+                            >
+                                I
+                            </button>
+                            <button
+                                onClick={() => handleChange('underline', !selectedObject.underline)}
+                                className={`w-8 h-8 rounded flex items-center justify-center underline transition-colors ${selectedObject.underline ? 'bg-white shadow text-indigo-600' : 'text-gray-600 hover:bg-gray-200'}`}
+                                title="Underline"
+                            >
+                                U
+                            </button>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 pt-2">

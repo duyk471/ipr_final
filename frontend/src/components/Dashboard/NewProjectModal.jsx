@@ -10,7 +10,7 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onCreate({ name, width: parseInt(width), height: parseInt(height) });
+        onCreate({ name, width: Math.max(1, parseInt(width) || 1), height: Math.max(1, parseInt(height) || 1) });
     };
 
     return (
@@ -60,8 +60,8 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                 <input
                                     type="number"
                                     value={width}
-                                    onChange={(e) => setWidth(e.target.value)}
-                                    min="100"
+                                    onChange={(e) => setWidth(Math.max(1, parseInt(e.target.value) || 1))}
+                                    min="1"
                                     max="4000"
                                     required
                                     className="w-full px-5 py-3.5 bg-gray-50 border-2 border-transparent rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:outline-none transition-all font-semibold"
@@ -72,8 +72,8 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                 <input
                                     type="number"
                                     value={height}
-                                    onChange={(e) => setHeight(e.target.value)}
-                                    min="100"
+                                    onChange={(e) => setHeight(Math.max(1, parseInt(e.target.value) || 1))}
+                                    min="1"
                                     max="4000"
                                     required
                                     className="w-full px-5 py-3.5 bg-gray-50 border-2 border-transparent rounded-xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white focus:outline-none transition-all font-semibold"
