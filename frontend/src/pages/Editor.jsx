@@ -251,7 +251,15 @@ const Editor = () => {
                         <PropertiesPanel canvasRef={canvasRef} />
                     </div>
 
-                    <main className="flex-1 relative overflow-hidden flex items-center justify-center">
+                    <main
+                        className="flex-1 relative overflow-hidden flex items-center justify-center"
+                        onClick={(e) => {
+                            // Deselect when clicking the grey background outside the canvas
+                            if (e.target === e.currentTarget) {
+                                canvasRef.current?.clearSelection();
+                            }
+                        }}
+                    >
                         <FabricCanvas 
                             ref={canvasRef} 
                             projectId={id}

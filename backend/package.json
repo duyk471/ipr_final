@@ -27,5 +27,11 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "optionalDependencies": {
+    "@img/sharp-libvips-linux-x64": "^1.2.4",
+    "@img/sharp-libvips-win32-x64": "^1.2.4",
+    "@img/sharp-linux-x64": "^0.34.5",
+    "@img/sharp-win32-x64": "^0.34.5"
   }
 }

@@ -84,10 +84,10 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
                 <div key={tool.id} className="relative group w-full">
                     <button
                         onClick={tool.action}
-                        className={`flex flex-col items-center justify-center p-3 gap-1.5 rounded-xl transition-all duration-200 ease-out w-full select-none ${
+                        className={`flex flex-col items-center justify-center p-3 gap-1.5 rounded-2xl-organic transition-all duration-300 ease-out w-full select-none ${
                             activeLeftPanel === tool.id
-                                ? 'text-slate-900 bg-slate-100 dark:bg-slate-700/80 dark:text-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]'
-                                : 'text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B]/60'
+                                ? 'text-white bg-biophilic-green shadow-lg scale-105'
+                                : 'text-slate-500 hover:text-biophilic-green hover:bg-biophilic-rose/20'
                         }`}
                         title={tool.label}
                     >
@@ -95,7 +95,7 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
                             size: 20, 
                             strokeWidth: activeLeftPanel === tool.id ? 2.5 : 2 
                         })}
-                        <span className="text-[9px] font-bold uppercase tracking-[0.05em]">{tool.label}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{tool.label}</span>
                     </button>
                     {/* Tooltip delay hover */}
                     <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1E293B] text-white text-[10px] font-medium rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 delay-100 whitespace-nowrap z-50">

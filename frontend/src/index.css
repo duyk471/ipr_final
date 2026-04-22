@@ -12,8 +12,17 @@
   }
 
   body {
-    @apply antialiased bg-gray-50 text-gray-900 overflow-hidden;
+    @apply antialiased bg-biophilic-cream text-slate-800 overflow-hidden font-sans;
   }
+}
+
+/* Organic shapes and soft transitions */
+.organic-shadow {
+  box-shadow: 0 10px 30px -10px rgba(168, 198, 159, 0.2);
+}
+
+.organic-hover {
+  @apply transition-all duration-300 ease-in-out hover:scale-[1.02] active:scale-[0.98];
 }
 
 @layer utilities {

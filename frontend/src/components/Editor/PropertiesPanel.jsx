@@ -123,21 +123,30 @@ const PropertiesPanel = ({ canvasRef }) => {
                     {/* Text Style */}
                     <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden shrink-0 dark:bg-[#0B1120] dark:border-slate-600">
                         <button
-                            onClick={() => handleChange('fontWeight', selectedObject.fontWeight === 'bold' ? 'normal' : 'bold')}
+                            onClick={() => {
+                                canvasRef.current?.snapUndo();
+                                handleChange('fontWeight', selectedObject.fontWeight === 'bold' ? 'normal' : 'bold');
+                            }}
                             className={`w-9 h-8 flex items-center justify-center font-bold text-[13px] transition-colors ${selectedObject.fontWeight === 'bold' ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'}`}
                         >
                             B
                         </button>
                         <div className="w-px h-full bg-slate-200 dark:bg-slate-700"></div>
                         <button
-                            onClick={() => handleChange('fontStyle', selectedObject.fontStyle === 'italic' ? 'normal' : 'italic')}
+                            onClick={() => {
+                                canvasRef.current?.snapUndo();
+                                handleChange('fontStyle', selectedObject.fontStyle === 'italic' ? 'normal' : 'italic');
+                            }}
                             className={`w-9 h-8 flex items-center justify-center font-serif italic text-[13px] transition-colors ${selectedObject.fontStyle === 'italic' ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'}`}
                         >
                             I
                         </button>
                         <div className="w-px h-full bg-slate-200 dark:bg-slate-700"></div>
                         <button
-                            onClick={() => handleChange('underline', !selectedObject.underline)}
+                            onClick={() => {
+                                canvasRef.current?.snapUndo();
+                                handleChange('underline', !selectedObject.underline);
+                            }}
                             className={`w-9 h-8 flex items-center justify-center underline text-[13px] transition-colors ${selectedObject.underline ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'}`}
                         >
                             U

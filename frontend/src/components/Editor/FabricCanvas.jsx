@@ -17,6 +17,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const [toolbarPos, setToolbarPos] = useState(null);
     const [contextMenu, setContextMenu] = useState(null);
     const isRotating = useRef(false);
+    // Track the CSS display scale so the floating toolbar can counter-scale
+    const [canvasScale, setCanvasScale] = useState(1);
+    // Remove Background loading state
+    const [isRemovingBg, setIsRemovingBg] = useState(false);
 
     // Undo/Redo Stacks
     const undoStack = useRef([]);
@@ -65,35 +69,75 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
     const handleRemoveBackgroundActiveObject = async () => {
         const activeObject = fabricCanvas.current?.getActiveObject();
-        if (activeObject && activeObject.type === 'image') {
-            try {
-                // Extract the source URL (relative to project or storage URL)
-                let src = activeObject.src || activeObject.getSrc();
+        if (!activeObject || activeObject.type !== 'image') return;
+        if (isRemovingBg) return; // prevent double-click
 
-                // Call our backend API
-                const res = await api.post(`/projects/${projectId}/assets/remove-bg`, {
-                    imagePath: src
-                });
+        setIsRemovingBg(true);
 
-                if (res.data.success) {
-                    const newUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
+        // ── Apply loading visuals on the Fabric object ──
+        // 1. Blur the image
+        const blurFilter = new fabric.filters.Blur({ blur: 0.5 });
+        const originalFilters = [...(activeObject.filters || [])];
+        activeObject.filters = [...originalFilters, blurFilter];
+        activeObject.applyFilters();
 
-                    // Create a new Image element to update the Fabric object
-                    const imgEl = new Image();
-                    imgEl.crossOrigin = 'anonymous';
-                    imgEl.onload = () => {
-                        activeObject.setElement(imgEl);
-                        activeObject.set('src', res.data.asset.displayUrl); // Store relative/clean path
-                        fabricCanvas.current.renderAll();
-                        updateSelectedState();
-                        queueSave();
-                    };
-                    imgEl.src = newUrl;
-                }
-            } catch (err) {
-                console.error('Server-side Background removal error:', err);
-                throw err;
+        // 2. Pulsing opacity via a JS interval
+        const originalOpacity = activeObject.opacity ?? 1;
+        let pulse = true;
+        const pulseInterval = setInterval(() => {
+            if (!fabricCanvas.current) return;
+            activeObject.set('opacity', pulse ? 0.45 : 0.8);
+            pulse = !pulse;
+            fabricCanvas.current.renderAll();
+        }, 500);
+
+        try {
+            let src = activeObject.src || activeObject.getSrc();
+
+            const res = await api.post(`/projects/${projectId}/assets/remove-bg`, {
+                imagePath: src
+            });
+
+            if (res.data.success) {
+                const newUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
+
+                const imgEl = new Image();
+                imgEl.crossOrigin = 'anonymous';
+                imgEl.onload = () => {
+                    // Restore filters and opacity before swapping element
+                    clearInterval(pulseInterval);
+                    activeObject.filters = originalFilters;
+                    activeObject.applyFilters();
+                    activeObject.set('opacity', originalOpacity);
+
+                    activeObject.setElement(imgEl);
+                    activeObject.set('src', res.data.asset.displayUrl);
+                    fabricCanvas.current.renderAll();
+                    updateSelectedState();
+                    queueSave();
+                    setIsRemovingBg(false);
+                };
+                imgEl.onerror = () => {
+                    clearInterval(pulseInterval);
+                    activeObject.filters = originalFilters;
+                    activeObject.applyFilters();
+                    activeObject.set('opacity', originalOpacity);
+                    fabricCanvas.current.renderAll();
+                    setIsRemovingBg(false);
+                };
+                imgEl.src = newUrl;
+            } else {
+                throw new Error('BG removal failed');
             }
+        } catch (err) {
+            console.error('Server-side Background removal error:', err);
+            clearInterval(pulseInterval);
+            // Restore image to clean state on error
+            activeObject.filters = originalFilters;
+            activeObject.applyFilters();
+            activeObject.set('opacity', originalOpacity);
+            fabricCanvas.current?.renderAll();
+            setIsRemovingBg(false);
         }
     };
 
@@ -647,6 +691,15 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             queueSave(true);
         },
         deleteActiveObject,
+        snapUndo: () => pushToUndo(),
+        clearSelection: () => {
+            if (!fabricCanvas.current) return;
+            fabricCanvas.current.discardActiveObject();
+            fabricCanvas.current.renderAll();
+            setSelectedObject(null);
+            setToolbarPos(null);
+            setContextMenu(null);
+        },
         getDesignSnapshot: () => {
             if (!fabricCanvas.current) return null;
             return {
@@ -1254,6 +1307,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             fabricCanvas.current.on('selection:cleared', updateSelectedState);
             fabricCanvas.current.on('object:scaling', updateSelectedState);
 
+            // Hide toolbar + properties when clicking empty canvas space
+            fabricCanvas.current.on('mouse:down', (e) => {
+                if (!e.target) {
+                    setToolbarPos(null);
+                    setContextMenu(null);
+                }
+            });
+
             // Magnetic Snapping Logic
             const SNAP_THRESHOLD = 5;
 
@@ -1399,16 +1460,16 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         fabricCanvas.current.selectionLineWidth = 1;
                         fabricCanvas.current.uniScaleKey = 'ctrlKey';
 
-                        // Make shapes scale proportionally by default
+                        // Canva-style selection handles: blue border, white round corners, fixed-width stroke
                         fabric.Object.prototype.set({
                             transparentCorners: false,
                             cornerColor: '#ffffff',
-                            cornerStrokeColor: '#1E293B',
-                            borderColor: '#1E293B',
-                            cornerSize: 12,
-                            padding: 8,
+                            cornerStrokeColor: '#1a7cff',
+                            borderColor: '#1a7cff',
+                            cornerSize: 14,
+                            padding: 6,
                             cornerStyle: 'circle',
-                            borderScaleFactor: 2.5,
+                            borderScaleFactor: 1,   // border always 1px visual width, doesn't scale with object
                             uniformScaling: true
                         });
 
@@ -1471,6 +1532,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const finalScale = baseScale * zoomLevel.current;
 
             containerRef.current.style.transform = `translate(${panOffsetX.current}px, ${panOffsetY.current}px) scale(${finalScale})`;
+            // Keep React in sync so toolbar can counter-scale
+            setCanvasScale(finalScale);
         }
     };
 
@@ -1529,56 +1592,149 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 </div>
             )}
 
-            {/* Floating Selection Toolbar */}
+            {/* Floating Selection Toolbar
+                 Counter-scaled so it always renders at a fixed pixel size
+                 regardless of the canvas zoom level. */}
             {toolbarPos && !isRotating.current && (
                 <div
-                    className="absolute rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.15)] p-3 flex items-center gap-1.5 z-[100] -translate-x-1/2 transform scale-150"
-                    style={{ left: toolbarPos.left, top: toolbarPos.top, backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}
+                    className="absolute rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.15)] p-2.5 flex items-center gap-1 z-[100]"
+                    style={{
+                        left: toolbarPos.left,
+                        top: toolbarPos.top,
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        // Anchor the scaling to the bottom-center of the toolbar
+                        transformOrigin: 'center bottom',
+                        transform: `translateX(-50%) scale(${1 / canvasScale})`,
+                    }}
                 >
                     {selectedObject?.type === 'image' && (
                         <>
                             <button
                                 onClick={handleRemoveBackgroundActiveObject}
-                                className="px-5 py-2.5 hover:bg-slate-100 text-slate-700 rounded-xl transition-all font-bold text-sm flex items-center gap-2"
+                                disabled={isRemovingBg}
+                                className={`px-4 py-2 rounded-xl transition-all font-semibold text-sm flex items-center gap-2 ${
+                                    isRemovingBg
+                                        ? 'bg-violet-50 text-violet-400 cursor-wait'
+                                        : 'hover:bg-slate-100 text-slate-700'
+                                }`}
                                 title="Remove Background"
                             >
-                                <Sparkles size={18} className="text-violet-500" /> Remove BG
+                                {isRemovingBg ? (
+                                    <>
+                                        {/* Spinning ring */}
+                                        <svg
+                                            className="animate-spin"
+                                            width={16} height={16}
+                                            viewBox="0 0 24 24" fill="none"
+                                        >
+                                            <circle cx="12" cy="12" r="10" stroke="#7c3aed" strokeWidth="3" strokeOpacity="0.25" />
+                                            <path d="M12 2a10 10 0 0 1 10 10" stroke="#7c3aed" strokeWidth="3" strokeLinecap="round" />
+                                        </svg>
+                                        <span className="text-violet-500">Removing…</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles size={16} className="text-violet-500" /> Remove BG
+                                    </>
+                                )}
                             </button>
-                            <div className="w-px h-8 bg-slate-200 mx-1.5"></div>
+                            <div className="w-px h-8 bg-slate-200 mx-1"></div>
+                        </>
+                    )}
+
+                    {/* B / I / U — only for text objects */}
+                    {selectedObject?.type?.includes('text') && (
+                        <>
+                            <div className="flex items-center rounded-xl overflow-hidden border border-slate-100">
+                                <button
+                                    onClick={() => {
+                                        const obj = fabricCanvas.current?.getActiveObject();
+                                        if (!obj) return;
+                                        pushToUndo(); // snapshot BEFORE mutation
+                                        obj.set('fontWeight', obj.fontWeight === 'bold' ? 'normal' : 'bold');
+                                        fabricCanvas.current.renderAll();
+                                        updateSelectedState();
+                                        queueSave(true); // skip double-push
+                                    }}
+                                    className={`w-9 h-9 flex items-center justify-center font-bold text-[15px] transition-colors ${
+                                        selectedObject?.fontWeight === 'bold'
+                                            ? 'bg-slate-800 text-white'
+                                            : 'hover:bg-slate-100 text-slate-700'
+                                    }`}
+                                    title="Bold"
+                                >B</button>
+                                <button
+                                    onClick={() => {
+                                        const obj = fabricCanvas.current?.getActiveObject();
+                                        if (!obj) return;
+                                        pushToUndo(); // snapshot BEFORE mutation
+                                        obj.set('fontStyle', obj.fontStyle === 'italic' ? 'normal' : 'italic');
+                                        fabricCanvas.current.renderAll();
+                                        updateSelectedState();
+                                        queueSave(true);
+                                    }}
+                                    className={`w-9 h-9 flex items-center justify-center italic font-serif text-[15px] transition-colors ${
+                                        selectedObject?.fontStyle === 'italic'
+                                            ? 'bg-slate-800 text-white'
+                                            : 'hover:bg-slate-100 text-slate-700'
+                                    }`}
+                                    title="Italic"
+                                >I</button>
+                                <button
+                                    onClick={() => {
+                                        const obj = fabricCanvas.current?.getActiveObject();
+                                        if (!obj) return;
+                                        pushToUndo(); // snapshot BEFORE mutation
+                                        obj.set('underline', !obj.underline);
+                                        fabricCanvas.current.renderAll();
+                                        updateSelectedState();
+                                        queueSave(true);
+                                    }}
+                                    className={`w-9 h-9 flex items-center justify-center underline text-[15px] transition-colors ${
+                                        selectedObject?.underline
+                                            ? 'bg-slate-800 text-white'
+                                            : 'hover:bg-slate-100 text-slate-700'
+                                    }`}
+                                    title="Underline"
+                                >U</button>
+                            </div>
+                            <div className="w-px h-7 bg-slate-200 mx-0.5"></div>
                         </>
                     )}
 
                     <button
                         onClick={duplicateActiveObject}
-                        className="p-3 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
+                        className="p-2.5 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
                         title="Duplicate"
                     >
-                        <Copy size={24} />
+                        <Copy size={20} />
                     </button>
                     <button
                         onClick={rotateActiveObject}
-                        className="p-3 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
+                        className="p-2.5 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
                         title="Rotate 90°"
                     >
-                        <RotateCw size={24} />
+                        <RotateCw size={20} />
                     </button>
-                    <div className="w-px h-8 bg-slate-200 mx-1.5"></div>
+                    <div className="w-px h-7 bg-slate-200 mx-0.5"></div>
                     <button
                         onClick={deleteActiveObject}
-                        className="p-3 hover:bg-red-50 text-red-500 rounded-xl transition-all"
+                        className="p-2.5 hover:bg-red-50 text-red-500 rounded-xl transition-all"
                         title="Delete"
                     >
-                        <Trash2 size={24} />
+                        <Trash2 size={20} />
                     </button>
+                    {/* MoreVertical — intentionally larger for easy access */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             setContextMenu({ x: toolbarPos.left + 50, y: toolbarPos.top + 40 });
                         }}
-                        className="p-3 hover:bg-slate-100 text-slate-700 rounded-xl transition-all border border-transparent hover:border-slate-200 ml-1"
+                        className="p-2.5 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200 hover:border-slate-300 ml-0.5"
                         title="More options"
                     >
-                        <MoreVertical size={24} />
+                        <MoreVertical size={30} strokeWidth={2.5} />
                     </button>
                 </div>
             )}
