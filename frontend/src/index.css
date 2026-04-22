@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,19 +14,53 @@
   }
 
   body {
-    @apply antialiased bg-biophilic-cream text-slate-800 overflow-hidden font-sans;
+    @apply antialiased bg-biophilic-cream text-slate-700 overflow-hidden font-sans;
+  }
+
+  /* Smooth focus ring in biophilic green */
+  *:focus-visible {
+    outline: 2px solid #A8C69F;
+    outline-offset: 2px;
   }
 }
 
-/* Organic shapes and soft transitions */
+/* ── Organic design utilities ────────────────────────────── */
+
+/* Primary CTA: sage green */
+.btn-primary {
+  @apply bg-biophilic-green hover:bg-biophilic-green-dark text-white font-bold
+         rounded-2xl-organic px-6 py-3 shadow-organic transition-all duration-200
+         active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed;
+}
+
+/* Secondary accent: dusty rose */
+.btn-secondary {
+  @apply bg-biophilic-rose hover:bg-biophilic-rose-dark text-slate-700 font-semibold
+         rounded-2xl-organic px-5 py-2.5 shadow-rose-glow transition-all duration-200
+         active:scale-[0.97];
+}
+
+/* Ghost button on cream */
+.btn-ghost {
+  @apply bg-transparent hover:bg-biophilic-cream-dark text-slate-600
+         rounded-xl-organic px-4 py-2 transition-all duration-150 font-medium;
+}
+
+/* Soft card surface */
+.card-organic {
+  @apply bg-white/80 backdrop-blur-sm border border-biophilic-cream-dark
+         rounded-2xl-organic shadow-organic-sm;
+}
+
 .organic-shadow {
-  box-shadow: 0 10px 30px -10px rgba(168, 198, 159, 0.2);
+  box-shadow: 0 10px 30px -10px rgba(168, 198, 159, 0.25);
 }
 
 .organic-hover {
   @apply transition-all duration-300 ease-in-out hover:scale-[1.02] active:scale-[0.98];
 }
 
+/* ── Global scrollbar ────────────────────────────── */
 @layer utilities {
 
   /* Prevent Fabric.js from ever triggering a page scroll when focusing text */
@@ -51,6 +87,7 @@
   }
   
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-600 rounded-full hover:bg-gray-400 dark:hover:bg-gray-500;
+    @apply bg-biophilic-green-light dark:bg-biophilic-green-dark rounded-full
+           hover:bg-biophilic-green dark:hover:bg-biophilic-green;
   }
 }

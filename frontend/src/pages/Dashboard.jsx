@@ -101,23 +101,23 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="h-screen bg-[#FBFBFB] overflow-y-auto custom-scrollbar relative">
-            <header className="sticky top-6 z-50 mx-auto max-w-5xl w-full bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-3 px-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] flex items-center justify-between mb-16">
-                <h1 className="text-xl font-black text-slate-900 tracking-tight">
+        <div className="h-screen bg-biophilic-cream overflow-y-auto custom-scrollbar relative">
+            <header className="sticky top-6 z-50 mx-auto max-w-5xl w-full bg-white/80 backdrop-blur-xl border border-biophilic-cream-dark rounded-2xl p-3 px-6 shadow-organic flex items-center justify-between mb-16">
+                <h1 className="text-xl font-black text-biophilic-moss tracking-tight">
                     AI Image Editor
                 </h1>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => navigate('/manual')}
-                        className="flex items-center gap-2 bg-transparent text-slate-600 px-4 py-2.5 rounded-xl hover:bg-slate-100/80 transition-all font-medium text-sm"
+                        className="flex items-center gap-2 bg-transparent text-slate-600 px-4 py-2.5 rounded-xl hover:bg-biophilic-cream-dark transition-all font-semibold text-sm"
                         title="Help & Tutorial"
                     >
-                        <BookOpen size={18} className="text-slate-500" />
+                        <BookOpen size={18} className="text-biophilic-green-dark" />
                         <span>Manual</span>
                     </button>
-                    <div className="w-px h-6 bg-slate-200 mx-2"></div>
-                    <label className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all cursor-pointer font-medium text-sm active:scale-[0.98]">
-                        <Upload size={16} />
+                    <div className="w-px h-6 bg-biophilic-cream-dark mx-2"></div>
+                    <label className="flex items-center gap-2 bg-biophilic-rose/30 border border-biophilic-rose text-slate-700 px-4 py-2.5 rounded-xl hover:bg-biophilic-rose/50 shadow-rose-glow transition-all cursor-pointer font-semibold text-sm active:scale-[0.98]">
+                        <Upload size={16} className="text-biophilic-bark" />
                         <span className="hidden sm:inline">Import ZIP</span>
                         <input
                             type="file"
@@ -140,8 +140,8 @@ const Dashboard = () => {
                             }}
                         />
                     </label>
-                    <label className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all cursor-pointer font-medium text-sm active:scale-[0.98]">
-                        <ImageIcon size={16} className="text-slate-500" />
+                    <label className="flex items-center gap-2 bg-biophilic-rose/30 border border-biophilic-rose text-slate-700 px-4 py-2.5 rounded-xl hover:bg-biophilic-rose/50 shadow-rose-glow transition-all cursor-pointer font-semibold text-sm active:scale-[0.98]">
+                        <ImageIcon size={16} className="text-biophilic-bark" />
                         <span className="hidden sm:inline">Image</span>
                         <input
                             type="file"
@@ -152,7 +152,7 @@ const Dashboard = () => {
                     </label>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 shadow-md shadow-slate-900/10 transition-all active:scale-[0.98] font-semibold text-sm ml-2"
+                        className="flex items-center gap-2 bg-biophilic-green text-white px-5 py-2.5 rounded-xl hover:bg-biophilic-green-dark shadow-organic transition-all active:scale-[0.98] font-bold text-sm ml-2"
                     >
                         <Plus size={18} />
                         <span>Create Blank</span>
@@ -182,11 +182,11 @@ const Dashboard = () => {
 
                 {/* Hero Command Palette */}
                 <section className="w-full max-w-4xl mx-auto mb-20 text-center relative z-10">
-                    <h2 className="text-[2.5rem] font-extrabold text-slate-900 mb-4 tracking-[-0.02em]">What will you design today?</h2>
-                    <p className="text-slate-500 mb-8 text-lg">Use AI to generate stunning starting points in seconds.</p>
+                    <h2 className="text-[2.5rem] font-extrabold text-biophilic-moss mb-4 tracking-[-0.02em]">What will you design today?</h2>
+                    <p className="text-biophilic-bark/80 mb-8 text-lg">Use AI to generate stunning starting points in seconds.</p>
                     
-                    <div className="relative group bg-white shadow-[0_8px_30px_rgba(0,0,0,0.06)] rounded-3xl border border-slate-200/80 transition-all duration-300 focus-within:shadow-[0_8px_40px_rgba(0,0,0,0.12)] focus-within:border-slate-300 p-2 pl-3 flex flex-col sm:flex-row items-center gap-2">
-                        <Sparkles className="absolute left-7 text-slate-400 group-focus-within:text-slate-600 transition-colors duration-300" size={24} />
+                    <div className="relative group bg-white/90 shadow-organic rounded-3xl border border-biophilic-cream-dark transition-all duration-300 focus-within:shadow-organic-lg focus-within:border-biophilic-green p-2 pl-3 flex flex-col sm:flex-row items-center gap-2">
+                        <Sparkles className="absolute left-7 text-biophilic-green group-focus-within:text-biophilic-moss transition-colors duration-300" size={24} />
                         <input 
                             type="text" 
                             placeholder="Describe your scene: e.g., A minimalist coffee shop banner..."
@@ -199,7 +199,7 @@ const Dashboard = () => {
                         <button 
                             onClick={handleAIGenerate}
                             disabled={isGenerating || !aiPrompt.trim()}
-                            className="bg-slate-900 text-white px-8 py-4 rounded-2xl hover:bg-slate-800 font-semibold transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:w-auto w-full group/btn"
+                            className="bg-biophilic-green hover:bg-biophilic-green-dark text-white px-8 py-4 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:w-auto w-full shadow-organic group/btn"
                         >
                             {isGenerating ? (
                                 <>
@@ -209,14 +209,14 @@ const Dashboard = () => {
                             ) : (
                                 <>
                                     Generate
-                                    <Sparkles size={18} className="opacity-70 group-hover/btn:opacity-100 transition-opacity" />
+                                    <Sparkles size={18} className="opacity-80 group-hover/btn:opacity-100 transition-opacity" />
                                 </>
                             )}
                         </button>
                     </div>
                     {isGenerating && (
                         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-full">
-                           <p className="text-sm text-slate-500 animate-pulse font-medium bg-slate-100 inline-block px-4 py-1.5 rounded-full">
+                           <p className="text-sm text-biophilic-moss animate-pulse font-semibold bg-biophilic-green-light/40 inline-block px-4 py-1.5 rounded-full">
                                ✨ AI is analyzing your prompt and generating layers...
                            </p>
                         </div>
@@ -225,22 +225,22 @@ const Dashboard = () => {
 
                 <section className="w-full">
                     <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800">
-                            <ImageIcon className="text-slate-400" size={20} /> Recent Projects
+                        <h2 className="text-lg font-bold flex items-center gap-2 text-biophilic-moss">
+                            <ImageIcon className="text-biophilic-green" size={20} /> Recent Projects
                         </h2>
                     </div>
 
                     {loading ? (
                         <div className="flex w-full h-40 items-center justify-center">
-                            <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-slate-800 animate-spin"></div>
+                            <div className="w-8 h-8 rounded-full border-4 border-biophilic-cream-dark border-t-biophilic-green animate-spin"></div>
                         </div>
                     ) : projects.length === 0 ? (
-                        <div className="text-center p-16 bg-white/50 rounded-3xl border border-slate-200/60 border-dashed flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-4 text-slate-300">
+                        <div className="text-center p-16 bg-white/60 rounded-3xl border border-biophilic-cream-dark border-dashed flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 bg-biophilic-green-light/40 rounded-2xl shadow-organic-sm border border-biophilic-green-light flex items-center justify-center mb-4 text-biophilic-green">
                                 <ImageIcon size={32} />
                             </div>
-                            <h3 className="text-slate-900 font-bold text-lg mb-1">No projects yet</h3>
-                            <p className="text-slate-500 font-medium">Create a blank project or use AI magic to start.</p>
+                            <h3 className="text-biophilic-moss font-bold text-lg mb-1">No projects yet</h3>
+                            <p className="text-biophilic-bark/70 font-medium">Create a blank project or use AI magic to start.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -248,9 +248,9 @@ const Dashboard = () => {
                                 <div
                                     key={project.id}
                                     onClick={() => navigate(`/editor/${project.id}`)}
-                                    className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-slate-200/60 overflow-hidden cursor-pointer hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-300 transition-all duration-300 group flex flex-col"
+                                    className="bg-white/90 rounded-2xl shadow-organic-sm border border-biophilic-cream-dark overflow-hidden cursor-pointer hover:shadow-organic hover:border-biophilic-green-light transition-all duration-300 group flex flex-col"
                                 >
-                                    <div className="aspect-[4/3] bg-[#F9FAFB] relative overflow-hidden flex items-center justify-center border-b border-slate-100">
+                                    <div className="aspect-[4/3] bg-biophilic-cream relative overflow-hidden flex items-center justify-center border-b border-biophilic-cream-dark">
                                         {project.previewUrl ? (
                                             <img
                                                 src={`http://localhost:5000${project.previewUrl}?t=${new Date().getTime()}`}
@@ -259,20 +259,20 @@ const Dashboard = () => {
                                                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                             />
                                         ) : null}
-                                        <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium text-sm" style={{ display: project.previewUrl ? 'none' : 'flex' }}>
+                                        <div className="absolute inset-0 flex items-center justify-center text-biophilic-green font-medium text-sm" style={{ display: project.previewUrl ? 'none' : 'flex' }}>
                                             No Preview
                                         </div>
                                     </div>
                                     <div className="p-5 flex flex-col gap-2">
-                                        <h3 className="font-bold text-slate-800 truncate text-[15px]" title={project.name}>{project.name}</h3>
+                                        <h3 className="font-bold text-biophilic-moss truncate text-[15px]" title={project.name}>{project.name}</h3>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                            <span className="text-xs font-semibold text-biophilic-bark/50 uppercase tracking-wider">
                                                 {new Date(project.updatedAt).toLocaleDateString()}
                                             </span>
                                             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300 ease-out">
                                                 <button
                                                     onClick={(e) => handleExport(e, project.id)}
-                                                    className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                                                    className="p-1.5 text-biophilic-green hover:text-biophilic-moss hover:bg-biophilic-green-light/30 rounded-lg transition-colors"
                                                     title="Export ZIP"
                                                 >
                                                     <Download size={16} />

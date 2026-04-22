@@ -36,7 +36,7 @@ const ProjectSettings = ({ onClose }) => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Enter project name..."
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-slate-600/10 focus:border-slate-600 focus:outline-none transition-all"
+                            className="w-full px-4 py-3 bg-biophilic-cream border border-biophilic-cream-dark rounded-xl focus:ring-4 focus:ring-biophilic-green/20 focus:border-biophilic-green focus:outline-none transition-all"
                         />
                     </div>
 
@@ -52,16 +52,16 @@ const ProjectSettings = ({ onClose }) => {
                     </div>
                 </div>
 
-                <div className="p-6 bg-slate-50 border-t flex flex-col gap-3">
+                <div className="p-6 bg-biophilic-cream border-t flex flex-col gap-3">
                     <button
                         onClick={handleSave}
-                        className="w-full py-4 bg-[#1E293B] text-white rounded-xl font-bold shadow-lg shadow-slate-800/20 hover:bg-[#0B1120] active:scale-[0.98] transition-all"
+                        className="w-full py-4 bg-biophilic-green text-white rounded-xl font-bold shadow-organic hover:bg-biophilic-green-dark active:scale-[0.98] transition-all"
                     >
                         Save & Apply
                     </button>
                     <button
                         onClick={onClose}
-                        className="w-full py-3 bg-white text-slate-600 rounded-xl font-medium hover:bg-slate-100 transition-all border border-slate-200"
+                        className="w-full py-3 bg-white text-slate-600 rounded-xl font-medium hover:bg-biophilic-cream-dark transition-all border border-biophilic-cream-dark"
                     >
                         Cancel
                     </button>

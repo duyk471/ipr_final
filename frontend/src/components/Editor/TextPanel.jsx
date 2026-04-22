@@ -52,7 +52,7 @@ const TextPanel = ({ canvasRef }) => {
                     placeholder="Type your message..."
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-600/20 outline-none shadow-sm"
+                    className="w-full bg-biophilic-cream dark:bg-slate-700 border border-biophilic-cream-dark dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-biophilic-green/30 focus:border-biophilic-green outline-none shadow-sm"
                 />
             </div>
 
@@ -89,8 +89,8 @@ const TextPanel = ({ canvasRef }) => {
                             style={{ fontFamily: font }}
                             className={`w-full px-4 py-3 rounded-lg text-left transition-all border ${
                                 selectedFont === font 
-                                ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold' 
-                                : 'bg-white dark:bg-slate-700 border-transparent hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+                                ? 'bg-biophilic-green-light/30 dark:bg-slate-800 border-biophilic-green dark:border-slate-700 text-biophilic-moss dark:text-slate-100 font-bold' 
+                                : 'bg-white dark:bg-slate-700 border-transparent hover:bg-biophilic-cream dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                             }`}
                         >
                             {font}
@@ -101,7 +101,7 @@ const TextPanel = ({ canvasRef }) => {
             
             <button
                 onClick={() => handleAddText(selectedSize)}
-                className="mt-auto w-full py-3 bg-[#1E293B] hover:bg-[#0B1120] text-white rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95"
+                className="mt-auto w-full py-3 bg-biophilic-green hover:bg-biophilic-green-dark text-white rounded-xl font-bold transition-all shadow-organic flex items-center justify-center gap-2 active:scale-95"
             >
                 <Plus size={18} />
                 Add text to design

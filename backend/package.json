@@ -33,5 +33,9 @@
     "@img/sharp-libvips-win32-x64": "^1.2.4",
     "@img/sharp-linux-x64": "^0.34.5",
     "@img/sharp-win32-x64": "^0.34.5"
+  },
+  "overrides": {
+    "sharp": "^0.34.5"
   }
 }
+

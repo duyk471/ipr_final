@@ -110,20 +110,20 @@ const Editor = () => {
 
     if (isLoading || !currentProject) {
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border-4 border-t-slate-800 animate-spin"></div>
+            <div className="min-h-screen bg-biophilic-cream dark:bg-[#0B1120] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full border-4 border-biophilic-cream-dark border-t-biophilic-green dark:border-t-biophilic-green animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-200 overflow-hidden font-sans tracking-tight">
+        <div className="h-screen flex flex-col bg-biophilic-cream dark:bg-[#0B1120] text-slate-700 dark:text-slate-200 overflow-hidden font-sans tracking-tight">
             {/* Header */}
-            <header className="h-14 bg-white dark:bg-[#1E293B] border-b border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between px-6 shrink-0 z-10 relative">
+            <header className="h-14 bg-white/90 dark:bg-[#1E293B] border-b border-biophilic-cream-dark dark:border-slate-700/60 flex items-center justify-between px-6 shrink-0 z-10 relative backdrop-blur-sm">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate('/')}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-biophilic-cream-dark dark:hover:bg-slate-700 text-biophilic-green-dark rounded-lg transition-colors"
                     >
                         <ArrowLeft size={18} />
                     </button>
@@ -193,7 +193,7 @@ const Editor = () => {
 
                     <button
                         onClick={() => setShowExportModal(true)}
-                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 px-5 py-2 rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-[0.98] ml-2"
+                        className="flex items-center gap-2 bg-biophilic-green hover:bg-biophilic-green-dark dark:bg-biophilic-green dark:hover:bg-biophilic-green-dark text-white px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-organic hover:shadow-organic-lg active:scale-[0.98] ml-2"
                     >
                         <Download size={16} /> Export
                     </button>
@@ -201,12 +201,12 @@ const Editor = () => {
             </header>
 
             {/* Main Editing Area */}
-            <div className="flex flex-1 overflow-hidden relative p-4 pt-2 gap-4 bg-slate-50 dark:bg-[#0B1120]">
+            <div className="flex flex-1 overflow-hidden relative p-4 pt-2 gap-4 bg-biophilic-cream dark:bg-[#0B1120]">
                 
                 {/* Left Floating Toolbars Wrapper */}
                 <div className="flex z-20 h-full gap-3 pointer-events-none">
                     {/* Toolbar Island */}
-                    <aside className="w-[68px] bg-white dark:bg-[#1E293B] border border-slate-200/60 dark:border-slate-700/60 rounded-2xl flex flex-col items-center py-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)] transition-all flex-shrink-0 pointer-events-auto">
+                    <aside className="w-[68px] bg-white/90 dark:bg-[#1E293B] border border-biophilic-cream-dark dark:border-slate-700/60 rounded-2xl flex flex-col items-center py-4 shadow-organic-sm transition-all flex-shrink-0 pointer-events-auto">
                         <Toolbar 
                             canvasRef={canvasRef} 
                             projectId={id} 
@@ -217,7 +217,7 @@ const Editor = () => {
 
                     {/* Left Panel Expansion Island */}
                     {activeLeftPanel && (
-                        <aside className="w-[320px] bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-2xl flex flex-col shrink-0 shadow-xl overflow-hidden animate-in slide-in-from-left-4 duration-300 ease-out pointer-events-auto">
+                        <aside className="w-[320px] bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-xl border border-biophilic-cream-dark dark:border-slate-700/60 rounded-2xl flex flex-col shrink-0 shadow-organic overflow-hidden animate-in slide-in-from-left-4 duration-300 ease-out pointer-events-auto">
                             <div className="flex items-center justify-between px-5 pt-5 pb-3 bg-transparent">
                                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                     {activeLeftPanel === 'elements' && 'Elements Library'}
@@ -247,7 +247,7 @@ const Editor = () => {
                 {/* Content Area (Properties + Canvas) */}
                 <div className="flex-1 flex flex-col min-w-0 gap-3">
                     {/* Horizontal Properties Context Bar */}
-                    <div className="h-12 bg-white/90 dark:bg-[#1E293B]/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 rounded-xl flex items-center px-4 overflow-x-auto overflow-y-hidden custom-scrollbar shadow-sm w-full max-w-4xl mx-auto shrink-0 transition-all">
+                    <div className="h-12 bg-white/90 dark:bg-[#1E293B]/90 backdrop-blur-xl border border-biophilic-cream-dark dark:border-slate-700/60 rounded-xl flex items-center px-4 overflow-x-auto overflow-y-hidden custom-scrollbar shadow-organic-sm w-full max-w-4xl mx-auto shrink-0 transition-all">
                         <PropertiesPanel canvasRef={canvasRef} />
                     </div>
 

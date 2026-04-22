@@ -73,7 +73,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                         value={assistantPrompt}
                         onChange={(e) => setAssistantPrompt(e.target.value)}
                         placeholder="E.g. Make it look more premium, cleaner, and suitable for a fashion brand."
-                        className="w-full min-h-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20"
+                        className="w-full min-h-24 rounded-xl border border-biophilic-cream-dark bg-biophilic-cream/50 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-biophilic-green focus:ring-2 focus:ring-biophilic-green/20"
                         disabled={loading}
                     />
                     <p className="mt-2 text-[11px] text-slate-400">
@@ -83,8 +83,8 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
             </div>
 
             {!suggestions.length && !loading && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                    <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4">
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-biophilic-cream-dark rounded-2xl bg-biophilic-cream/40">
+                    <div className="w-16 h-16 bg-biophilic-green-light/40 text-biophilic-green rounded-full flex items-center justify-center mb-4">
                         <Wand2 size={32} />
                     </div>
                     <p className="text-sm font-medium text-slate-700">Ready to help?</p>
@@ -93,7 +93,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                     </p>
                     <button
                         onClick={handleAnalyze}
-                        className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-biophilic-green hover:bg-biophilic-green-dark text-white rounded-xl font-bold text-sm transition-all shadow-organic active:scale-95 flex items-center justify-center gap-2"
                     >
                         Analyze My Design
                     </button>
@@ -102,7 +102,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
 
             {loading && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <Loader2 className="animate-spin text-purple-600 mb-4" size={40} />
+                    <Loader2 className="animate-spin text-biophilic-green mb-4" size={40} />
                     <p className="text-sm font-medium text-slate-700">Reviewing your masterpiece...</p>
                     <p className="text-xs text-slate-400 mt-2">Gemini is thinking about improvements.</p>
                 </div>
@@ -110,12 +110,12 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
 
             {suggestions.length > 0 && !loading && (
                 <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-purple-50 rounded-xl p-4 mb-6 border border-purple-100">
-                        <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3">AI Suggestions</h4>
+                    <div className="bg-biophilic-rose-light/30 rounded-xl p-4 mb-6 border border-biophilic-rose">
+                        <h4 className="text-xs font-bold text-biophilic-bark uppercase tracking-wider mb-3">AI Suggestions</h4>
                         <ul className="space-y-3">
                             {suggestions.map((s, i) => (
                                 <li key={i} className="flex gap-2 text-sm text-slate-700 leading-relaxed">
-                                    <CheckCircle2 size={16} className="text-purple-500 shrink-0 mt-0.5" />
+                                    <CheckCircle2 size={16} className="text-biophilic-green shrink-0 mt-0.5" />
                                     {s}
                                 </li>
                             ))}
@@ -128,7 +128,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
                         </p>
                         <button
                             onClick={handleApply}
-                            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                            className="w-full py-3 bg-biophilic-green hover:bg-biophilic-green-dark text-white rounded-xl font-bold text-sm transition-all shadow-organic active:scale-95 flex items-center justify-center gap-2"
                         >
                             <Sparkles size={16} />
                             Apply AI Improvements

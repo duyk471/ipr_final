@@ -16,9 +16,9 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
             <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
-                <div className="p-8 border-b flex items-center justify-between bg-gradient-to-r from-slate-100 to-white">
+                <div className="p-8 border-b flex items-center justify-between bg-gradient-to-r from-biophilic-green-light/30 to-white">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#1E293B] rounded-xl flex items-center justify-center text-white shadow-sm border border-slate-700">
+                        <div className="w-10 h-10 bg-biophilic-green rounded-xl flex items-center justify-center text-white shadow-organic border border-biophilic-green-dark">
                             <Layout size={20} />
                         </div>
                         <div>
@@ -44,7 +44,7 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                             onChange={(e) => setName(e.target.value)}
                             placeholder="My Awesome Design"
                             required
-                            className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-slate-600/10 focus:border-slate-600 focus:bg-white focus:outline-none transition-all text-lg font-medium"
+                            className="w-full px-5 py-4 bg-biophilic-cream border-2 border-transparent rounded-2xl focus:ring-4 focus:ring-biophilic-green/20 focus:border-biophilic-green focus:bg-white focus:outline-none transition-all text-lg font-medium"
                         />
                     </div>
 
@@ -64,7 +64,7 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                     min="1"
                                     max="4000"
                                     required
-                                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-xl focus:ring-4 focus:ring-slate-600/10 focus:border-slate-600 focus:bg-white focus:outline-none transition-all font-semibold"
+                                    className="w-full px-5 py-3.5 bg-biophilic-cream border-2 border-transparent rounded-xl focus:ring-4 focus:ring-biophilic-green/20 focus:border-biophilic-green focus:bg-white focus:outline-none transition-all font-semibold"
                                 />
                             </div>
                             <div className="flex flex-col gap-1.5">
@@ -76,7 +76,7 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                     min="1"
                                     max="4000"
                                     required
-                                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-transparent rounded-xl focus:ring-4 focus:ring-slate-600/10 focus:border-slate-600 focus:bg-white focus:outline-none transition-all font-semibold"
+                                    className="w-full px-5 py-3.5 bg-biophilic-cream border-2 border-transparent rounded-xl focus:ring-4 focus:ring-biophilic-green/20 focus:border-biophilic-green focus:bg-white focus:outline-none transition-all font-semibold"
                                 />
                             </div>
                         </div>
@@ -101,7 +101,7 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                     key={preset.label}
                                     type="button"
                                     onClick={() => { setWidth(preset.w); setHeight(preset.h); }}
-                                    className={`px-3 py-2.5 rounded-xl text-[10px] font-bold transition-all border-2 text-center flex flex-col items-center justify-center gap-1 ${width === preset.w && height === preset.h ? 'bg-[#1E293B] text-white border-slate-800 shadow-sm' : 'bg-white text-slate-600 border-slate-100 hover:border-slate-200 hover:bg-slate-50'}`}
+                                    className={`px-3 py-2.5 rounded-xl text-[10px] font-bold transition-all border-2 text-center flex flex-col items-center justify-center gap-1 ${width === preset.w && height === preset.h ? 'bg-biophilic-green text-white border-biophilic-green-dark shadow-organic' : 'bg-white text-slate-600 border-biophilic-cream-dark hover:border-biophilic-green-light hover:bg-biophilic-cream'}`}
                                 >
                                     <span>{preset.label}</span>
                                     <span className={width === preset.w && height === preset.h ? 'opacity-70 font-medium text-[8px]' : 'opacity-50 font-medium text-[8px]'}>{preset.w}x{preset.h}</span>
@@ -111,17 +111,17 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                     </div>
                 </form>
 
-                <div className="p-8 bg-slate-50 border-t flex gap-4">
+                <div className="p-8 bg-biophilic-cream border-t flex gap-4">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 py-4 bg-white text-slate-600 rounded-2xl font-bold hover:bg-slate-100 transition-all border-2 border-slate-100 active:scale-[0.98]"
+                        className="flex-1 py-4 bg-white text-slate-600 rounded-2xl font-bold hover:bg-biophilic-cream-dark transition-all border-2 border-biophilic-cream-dark active:scale-[0.98]"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="flex-[2] py-4 bg-[#1E293B] text-white rounded-2xl font-bold shadow-sm hover:bg-[#0B1120] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        className="flex-[2] py-4 bg-biophilic-green text-white rounded-2xl font-bold shadow-organic hover:bg-biophilic-green-dark active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                         Create Project
                     </button>
