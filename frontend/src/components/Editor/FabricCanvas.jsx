@@ -1560,7 +1560,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             className="origin-center shadow-2xl bg-white border border-slate-200 relative"
             onContextMenu={(e) => {
                 e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY });
+                const rect = containerRef.current.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / canvasScale;
+                const y = (e.clientY - rect.top) / canvasScale;
+                setContextMenu({ x, y });
             }}
             onClick={() => {
                 if (contextMenu) setContextMenu(null);
@@ -1568,174 +1571,235 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         >
             <canvas ref={canvasEl} />
 
-            {/* Context Menu */}
+            {/* ── Context Menu (right-click) ── */}
             {contextMenu && (
                 <div
-                    className="fixed bg-white/95 border border-slate-200/60 shadow-[0_10px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl rounded-2xl p-2 z-[200] flex flex-col min-w-[220px]"
-                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                    className="absolute z-[200] flex flex-col min-w-[240px] max-h-[360px] overflow-y-auto overscroll-contain custom-scrollbar"
+                    style={{
+                        left: contextMenu.x,
+                        top: contextMenu.y,
+                        background: '#F9F7F2',
+                        border: '1.5px solid #EEE9DF',
+                        borderRadius: '1.25rem',
+                        boxShadow: '0 12px 40px -8px rgba(44,58,48,0.18), 0 2px 8px rgba(168,198,159,0.12)',
+                        backdropFilter: 'blur(16px)',
+                        transformOrigin: 'top left',
+                        transform: `scale(${1 / canvasScale})`,
+                    }}
                 >
-                    <button onClick={handleContextMenuAction('copy')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Copy</button>
-                    <button onClick={handleContextMenuAction('paste')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Paste</button>
-                    <button onClick={handleContextMenuAction('duplicate')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Duplicate</button>
-                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
-                    <button onClick={handleContextMenuAction('bringToFront')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Bring to Front</button>
-                    <button onClick={handleContextMenuAction('bringForward')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Bring Forward</button>
-                    <button onClick={handleContextMenuAction('sendBackwards')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Send Backward</button>
-                    <button onClick={handleContextMenuAction('sendToBack')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Send to Back</button>
-                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
-                    <button onClick={handleContextMenuAction('flipX')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all flex items-center justify-between">Flip Horizontal <FlipHorizontal size={16} /></button>
-                    <button onClick={handleContextMenuAction('flipY')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all flex items-center justify-between">Flip Vertical <FlipVertical size={16} /></button>
-                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
-                    <button onClick={handleContextMenuAction('group')} className="px-4 py-2.5 text-[15px] text-left font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-xl transition-all">Group/Ungroup</button>
-                    <div className="h-px bg-slate-100 my-1.5 mx-2"></div>
-                    <button onClick={handleContextMenuAction('delete')} className="px-4 py-2.5 text-[15px] text-left font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all">Delete</button>
+                    {/* Header label */}
+                    <div className="px-5 pt-4 pb-2">
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-biophilic-green-dark">Actions</span>
+                    </div>
+
+                    {/* Copy / Paste / Duplicate */}
+                    {[['copy', 'Copy'], ['paste', 'Paste'], ['duplicate', 'Duplicate']].map(([action, label]) => (
+                        <button
+                            key={action}
+                            onClick={handleContextMenuAction(action)}
+                            className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss"
+                        >{label}</button>
+                    ))}
+
+                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+
+                    {/* Layer order */}
+                    {[['bringToFront', 'Bring to Front'], ['bringForward', 'Bring Forward'], ['sendBackwards', 'Send Backward'], ['sendToBack', 'Send to Back']].map(([action, label]) => (
+                        <button
+                            key={action}
+                            onClick={handleContextMenuAction(action)}
+                            className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss"
+                        >{label}</button>
+                    ))}
+
+                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+
+                    {/* Flip */}
+                    <button onClick={handleContextMenuAction('flipX')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss flex items-center justify-between">
+                        Flip Horizontal <FlipHorizontal size={18} className="text-biophilic-green" />
+                    </button>
+                    <button onClick={handleContextMenuAction('flipY')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss flex items-center justify-between">
+                        Flip Vertical <FlipVertical size={18} className="text-biophilic-green" />
+                    </button>
+
+                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+
+                    <button onClick={handleContextMenuAction('group')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss">
+                        Group / Ungroup
+                    </button>
+
+                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+
+                    <button onClick={handleContextMenuAction('delete')} className="mx-2 mb-2 px-4 py-3 text-[15px] text-left font-bold text-red-500 rounded-xl transition-all duration-150 hover:bg-red-50/80">
+                        Delete
+                    </button>
                 </div>
             )}
 
-            {/* Floating Selection Toolbar
-                 Counter-scaled so it always renders at a fixed pixel size
-                 regardless of the canvas zoom level. */}
+            {/* ── Floating Selection Toolbar (Canva-style biophilic) ── */}
             {toolbarPos && !isRotating.current && (
+                /* OUTER WRAPPER: Handles positioning and zoom-counter-scaling.
+                   Does NOT have a 'key' prop, so it glides smoothly when dragging 
+                   instead of unmounting/remounting and flickering. */
                 <div
-                    className="absolute rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.15)] p-2.5 flex items-center gap-1 z-[100]"
+                    className="absolute z-[100] pointer-events-none"
                     style={{
                         left: toolbarPos.left,
                         top: toolbarPos.top,
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        // Anchor the scaling to the bottom-center of the toolbar
                         transformOrigin: 'center bottom',
+                        /* counter-scale: keep visual size constant at any zoom */
                         transform: `translateX(-50%) scale(${1 / canvasScale})`,
+                        transition: 'left 0.1s ease-out, top 0.1s ease-out',
                     }}
                 >
-                    {selectedObject?.type === 'image' && (
-                        <>
-                            <button
-                                onClick={handleRemoveBackgroundActiveObject}
-                                disabled={isRemovingBg}
-                                className={`px-4 py-2 rounded-xl transition-all font-semibold text-sm flex items-center gap-2 ${
-                                    isRemovingBg
-                                        ? 'bg-violet-50 text-violet-400 cursor-wait'
-                                        : 'hover:bg-slate-100 text-slate-700'
-                                }`}
-                                title="Remove Background"
-                            >
-                                {isRemovingBg ? (
-                                    <>
-                                        {/* Spinning ring */}
-                                        <svg
-                                            className="animate-spin"
-                                            width={16} height={16}
-                                            viewBox="0 0 24 24" fill="none"
-                                        >
-                                            <circle cx="12" cy="12" r="10" stroke="#7c3aed" strokeWidth="3" strokeOpacity="0.25" />
-                                            <path d="M12 2a10 10 0 0 1 10 10" stroke="#7c3aed" strokeWidth="3" strokeLinecap="round" />
-                                        </svg>
-                                        <span className="text-violet-500">Removing…</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles size={16} className="text-violet-500" /> Remove BG
-                                    </>
-                                )}
-                            </button>
-                            <div className="w-px h-8 bg-slate-200 mx-1"></div>
-                        </>
-                    )}
-
-                    {/* B / I / U — only for text objects */}
-                    {selectedObject?.type?.includes('text') && (
-                        <>
-                            <div className="flex items-center rounded-xl overflow-hidden border border-slate-100">
-                                <button
-                                    onClick={() => {
-                                        const obj = fabricCanvas.current?.getActiveObject();
-                                        if (!obj) return;
-                                        pushToUndo(); // snapshot BEFORE mutation
-                                        obj.set('fontWeight', obj.fontWeight === 'bold' ? 'normal' : 'bold');
-                                        fabricCanvas.current.renderAll();
-                                        updateSelectedState();
-                                        queueSave(true); // skip double-push
-                                    }}
-                                    className={`w-9 h-9 flex items-center justify-center font-bold text-[15px] transition-colors ${
-                                        selectedObject?.fontWeight === 'bold'
-                                            ? 'bg-slate-800 text-white'
-                                            : 'hover:bg-slate-100 text-slate-700'
-                                    }`}
-                                    title="Bold"
-                                >B</button>
-                                <button
-                                    onClick={() => {
-                                        const obj = fabricCanvas.current?.getActiveObject();
-                                        if (!obj) return;
-                                        pushToUndo(); // snapshot BEFORE mutation
-                                        obj.set('fontStyle', obj.fontStyle === 'italic' ? 'normal' : 'italic');
-                                        fabricCanvas.current.renderAll();
-                                        updateSelectedState();
-                                        queueSave(true);
-                                    }}
-                                    className={`w-9 h-9 flex items-center justify-center italic font-serif text-[15px] transition-colors ${
-                                        selectedObject?.fontStyle === 'italic'
-                                            ? 'bg-slate-800 text-white'
-                                            : 'hover:bg-slate-100 text-slate-700'
-                                    }`}
-                                    title="Italic"
-                                >I</button>
-                                <button
-                                    onClick={() => {
-                                        const obj = fabricCanvas.current?.getActiveObject();
-                                        if (!obj) return;
-                                        pushToUndo(); // snapshot BEFORE mutation
-                                        obj.set('underline', !obj.underline);
-                                        fabricCanvas.current.renderAll();
-                                        updateSelectedState();
-                                        queueSave(true);
-                                    }}
-                                    className={`w-9 h-9 flex items-center justify-center underline text-[15px] transition-colors ${
-                                        selectedObject?.underline
-                                            ? 'bg-slate-800 text-white'
-                                            : 'hover:bg-slate-100 text-slate-700'
-                                    }`}
-                                    title="Underline"
-                                >U</button>
-                            </div>
-                            <div className="w-px h-7 bg-slate-200 mx-0.5"></div>
-                        </>
-                    )}
-
-                    <button
-                        onClick={duplicateActiveObject}
-                        className="p-2.5 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
-                        title="Duplicate"
-                    >
-                        <Copy size={20} />
-                    </button>
-                    <button
-                        onClick={rotateActiveObject}
-                        className="p-2.5 hover:bg-slate-100 text-slate-700 rounded-xl transition-all"
-                        title="Rotate 90°"
-                    >
-                        <RotateCw size={20} />
-                    </button>
-                    <div className="w-px h-7 bg-slate-200 mx-0.5"></div>
-                    <button
-                        onClick={deleteActiveObject}
-                        className="p-2.5 hover:bg-red-50 text-red-500 rounded-xl transition-all"
-                        title="Delete"
-                    >
-                        <Trash2 size={20} />
-                    </button>
-                    {/* MoreVertical — intentionally larger for easy access */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setContextMenu({ x: toolbarPos.left + 50, y: toolbarPos.top + 40 });
+                    {/* INNER WRAPPER: Handles the spring animation and styling */}
+                    <div
+                        className="toolbar-pop flex items-center gap-1 pointer-events-auto"
+                        style={{
+                            background: '#F9F7F2',
+                            border: '1.5px solid #EEE9DF',
+                            borderRadius: '999px',
+                            padding: '6px 10px',
+                            boxShadow: '0 8px 32px -4px rgba(44,58,48,0.18), 0 2px 8px rgba(168,198,159,0.15)',
                         }}
-                        className="p-2.5 hover:bg-slate-100 text-slate-600 rounded-xl transition-all border border-slate-200 hover:border-slate-300 ml-0.5"
-                        title="More options"
                     >
-                        <MoreVertical size={30} strokeWidth={2.5} />
-                    </button>
+                        {/* ── Remove BG (images only) ── */}
+                        {selectedObject?.type === 'image' && (
+                            <>
+                                <button
+                                    onClick={handleRemoveBackgroundActiveObject}
+                                    disabled={isRemovingBg}
+                                    title="Remove Background"
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-bold transition-all duration-150 ${isRemovingBg
+                                        ? 'bg-biophilic-rose/30 text-biophilic-bark cursor-wait'
+                                        : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
+                                        }`}
+                                >
+                                    {isRemovingBg ? (
+                                        <>
+                                            <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" stroke="#A8C69F" strokeWidth="3" strokeOpacity="0.3" />
+                                                <path d="M12 2a10 10 0 0 1 10 10" stroke="#A8C69F" strokeWidth="3" strokeLinecap="round" />
+                                            </svg>
+                                            <span>Removing…</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles size={14} className="text-biophilic-green" />
+                                            <span>Remove BG</span>
+                                        </>
+                                    )}
+                                </button>
+                                {/* divider */}
+                                <div className="w-px h-6 mx-1 rounded-full bg-biophilic-cream-dark" />
+                            </>
+                        )}
+
+                        {/* ── Text B / I / U (text objects only) ── */}
+                        {selectedObject?.type?.includes('text') && (
+                            <>
+                                <div className="flex items-center gap-0.5">
+                                    {/* Bold */}
+                                    <button
+                                        onClick={() => {
+                                            const obj = fabricCanvas.current?.getActiveObject();
+                                            if (!obj) return;
+                                            pushToUndo();
+                                            obj.set('fontWeight', obj.fontWeight === 'bold' ? 'normal' : 'bold');
+                                            fabricCanvas.current.renderAll();
+                                            updateSelectedState();
+                                            queueSave(true);
+                                        }}
+                                        title="Bold"
+                                        className={`w-9 h-9 flex items-center justify-center rounded-full font-black text-[15px] transition-all duration-150 ${selectedObject?.fontWeight === 'bold'
+                                            ? 'bg-biophilic-green text-white'
+                                            : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
+                                            }`}
+                                    >B</button>
+                                    {/* Italic */}
+                                    <button
+                                        onClick={() => {
+                                            const obj = fabricCanvas.current?.getActiveObject();
+                                            if (!obj) return;
+                                            pushToUndo();
+                                            obj.set('fontStyle', obj.fontStyle === 'italic' ? 'normal' : 'italic');
+                                            fabricCanvas.current.renderAll();
+                                            updateSelectedState();
+                                            queueSave(true);
+                                        }}
+                                        title="Italic"
+                                        className={`w-9 h-9 flex items-center justify-center rounded-full italic font-serif text-[16px] transition-all duration-150 ${selectedObject?.fontStyle === 'italic'
+                                            ? 'bg-biophilic-green text-white'
+                                            : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
+                                            }`}
+                                    >I</button>
+                                    {/* Underline */}
+                                    <button
+                                        onClick={() => {
+                                            const obj = fabricCanvas.current?.getActiveObject();
+                                            if (!obj) return;
+                                            pushToUndo();
+                                            obj.set('underline', !obj.underline);
+                                            fabricCanvas.current.renderAll();
+                                            updateSelectedState();
+                                            queueSave(true);
+                                        }}
+                                        title="Underline"
+                                        className={`w-9 h-9 flex items-center justify-center rounded-full underline text-[15px] transition-all duration-150 ${selectedObject?.underline
+                                            ? 'bg-biophilic-green text-white'
+                                            : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
+                                            }`}
+                                    >U</button>
+                                </div>
+                                <div className="w-px h-6 mx-1 rounded-full bg-biophilic-cream-dark" />
+                            </>
+                        )}
+
+                        {/* ── Duplicate ── */}
+                        <button
+                            onClick={duplicateActiveObject}
+                            title="Duplicate"
+                            className="w-10 h-10 flex items-center justify-center rounded-full text-[#2D3A30] hover:bg-biophilic-rose/30 transition-all duration-150 group"
+                        >
+                            {/* two-layered squares icon (Duplicate) */}
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="8" y="8" width="12" height="12" rx="2" />
+                                <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                            </svg>
+                        </button>
+
+                        {/* divider */}
+                        <div className="w-px h-6 mx-0.5 rounded-full bg-biophilic-cream-dark" />
+
+                        {/* ── Delete ── */}
+                        <button
+                            onClick={deleteActiveObject}
+                            title="Delete"
+                            className="w-10 h-10 flex items-center justify-center rounded-full text-red-400 hover:bg-red-50/80 hover:text-red-600 transition-all duration-150"
+                        >
+                            <Trash2 size={19} strokeWidth={2} />
+                        </button>
+
+                        {/* divider */}
+                        <div className="w-px h-6 mx-0.5 rounded-full bg-biophilic-cream-dark" />
+
+                        {/* ── More Options (three dots) ── */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setContextMenu({ x: toolbarPos.left + (50 / canvasScale), y: toolbarPos.top + (48 / canvasScale) });
+                            }}
+                            title="More options"
+                            className="w-10 h-10 flex items-center justify-center rounded-full text-[#2D3A30] hover:bg-biophilic-rose/30 transition-all duration-150"
+                        >
+                            {/* horizontal three dots */}
+                            <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="5" cy="12" r="2" />
+                                <circle cx="12" cy="12" r="2" />
+                                <circle cx="19" cy="12" r="2" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
