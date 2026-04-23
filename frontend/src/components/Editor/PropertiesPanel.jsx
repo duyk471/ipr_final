@@ -33,19 +33,21 @@ const PropertiesPanel = ({ canvasRef }) => {
 
     if (!selectedObject) {
         return (
-            <div className="flex items-center gap-6 h-full px-2 w-full text-sm">
-                <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">Background</span>
-                    <input 
-                        type="color" 
-                        value={backgroundColor} 
-                        onChange={(e) => handleBackgroundColorChange(e.target.value)} 
-                        className="w-8 h-8 rounded border border-slate-300 cursor-pointer overflow-hidden p-0" 
-                    />
+            <div className="flex items-center gap-6 h-full px-4 w-full text-sm">
+                <div className="flex items-center gap-4 shrink-0">
+                    <span className="text-[10px] font-black text-biophilic-moss/60 dark:text-biophilic-dark-text-muted uppercase tracking-[0.15em]">Background</span>
+                    <div className="relative group">
+                        <input 
+                            type="color" 
+                            value={backgroundColor} 
+                            onChange={(e) => handleBackgroundColorChange(e.target.value)} 
+                            className="w-8 h-8 rounded-lg border-2 border-biophilic-cream-dark dark:border-biophilic-dark-border cursor-pointer overflow-hidden p-0 bg-transparent transition-transform group-hover:scale-110" 
+                        />
+                    </div>
                 </div>
-                <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
-                <div className="text-[13px] font-mono text-slate-500">
-                    Canvas Size: {canvasSize.width} × {canvasSize.height} px
+                <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border"></div>
+                <div className="text-[11px] font-black text-biophilic-moss/40 dark:text-biophilic-dark-text-muted uppercase tracking-widest">
+                    Canvas Size: <span className="text-biophilic-moss dark:text-biophilic-dark-text">{canvasSize.width} × {canvasSize.height} px</span>
                 </div>
             </div>
         );
@@ -61,50 +63,52 @@ const PropertiesPanel = ({ canvasRef }) => {
         <div className="flex items-center gap-5 h-full px-2 w-full text-sm">
             {/* Fill Color */}
             <div className="flex items-center gap-2 shrink-0">
-                <input
-                    type="color"
-                    value={selectedObject.fill || '#000000'}
-                    onChange={(e) => handleChange('fill', e.target.value)}
-                    className="w-8 h-8 rounded border border-slate-300 cursor-pointer p-0"
-                    title="Fill Color"
-                />
-            </div>
-
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
-
-            {/* Position & Size */}
-            <div className="flex items-center gap-3 shrink-0">
-                <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-400 font-medium">W</span>
+                <div className="relative group">
                     <input
-                        type="number"
-                        min="1"
-                        value={selectedObject.width || 0}
-                        onChange={(e) => handleChange('width', Math.max(1, parseFloat(e.target.value) || 1))}
-                        className="w-16 px-2 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-600 focus:outline-none font-mono text-slate-700 dark:bg-[#0B1120] dark:text-slate-300 dark:border-slate-600"
+                        type="color"
+                        value={selectedObject.fill || '#000000'}
+                        onChange={(e) => handleChange('fill', e.target.value)}
+                        className="w-8 h-8 rounded-lg border-2 border-biophilic-cream-dark dark:border-biophilic-dark-border cursor-pointer p-0 bg-transparent transition-transform group-hover:scale-110"
+                        title="Fill Color"
                     />
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-400 font-medium">H</span>
+            </div>
+
+            <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border"></div>
+
+            {/* Position & Size */}
+            <div className="flex items-center gap-4 shrink-0">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-biophilic-moss/40 dark:text-biophilic-dark-text-muted uppercase">W</span>
                     <input
                         type="number"
                         min="1"
-                        value={selectedObject.height || 0}
+                        value={Math.round(selectedObject.width * selectedObject.scaleX) || 0}
+                        onChange={(e) => handleChange('width', Math.max(1, parseFloat(e.target.value) || 1))}
+                        className="w-16 px-2 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-biophilic-moss/40 dark:text-biophilic-dark-text-muted uppercase">H</span>
+                    <input
+                        type="number"
+                        min="1"
+                        value={Math.round(selectedObject.height * selectedObject.scaleY) || 0}
                         onChange={(e) => handleChange('height', Math.max(1, parseFloat(e.target.value) || 1))}
-                        className="w-16 px-2 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-600 focus:outline-none font-mono text-slate-700 dark:bg-[#0B1120] dark:text-slate-300 dark:border-slate-600"
+                        className="w-16 px-2 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all"
                     />
                 </div>
             </div>
 
             {isText && (
                 <>
-                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+                    <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border"></div>
                     {/* Typography */}
                     <div className="flex items-center gap-2 shrink-0">
                         <select
                             value={selectedObject.fontFamily || 'Inter'}
                             onChange={(e) => handleChange('fontFamily', e.target.value)}
-                            className="px-3 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-600 focus:outline-none bg-white text-slate-700 dark:bg-[#0B1120] dark:text-slate-300 dark:border-slate-600"
+                            className="px-3 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all appearance-none cursor-pointer"
                             style={{ fontFamily: selectedObject.fontFamily || 'Inter' }}
                         >
                             {FONTS.map(font => (
@@ -116,38 +120,38 @@ const PropertiesPanel = ({ canvasRef }) => {
                             min="1"
                             value={selectedObject.fontSize || 12}
                             onChange={(e) => handleChange('fontSize', Math.max(1, parseInt(e.target.value) || 1))}
-                            className="w-16 px-2 py-1.5 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-600 focus:outline-none text-slate-700 dark:bg-[#0B1120] dark:text-slate-300 dark:border-slate-600"
+                            className="w-14 px-2 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text"
                         />
                     </div>
 
                     {/* Text Style */}
-                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden shrink-0 dark:bg-[#0B1120] dark:border-slate-600">
+                    <div className="flex items-center bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg overflow-hidden shrink-0">
                         <button
                             onClick={() => {
                                 canvasRef.current?.snapUndo();
                                 handleChange('fontWeight', selectedObject.fontWeight === 'bold' ? 'normal' : 'bold');
                             }}
-                            className={`w-9 h-8 flex items-center justify-center font-bold text-[13px] transition-colors ${selectedObject.fontWeight === 'bold' ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+                            className={`w-9 h-8 flex items-center justify-center font-black text-xs transition-all ${selectedObject.fontWeight === 'bold' ? 'bg-biophilic-green text-white dark:bg-biophilic-dark-green dark:text-biophilic-dark-bg' : 'text-biophilic-moss/60 dark:text-biophilic-dark-text-muted hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface'}`}
                         >
                             B
                         </button>
-                        <div className="w-px h-full bg-slate-200 dark:bg-slate-700"></div>
+                        <div className="w-px h-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border"></div>
                         <button
                             onClick={() => {
                                 canvasRef.current?.snapUndo();
                                 handleChange('fontStyle', selectedObject.fontStyle === 'italic' ? 'normal' : 'italic');
                             }}
-                            className={`w-9 h-8 flex items-center justify-center font-serif italic text-[13px] transition-colors ${selectedObject.fontStyle === 'italic' ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+                            className={`w-9 h-8 flex items-center justify-center font-serif italic text-xs transition-all ${selectedObject.fontStyle === 'italic' ? 'bg-biophilic-green text-white dark:bg-biophilic-dark-green dark:text-biophilic-dark-bg' : 'text-biophilic-moss/60 dark:text-biophilic-dark-text-muted hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface'}`}
                         >
                             I
                         </button>
-                        <div className="w-px h-full bg-slate-200 dark:bg-slate-700"></div>
+                        <div className="w-px h-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border"></div>
                         <button
                             onClick={() => {
                                 canvasRef.current?.snapUndo();
                                 handleChange('underline', !selectedObject.underline);
                             }}
-                            className={`w-9 h-8 flex items-center justify-center underline text-[13px] transition-colors ${selectedObject.underline ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+                            className={`w-9 h-8 flex items-center justify-center underline text-xs transition-all ${selectedObject.underline ? 'bg-biophilic-green text-white dark:bg-biophilic-dark-green dark:text-biophilic-dark-bg' : 'text-biophilic-moss/60 dark:text-biophilic-dark-text-muted hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface'}`}
                         >
                             U
                         </button>
@@ -155,11 +159,11 @@ const PropertiesPanel = ({ canvasRef }) => {
                 </>
             )}
 
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+            <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border"></div>
 
             {/* Opacity */}
             <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs font-medium text-slate-500">Opacity</span>
+                <span className="text-[10px] font-black text-biophilic-moss/40 dark:text-biophilic-dark-text-muted uppercase tracking-widest">Opacity</span>
                 <input
                     type="range"
                     min="0"
@@ -167,7 +171,7 @@ const PropertiesPanel = ({ canvasRef }) => {
                     step="0.01"
                     value={selectedObject.opacity || 1}
                     onChange={(e) => handleChange('opacity', parseFloat(e.target.value))}
-                    className="w-24 accent-slate-800 dark:accent-slate-400"
+                    className="w-20 accent-biophilic-green dark:accent-biophilic-dark-green"
                 />
             </div>
 
@@ -177,41 +181,41 @@ const PropertiesPanel = ({ canvasRef }) => {
             <div className="flex items-center gap-1 shrink-0">
                 <button
                     onClick={() => canvasRef.current?.bringToFront()}
-                    className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    className="p-1.5 text-biophilic-bark/60 hover:text-biophilic-moss dark:text-biophilic-dark-text-muted dark:hover:text-biophilic-dark-text hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface rounded-lg transition-all"
                     title="Bring to Front"
                 >
                     <BringToFront size={18} />
                 </button>
                 <button
                     onClick={() => canvasRef.current?.bringForward()}
-                    className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    className="p-1.5 text-biophilic-bark/60 hover:text-biophilic-moss dark:text-biophilic-dark-text-muted dark:hover:text-biophilic-dark-text hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface rounded-lg transition-all"
                     title="Bring Forward"
                 >
                     <ArrowUp size={18} />
                 </button>
                 <button
                     onClick={() => canvasRef.current?.sendBackwards()}
-                    className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    className="p-1.5 text-biophilic-bark/60 hover:text-biophilic-moss dark:text-biophilic-dark-text-muted dark:hover:text-biophilic-dark-text hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface rounded-lg transition-all"
                     title="Send Backward"
                 >
                     <ArrowDown size={18} />
                 </button>
                 <button
                     onClick={() => canvasRef.current?.sendToBack()}
-                    className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                    className="p-1.5 text-biophilic-bark/60 hover:text-biophilic-moss dark:text-biophilic-dark-text-muted dark:hover:text-biophilic-dark-text hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface rounded-lg transition-all"
                     title="Send to Back"
                 >
                     <SendToBack size={18} />
                 </button>
                 
-                <div className="w-px h-4 bg-slate-200 mx-1 dark:bg-slate-700"></div>
+                <div className="w-px h-4 bg-biophilic-cream-dark mx-1 dark:bg-biophilic-dark-border"></div>
                 
                 <button
                     onClick={() => canvasRef.current?.toggleLock()}
-                    className={`p-1.5 rounded-md transition-colors ${
+                    className={`p-1.5 rounded-lg transition-all ${
                         selectedObject.isLocked 
-                            ? 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white' 
-                            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                            ? 'bg-biophilic-green text-white dark:bg-biophilic-dark-green dark:text-biophilic-dark-bg shadow-organic-sm' 
+                            : 'text-biophilic-bark/60 hover:text-biophilic-moss dark:text-biophilic-dark-text-muted dark:hover:text-biophilic-dark-text hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface'
                     }`}
                     title={selectedObject.isLocked ? "Unlock Layer" : "Lock Layer"}
                 >

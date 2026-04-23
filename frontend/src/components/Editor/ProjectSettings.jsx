@@ -13,22 +13,29 @@ const ProjectSettings = ({ onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
-                    <div className="flex items-center gap-2">
-                        <Settings className="text-slate-800" size={20} />
-                        <h2 className="text-xl font-bold text-slate-800">Project Settings</h2>
+        <div className="fixed inset-0 bg-slate-900/40 dark:bg-biophilic-dark-bg/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-biophilic-dark-card border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-[2.5rem] w-full max-w-md shadow-organic-lg dark:shadow-dark-md overflow-hidden animate-in zoom-in-95 duration-300 ease-out">
+                {/* Header */}
+                <div className="p-6 border-b border-biophilic-cream dark:border-biophilic-dark-border flex items-center justify-between bg-biophilic-cream/30 dark:bg-biophilic-dark-surface/30">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-biophilic-green/10 dark:bg-biophilic-dark-green/10 rounded-xl flex items-center justify-center text-biophilic-green">
+                            <Settings size={20} />
+                        </div>
+                        <h2 className="text-xl font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight">Project Settings</h2>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors shadow-sm bg-white">
-                        <X size={18} />
+                    <button 
+                        onClick={onClose} 
+                        className="p-2.5 text-biophilic-bark/40 dark:text-biophilic-dark-text-muted hover:text-biophilic-moss dark:hover:text-biophilic-dark-text hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-border rounded-xl transition-all"
+                    >
+                        <X size={20} />
                     </button>
                 </div>
 
-                <div className="p-8 flex flex-col gap-6">
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                            <TypeIcon size={16} className="text-slate-400" />
+                {/* Content */}
+                <div className="p-8 flex flex-col gap-8">
+                    <div className="flex flex-col gap-2.5">
+                        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-biophilic-moss/60 dark:text-biophilic-dark-text-muted flex items-center gap-2">
+                            <TypeIcon size={14} />
                             Project Name
                         </label>
                         <input
@@ -36,32 +43,33 @@ const ProjectSettings = ({ onClose }) => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Enter project name..."
-                            className="w-full px-4 py-3 bg-biophilic-cream border border-biophilic-cream-dark rounded-xl focus:ring-4 focus:ring-biophilic-green/20 focus:border-biophilic-green focus:outline-none transition-all"
+                            className="w-full px-5 py-4 bg-biophilic-cream/50 dark:bg-biophilic-dark-surface border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-2xl focus:ring-4 focus:ring-biophilic-green/10 focus:border-biophilic-green focus:outline-none transition-all font-bold text-biophilic-moss dark:text-biophilic-dark-text placeholder:text-biophilic-bark/30"
                         />
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                            <Layout size={16} className="text-slate-400" />
+                    <div className="flex flex-col gap-2.5">
+                        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-biophilic-moss/60 dark:text-biophilic-dark-text-muted flex items-center gap-2">
+                            <Layout size={14} />
                             Canvas Size Info
                         </label>
-                        <div className="p-4 bg-slate-100 rounded-xl border border-slate-200">
-                            <p className="text-sm text-slate-900 font-medium">Fixed at 1080 x 1080px (Square)</p>
-                            <p className="text-[10px] text-slate-600 mt-1 uppercase tracking-wider font-bold">Resizing coming soon</p>
+                        <div className="p-5 bg-biophilic-blue-light/10 dark:bg-biophilic-dark-blue/5 rounded-[1.5rem] border border-biophilic-blue-light/30 dark:border-biophilic-dark-blue/20">
+                            <p className="text-sm text-biophilic-moss dark:text-biophilic-dark-text font-black tracking-tight">Fixed at 1080 x 1080px (Square)</p>
+                            <p className="text-[10px] text-biophilic-blue dark:text-biophilic-dark-blue mt-1.5 uppercase tracking-widest font-black italic opacity-70">Resizing coming soon</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-6 bg-biophilic-cream border-t flex flex-col gap-3">
+                {/* Footer */}
+                <div className="p-6 bg-biophilic-cream/30 dark:bg-biophilic-dark-surface/30 border-t border-biophilic-cream dark:border-biophilic-dark-border flex flex-col gap-3">
                     <button
                         onClick={handleSave}
-                        className="w-full py-4 bg-biophilic-green text-white rounded-xl font-bold shadow-organic hover:bg-biophilic-green-dark active:scale-[0.98] transition-all"
+                        className="w-full py-4 bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg rounded-2xl font-black text-xs uppercase tracking-widest shadow-organic dark:shadow-dark-green-glow hover:bg-biophilic-green-dark transition-all active:scale-[0.98]"
                     >
                         Save & Apply
                     </button>
                     <button
                         onClick={onClose}
-                        className="w-full py-3 bg-white text-slate-600 rounded-xl font-medium hover:bg-biophilic-cream-dark transition-all border border-biophilic-cream-dark"
+                        className="w-full py-3.5 text-biophilic-moss/60 dark:text-biophilic-dark-text-muted rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-border transition-all active:scale-[0.98]"
                     >
                         Cancel
                     </button>

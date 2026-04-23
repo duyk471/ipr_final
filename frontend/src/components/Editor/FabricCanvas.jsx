@@ -806,12 +806,25 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const filteredLayers = await Promise.all(objects.map(async (obj) => {
                 const newObj = { ...obj };
                 if (newObj.src) {
-                    newObj.src = await resolvePath(newObj.src);
+                    const path = newObj.src;
+                    newObj.src = await resolvePath(path);
                     newObj.crossOrigin = 'anonymous';
+
+                    // Critical: Preserve the original path for saving back to disk
+                    if (!path.startsWith('blob:') && !path.startsWith('http') && !path.startsWith('data:')) {
+                        if (!newObj.metadata) newObj.metadata = {};
+                        newObj.metadata.originalPath = path;
+                    }
                 }
                 // Handle Smart Frames (Patterns)
                 if (newObj.fill && typeof newObj.fill === 'object' && newObj.fill.source) {
-                    newObj.fill.source = await resolvePath(newObj.fill.source);
+                    const fillPath = newObj.fill.source;
+                    newObj.fill.source = await resolvePath(fillPath);
+
+                    if (!fillPath.startsWith('blob:') && !fillPath.startsWith('http') && !fillPath.startsWith('data:')) {
+                        if (!newObj.metadata) newObj.metadata = {};
+                        newObj.metadata.fillSourcePath = fillPath;
+                    }
                 }
                 return newObj;
             }));

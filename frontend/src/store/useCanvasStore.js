@@ -524,13 +524,17 @@ function stripObjectUrlsFromProject(projectData) {
             // Remove handles from layers too
             delete layer.handle;
             
-            if ((layer.type === 'Image' || layer.type === 'image') && layer.src && typeof layer.src === 'string') {
-                // If it's a blob URL, we MUST find the original path
-                if (layer.src.startsWith('blob:')) {
+            if (layer.src && typeof layer.src === 'string' && layer.src.startsWith('blob:')) {
+                const type = layer.type ? layer.type.toLowerCase() : '';
+                if (type === 'image' || type === 'fabricimage' || type === 'itext' || type === 'text') {
+                    // If it's a blob URL, we MUST find the original path
                     if (layer.metadata?.originalPath) {
                         layer.src = layer.metadata.originalPath;
                     } else {
-                        console.warn('Found blob URL without originalPath metadata during save');
+                        console.warn(`Found blob URL without originalPath metadata for layer ${layer.id || 'unknown'}. This asset may be lost on next load.`);
+                        // Fail-safe: if we can't recover, it's better to leave it as is or clear it?
+                        // Clearing it prevents ERR_FILE_NOT_FOUND, but the user loses the image anyway.
+                        // We'll keep it so they might see what's missing, but it's a known issue.
                     }
                 }
             }

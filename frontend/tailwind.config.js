@@ -19,10 +19,12 @@ export default {
           rose:             '#EBC2C2', // dusty rose — secondary accents
           'rose-dark':      '#D4AAAA', // hover/active
           'rose-light':     '#F5DEDE', // very soft tint
-          cream:            '#F9F7F2', // creamy white — background
-          'cream-dark':     '#EEE9DF', // slightly deeper cream for borders / cards
-          bark:             '#8B7355', // warm brown text accent
-          moss:             '#5C7A55', // deep green for emphasis
+          cream:            '#F3F1EA', // softer creamy background — less glaring
+          'cream-dark':     '#E7E1D2', // distinct borders/cards
+          stone:            '#EBE8DF', // muted stone for secondary surfaces
+          'stone-dark':     '#DCD7C9', // darker stone for high contrast borders
+          bark:             '#6B563D', // darker warm brown for better contrast
+          moss:             '#4A6344', // darker deep green for emphasis
 
           // ── Dark Mode (forest night) ─────────────────
           'dark-bg':        '#121A13', // deepest background (nighttime forest)

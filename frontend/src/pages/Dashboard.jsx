@@ -9,6 +9,34 @@ import ConfirmModal from '../components/UI/ConfirmModal';
 import { deleteDirectory, isFileSystemAccessSupported, requestWorkspacePermission } from '../services/localFilesystemService';
 import { getWorkspaceMetadata, getWorkspaceHandle } from '../services/indexedDBService';
 
+const LockedFeature = ({ children, isLocked, tooltipText }) => {
+    if (!isLocked) return children;
+    
+    return (
+        <div className="relative group/locked">
+            <div className="opacity-40 blur-[2px] pointer-events-none select-none">
+                {children}
+            </div>
+            <div className="absolute inset-0 cursor-not-allowed z-10" />
+            
+            {/* Biophilic Tooltip */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 px-5 py-3 
+                            bg-biophilic-moss dark:bg-biophilic-dark-surface/95 
+                            backdrop-blur-md text-white dark:text-biophilic-dark-text 
+                            text-[10px] font-black uppercase tracking-[0.1em] rounded-[1.2rem] 
+                            opacity-0 group-hover/locked:opacity-100 
+                            pointer-events-none transition-all transform 
+                            translate-y-2 group-hover/locked:translate-y-0 
+                            duration-300 z-[60] shadow-organic-lg dark:shadow-dark-md 
+                            border border-white/10 dark:border-biophilic-dark-border
+                            w-max max-w-[240px] text-center leading-relaxed">
+                {tooltipText}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-biophilic-moss dark:bg-biophilic-dark-surface/95 rotate-45 -translate-y-1.5 border-r border-b border-white/10" />
+            </div>
+        </div>
+    );
+};
+
 const Dashboard = () => {
     const navigate = useNavigate();
     const { isDark, toggle } = useTheme();
@@ -304,57 +332,6 @@ const Dashboard = () => {
         );
     }
 
-    if (!workspaceInitialized) {
-        return (
-            <div className="h-screen bg-biophilic-cream dark:bg-biophilic-dark-bg flex items-center justify-center">
-                <div className="text-center space-y-6 max-w-md">
-                    <div className="w-16 h-16 bg-biophilic-green-light/40 dark:bg-biophilic-dark-green/10 rounded-2xl flex items-center justify-center mx-auto">
-                        <FolderOpen size={32} className="text-biophilic-green dark:text-biophilic-dark-green" />
-                    </div>
-                    {savedWorkspace ? (
-                        <>
-                            <h2 className="text-2xl font-bold text-biophilic-moss dark:text-biophilic-dark-text">
-                                Welcome Back
-                            </h2>
-                            <p className="text-biophilic-bark/70 dark:text-biophilic-dark-text-muted">
-                                Reconnect to your workspace folder <strong>{savedWorkspace.name}</strong> to continue working.
-                            </p>
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    onClick={handleReconnectWorkspace}
-                                    className="bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-6 py-3 rounded-xl font-bold hover:bg-biophilic-green-dark transition-all active:scale-[0.98] shadow-organic dark:shadow-dark-green-glow"
-                                >
-                                    Reconnect to {savedWorkspace.name}
-                                </button>
-                                <button
-                                    onClick={handleChangeWorkspace}
-                                    className="text-biophilic-bark/60 dark:text-biophilic-dark-text-muted hover:text-biophilic-moss dark:hover:text-biophilic-dark-text text-sm font-semibold transition-colors"
-                                >
-                                    Select a different folder
-                                </button>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <h2 className="text-2xl font-bold text-biophilic-moss dark:text-biophilic-dark-text">
-                                Welcome to Local-First Editor
-                            </h2>
-                            <p className="text-biophilic-bark/70 dark:text-biophilic-dark-text-muted">
-                                Select a folder on your computer to start working with your projects. All changes are saved locally.
-                            </p>
-                            <button
-                                onClick={handleChangeWorkspace}
-                                className="bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-6 py-3 rounded-xl font-bold hover:bg-biophilic-green-dark transition-all active:scale-[0.98] shadow-organic dark:shadow-dark-green-glow"
-                            >
-                                <FolderOpen size={18} className="inline mr-2" />
-                                Select Workspace Folder
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="h-screen bg-biophilic-cream dark:bg-biophilic-dark-bg overflow-y-auto custom-scrollbar relative transition-colors duration-500">
@@ -422,68 +399,98 @@ const Dashboard = () => {
                         <button
                             onClick={handleChangeWorkspace}
                             title="Change Workspace"
-                            className="flex items-center gap-2 
-                                    bg-biophilic-blue-light/20 dark:bg-biophilic-dark-blue/10
-                                    border border-biophilic-blue/30 dark:border-biophilic-dark-blue/30
-                                    text-slate-600 dark:text-biophilic-dark-text-muted 
-                                    px-3.5 py-2 rounded-xl 
-                                    hover:bg-biophilic-blue/30 dark:hover:bg-biophilic-dark-blue/20
-                                    transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98]"
+                            className={`flex items-center gap-2 
+                                    ${!workspaceInitialized 
+                                        ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-5 py-2.5 shadow-organic-lg scale-105' 
+                                        : 'bg-biophilic-blue-light/20 dark:bg-biophilic-dark-blue/10 border border-biophilic-blue/30 dark:border-biophilic-dark-blue/30 text-slate-600 dark:text-biophilic-dark-text-muted px-3.5 py-2'}
+                                    rounded-xl transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98] animate-in fade-in duration-500`}
                         >
                             <FolderOpen size={14} />
-                            <span className="hidden sm:inline">Select Workspace</span>
+                            <span>{!workspaceInitialized ? 'Connect Workspace' : 'Change Workspace'}</span>
                         </button>
 
-                        <label className="flex items-center gap-2 
-                                        bg-biophilic-rose/20 dark:bg-biophilic-dark-rose/10
-                                        border border-biophilic-rose/30 dark:border-biophilic-dark-rose/30
-                                        text-slate-600 dark:text-biophilic-dark-text-muted 
-                                        px-3.5 py-2 rounded-xl 
-                                        hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-rose/20
-                                        transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98]">
-                            <Upload size={14} />
-                            <span className="hidden sm:inline">Import</span>
-                            <input
-                                type="file"
-                                accept=".zip"
-                                className="hidden"
-                                onChange={async (e) => {
-                                    const file = e.target.files[0];
-                                    if (!file) return;
-                                    const formData = new FormData();
-                                    formData.append('file', file);
-                                    try {
-                                        const res = await api.post('/projects/import', formData);
-                                        if (res.data.success) {
-                                            await loadProjects();
+                        <LockedFeature isLocked={!workspaceInitialized} tooltipText="Select a workspace to import projects.">
+                            <label className="flex items-center gap-2 
+                                            bg-biophilic-rose/20 dark:bg-biophilic-dark-rose/10
+                                            border border-biophilic-rose/30 dark:border-biophilic-dark-rose/30
+                                            text-slate-600 dark:text-biophilic-dark-text-muted 
+                                            px-3.5 py-2 rounded-xl 
+                                            hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-rose/20
+                                            transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98]">
+                                <Upload size={14} />
+                                <span className="hidden sm:inline">Import</span>
+                                <input
+                                    type="file"
+                                    accept=".zip"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files[0];
+                                        if (!file) return;
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        try {
+                                            const res = await api.post('/projects/import', formData);
+                                            if (res.data.success) {
+                                                await loadProjects();
+                                            }
+                                        } catch (err) {
+                                            alert(err.response?.data?.message || 'Error importing project zip.');
                                         }
-                                    } catch (err) {
-                                        alert(err.response?.data?.message || 'Error importing project zip.');
-                                    }
-                                    e.target.value = '';
-                                }}
-                            />
-                        </label>
+                                        e.target.value = '';
+                                    }}
+                                />
+                            </label>
+                        </LockedFeature>
 
-                        <button
-                            id="dashboard-create-btn"
-                            onClick={() => setIsModalOpen(true)}
-                            className="flex items-center gap-2 
-                                    bg-biophilic-green dark:bg-biophilic-dark-green 
-                                    text-white dark:text-biophilic-dark-bg 
-                                    px-5 py-2 rounded-xl 
-                                    hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green 
-                                    shadow-organic dark:shadow-dark-green-glow 
-                                    transition-all active:scale-[0.98] font-black text-xs uppercase tracking-widest ml-1"
-                        >
-                            <Plus size={16} />
-                            <span>Create Blank</span>
-                        </button>
+                        <LockedFeature isLocked={!workspaceInitialized} tooltipText="Select a workspace to create new projects.">
+                            <button
+                                id="dashboard-create-btn"
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex items-center gap-2 
+                                        bg-biophilic-green dark:bg-biophilic-dark-green 
+                                        text-white dark:text-biophilic-dark-bg 
+                                        px-5 py-2 rounded-xl 
+                                        hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green 
+                                        shadow-organic dark:shadow-dark-green-glow 
+                                        transition-all active:scale-[0.98] font-black text-xs uppercase tracking-widest ml-1"
+                            >
+                                <Plus size={16} />
+                                <span>Create Blank</span>
+                            </button>
+                        </LockedFeature>
                     </div>
                 </header>
 
                 {/* ── Main Content ── */}
                 <main className="max-w-6xl mx-auto flex flex-col px-4 pb-16 relative z-10">
+
+                    {/* ── Workspace Selection CTA Banner (Only when not initialized) ── */}
+                    {!workspaceInitialized && (
+                        <section className="w-full mb-12 animate-in slide-in-from-top-4 duration-500">
+                            <div className="bg-gradient-to-r from-biophilic-green/10 via-biophilic-moss/5 to-transparent dark:from-biophilic-dark-green/20 dark:via-biophilic-dark-surface/10 rounded-[2.5rem] p-8 border border-biophilic-green/20 dark:border-biophilic-dark-green/20 flex flex-col md:flex-row items-center gap-8 shadow-organic-sm">
+                                <div className="w-20 h-20 bg-white dark:bg-biophilic-dark-card rounded-3xl flex items-center justify-center text-biophilic-green shadow-organic shrink-0">
+                                    <FolderOpen size={40} />
+                                </div>
+                                <div className="flex-1 text-center md:text-left">
+                                    <h3 className="text-2xl font-black text-biophilic-moss dark:text-biophilic-dark-text mb-2 tracking-tight">
+                                        {savedWorkspace ? `Welcome back to ${savedWorkspace.name}` : 'Ready to start your next masterpiece?'}
+                                    </h3>
+                                    <p className="text-biophilic-bark/60 dark:text-biophilic-dark-text-muted font-medium leading-relaxed max-w-xl">
+                                        {savedWorkspace 
+                                            ? 'Reconnect to your local folder to access all your designs and assets safely stored on your computer.' 
+                                            : 'Select a workspace folder on your device to enable local saving, AI generation, and project management.'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={savedWorkspace ? handleReconnectWorkspace : handleChangeWorkspace}
+                                    className="whitespace-nowrap bg-biophilic-moss dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-organic hover:bg-biophilic-green-dark transition-all active:scale-[0.95] flex items-center gap-2"
+                                >
+                                    <FolderOpen size={16} />
+                                    <span>{savedWorkspace ? 'Reconnect Folder' : 'Select Folder'}</span>
+                                </button>
+                            </div>
+                        </section>
+                    )}
 
                     {/* ── Hero AI Command Palette ── */}
                     <section className="w-full max-w-4xl mx-auto mb-20 text-center relative z-10 pt-10">
@@ -494,35 +501,37 @@ const Dashboard = () => {
                             Transform your ideas into stunning layouts using our biophilic-inspired intelligence.
                         </p>
 
-                        <div className="relative group max-w-2xl mx-auto">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-biophilic-green via-biophilic-moss to-biophilic-blue rounded-[2.2rem] blur-xl opacity-20 group-focus-within:opacity-40 transition-opacity duration-500" />
-                            <div className="relative bg-white dark:bg-biophilic-dark-card rounded-[2rem] shadow-organic-lg p-2.5 flex items-center border border-biophilic-cream-dark dark:border-biophilic-dark-border transition-all duration-300">
-                                <div className="w-12 h-12 flex items-center justify-center text-biophilic-green dark:text-biophilic-dark-green ml-2">
-                                    <Sparkles size={24} />
+                        <LockedFeature isLocked={!workspaceInitialized} tooltipText="Select a workspace folder to enable AI design generation.">
+                            <div className="relative group max-w-2xl mx-auto">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-biophilic-green via-biophilic-moss to-biophilic-blue rounded-[2.2rem] blur-xl opacity-20 group-focus-within:opacity-40 transition-opacity duration-500" />
+                                <div className="relative bg-white dark:bg-biophilic-dark-card rounded-[2rem] shadow-organic-lg p-2.5 flex items-center border border-biophilic-cream-dark dark:border-biophilic-dark-border transition-all duration-300">
+                                    <div className="w-12 h-12 flex items-center justify-center text-biophilic-green dark:text-biophilic-dark-green ml-2">
+                                        <Sparkles size={24} />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={aiPrompt}
+                                        onChange={(e) => setAiPrompt(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAIGenerate()}
+                                        placeholder="I want to design a minimalist poster for a coffee shop..."
+                                        className="flex-1 bg-transparent border-none outline-none px-3 py-3 text-slate-700 dark:text-biophilic-dark-text placeholder:text-slate-300 dark:placeholder:text-biophilic-dark-text-muted/40 font-bold"
+                                        disabled={isGenerating}
+                                    />
+                                    <button
+                                        onClick={handleAIGenerate}
+                                        disabled={isGenerating || !aiPrompt.trim()}
+                                        className="bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-8 py-4 rounded-[1.4rem] font-black text-xs uppercase tracking-widest shadow-organic hover:bg-biophilic-green-dark transition-all disabled:opacity-50 flex items-center gap-2 ml-2"
+                                    >
+                                        {isGenerating ? (
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <Sparkles size={16} />
+                                        )}
+                                        <span>{isGenerating ? 'Building' : 'Generate'}</span>
+                                    </button>
                                 </div>
-                                <input
-                                    type="text"
-                                    value={aiPrompt}
-                                    onChange={(e) => setAiPrompt(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAIGenerate()}
-                                    placeholder="I want to design a minimalist poster for a coffee shop..."
-                                    className="flex-1 bg-transparent border-none outline-none px-3 py-3 text-slate-700 dark:text-biophilic-dark-text placeholder:text-slate-300 dark:placeholder:text-biophilic-dark-text-muted/40 font-bold"
-                                    disabled={isGenerating}
-                                />
-                                <button
-                                    onClick={handleAIGenerate}
-                                    disabled={isGenerating || !aiPrompt.trim()}
-                                    className="bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-8 py-4 rounded-[1.4rem] font-black text-xs uppercase tracking-widest shadow-organic hover:bg-biophilic-green-dark transition-all disabled:opacity-50 flex items-center gap-2 ml-2"
-                                >
-                                    {isGenerating ? (
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <Sparkles size={16} />
-                                    )}
-                                    <span>{isGenerating ? 'Building' : 'Generate'}</span>
-                                </button>
                             </div>
-                        </div>
+                        </LockedFeature>
 
                         {isGenerating && (
                             <div className="mt-8 flex items-center justify-center gap-3">
@@ -552,52 +561,53 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        {loading ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                                {[1, 2, 3, 4].map(i => (
-                                    <div key={i} className="bg-white dark:bg-biophilic-dark-card rounded-3xl h-64 animate-pulse border border-biophilic-cream-dark dark:border-biophilic-dark-border" />
-                                ))}
-                            </div>
-                        ) : projects.length === 0 ? (
-                            <div className="text-center p-20 
-                                            bg-white/40 dark:bg-biophilic-dark-card/20 
-                                            rounded-[3rem] 
-                                            border-2 border-dashed border-biophilic-cream-dark dark:border-biophilic-dark-border 
-                                            flex flex-col items-center justify-center transition-colors">
-                                <div className="w-20 h-20 
-                                                bg-biophilic-green-light/40 dark:bg-biophilic-dark-green/10 
-                                                rounded-3xl shadow-organic-sm dark:shadow-dark-green-glow 
-                                                border border-biophilic-green-light dark:border-biophilic-dark-border 
-                                                flex items-center justify-center mb-6 
-                                                text-biophilic-green dark:text-biophilic-dark-green glow-green">
-                                    <Plus size={40} />
+                        <LockedFeature isLocked={!workspaceInitialized} tooltipText="Select a workspace folder to view and manage your projects.">
+                            {loading ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                    {[1, 2, 3, 4].map(i => (
+                                        <div key={i} className="bg-white dark:bg-biophilic-dark-card rounded-3xl h-64 animate-pulse border border-biophilic-cream-dark dark:border-biophilic-dark-border" />
+                                    ))}
                                 </div>
-                                <h3 className="text-biophilic-moss dark:text-biophilic-dark-text font-black text-xl mb-2">Grow your first design</h3>
-                                <p className="text-biophilic-bark/60 dark:text-biophilic-dark-text-muted font-bold text-sm max-w-xs leading-relaxed">
-                                    Start from a blank canvas or use the AI generator to plant the seeds of your next project.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                                {projects.map((project) => (
-                                    <div
-                                        key={project.id}
-                                        onClick={() => navigate(`/editor/${project.id}`)}
-                                        className="bg-white dark:bg-biophilic-dark-card 
-                                                rounded-3xl 
-                                                shadow-organic-sm dark:shadow-dark-sm 
-                                                border border-biophilic-cream-dark dark:border-biophilic-dark-border 
-                                                overflow-hidden cursor-pointer 
-                                                hover:shadow-organic-lg dark:hover:shadow-dark-green-glow 
-                                                hover:border-biophilic-green dark:hover:border-biophilic-dark-green 
-                                                hover:-translate-y-1
-                                                transition-all duration-300 group flex flex-col"
-                                    >
-                                        {/* Preview thumbnail */}
-                                        <div className="aspect-[4/3] 
-                                                        bg-biophilic-cream dark:bg-biophilic-dark-bg 
-                                                        relative overflow-hidden flex items-center justify-center 
-                                                        border-b border-biophilic-cream-dark dark:border-biophilic-dark-border">
+                            ) : projects.length === 0 ? (
+                                <div className="text-center p-20 
+                                                bg-white/40 dark:bg-biophilic-dark-card/20 
+                                                rounded-[3rem] 
+                                                border-2 border-dashed border-biophilic-cream-dark dark:border-biophilic-dark-border 
+                                                flex flex-col items-center justify-center transition-colors">
+                                    <div className="w-20 h-20 
+                                                    bg-biophilic-green-light/40 dark:bg-biophilic-dark-green/10 
+                                                    rounded-3xl shadow-organic-sm dark:shadow-dark-green-glow 
+                                                    border border-biophilic-green-light dark:border-biophilic-dark-border 
+                                                    flex items-center justify-center mb-6 
+                                                    text-biophilic-green dark:text-biophilic-dark-green glow-green">
+                                        <Plus size={40} />
+                                    </div>
+                                    <h3 className="text-biophilic-moss dark:text-biophilic-dark-text font-black text-xl mb-2">Grow your first design</h3>
+                                    <p className="text-biophilic-bark/60 dark:text-biophilic-dark-text-muted font-bold text-sm max-w-xs leading-relaxed">
+                                        Start from a blank canvas or use the AI generator to plant the seeds of your next project.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                    {projects.map((project) => (
+                                        <div
+                                            key={project.id}
+                                            onClick={() => navigate(`/editor/${project.id}`)}
+                                            className="bg-white dark:bg-biophilic-dark-card 
+                                                    rounded-3xl 
+                                                    shadow-organic-sm dark:shadow-dark-sm 
+                                                    border border-biophilic-cream-dark dark:border-biophilic-dark-border 
+                                                    overflow-hidden cursor-pointer 
+                                                    hover:shadow-organic-lg dark:hover:shadow-dark-green-glow 
+                                                    hover:border-biophilic-green dark:hover:border-biophilic-dark-green 
+                                                    hover:-translate-y-1
+                                                    transition-all duration-300 group flex flex-col"
+                                        >
+                                            {/* Preview thumbnail */}
+                                            <div className="aspect-[4/3] 
+                                                            bg-biophilic-cream dark:bg-biophilic-dark-bg 
+                                                            relative overflow-hidden flex items-center justify-center 
+                                                            border-b border-biophilic-cream-dark dark:border-biophilic-dark-border">
                                             {project.previewUrl ? (
                                                 <img
                                                     src={typeof project.previewUrl === 'string' && (project.previewUrl.startsWith('blob:') || project.previewUrl.startsWith('data:'))
@@ -662,6 +672,7 @@ const Dashboard = () => {
                                 ))}
                             </div>
                         )}
+                        </LockedFeature>
                     </section>
                 </main>
             </div>
