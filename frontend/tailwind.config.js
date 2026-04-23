@@ -12,16 +12,28 @@ export default {
       },
       colors: {
         biophilic: {
-          green:      '#A8C69F', // sage green — primary buttons
-          'green-dark': '#8BA883', // hover/active
-          'green-light': '#C8DEBC', // subtle tints
-          rose:       '#EBC2C2', // dusty rose — secondary accents
-          'rose-dark':  '#D4AAAA', // hover/active
-          'rose-light': '#F5DEDE', // very soft tint
-          cream:      '#F9F7F2', // creamy white — background
-          'cream-dark': '#EEE9DF', // slightly deeper cream for borders / cards
-          bark:       '#8B7355', // warm brown text accent
-          moss:       '#5C7A55', // deep green for emphasis
+          // ── Light Mode ──────────────────────────────
+          green:            '#A8C69F', // sage green — primary buttons
+          'green-dark':     '#8BA883', // hover/active
+          'green-light':    '#C8DEBC', // subtle tints
+          rose:             '#EBC2C2', // dusty rose — secondary accents
+          'rose-dark':      '#D4AAAA', // hover/active
+          'rose-light':     '#F5DEDE', // very soft tint
+          cream:            '#F9F7F2', // creamy white — background
+          'cream-dark':     '#EEE9DF', // slightly deeper cream for borders / cards
+          bark:             '#8B7355', // warm brown text accent
+          moss:             '#5C7A55', // deep green for emphasis
+
+          // ── Dark Mode (forest night) ─────────────────
+          'dark-bg':        '#121A13', // deepest background (nighttime forest)
+          'dark-surface':   '#1A241B', // primary surface
+          'dark-card':      '#232E24', // card / sidebar
+          'dark-border':    '#2E3D2F', // subtle dark sage border
+          'dark-green':     '#B8D4AF', // sage green lifted for dark bg contrast
+          'dark-text':      '#E0E8E1', // off-white / light mint grey — primary text
+          'dark-text-muted':'#8BA890', // muted text
+          'dark-rose':      '#EBC2C2', // dusty rose (kept)
+          'dark-terra':     '#FFB085', // soft terracotta
         },
       },
       borderRadius: {
@@ -30,10 +42,16 @@ export default {
         '3xl-organic': '2.5rem',
       },
       boxShadow: {
-        'organic-sm': '0 2px 12px -2px rgba(168, 198, 159, 0.25)',
-        'organic':    '0 8px 30px -8px rgba(168, 198, 159, 0.30)',
-        'organic-lg': '0 16px 48px -12px rgba(168, 198, 159, 0.35)',
-        'rose-glow':  '0 4px 24px -4px rgba(235, 194, 194, 0.40)',
+        'organic-sm':   '0 2px 12px -2px rgba(168, 198, 159, 0.25)',
+        'organic':      '0 8px 30px -8px rgba(168, 198, 159, 0.30)',
+        'organic-lg':   '0 16px 48px -12px rgba(168, 198, 159, 0.35)',
+        'rose-glow':    '0 4px 24px -4px rgba(235, 194, 194, 0.40)',
+        // Dark mode shadows
+        'dark-sm':      '0 2px 12px -2px rgba(18, 26, 19, 0.60)',
+        'dark-md':      '0 8px 30px -8px rgba(18, 26, 19, 0.70)',
+        'dark-green-glow': '0 0 20px 2px rgba(184, 212, 175, 0.18)',
+        'dark-rose-glow':  '0 0 16px 2px rgba(235, 194, 194, 0.20)',
+        'dark-terra-glow': '0 0 16px 2px rgba(255, 176, 133, 0.18)',
       },
     },
   },

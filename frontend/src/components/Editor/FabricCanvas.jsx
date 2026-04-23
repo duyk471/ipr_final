@@ -26,6 +26,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const undoStack = useRef([]);
     const redoStack = useRef([]);
     const isActionInProgress = useRef(false);
+    // Drag/resize in-flight guards — prevents capturing every pixel as a separate undo state
+    const isMoving = useRef(false);
+    const isScalingObj = useRef(false);
 
     // Panning State
     const isPanning = useRef(false);
@@ -49,11 +52,13 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const guideLines = useRef([]);
 
     const pushToUndo = () => {
-        if (isActionInProgress.current || !fabricCanvas.current) return;
+        // Block undo pushes during active drag or scale — object:modified will push one state on mouseup
+        if (isActionInProgress.current || isMoving.current || isScalingObj.current) return;
+        if (!fabricCanvas.current) return;
         const json = fabricCanvas.current.toObject(['id', 'metadata']);
         undoStack.current.push(JSON.stringify(json));
-        if (undoStack.current.length > 50) undoStack.current.shift(); // Limit history
-        redoStack.current = []; // Clear redo on new action
+        if (undoStack.current.length > 50) undoStack.current.shift();
+        redoStack.current = []; // Clear redo on any new action
     };
 
     const deleteActiveObject = () => {
@@ -347,7 +352,10 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             if (!fabricCanvas.current) return;
             try {
                 const canvas = fabricCanvas.current;
-                const fullUrl = `http://localhost:5000${url}?t=${Date.now()}`;
+                // If url is already absolute (e.g. https://images.unsplash.com/...), use it directly.
+                // Otherwise treat as a relative backend path.
+                const isAbsolute = /^https?:\/\//i.test(url) || url.startsWith('data:');
+                const fullUrl = isAbsolute ? url : `http://localhost:5000${url}?t=${Date.now()}`;
                 const activeObject = canvas.getActiveObject();
                 if (activeObject && activeObject.isFrame) {
                     fabric.util.loadImage(fullUrl, (imgElement) => {
@@ -1301,11 +1309,16 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 containerRef.current.addEventListener('dragover', handleNativeDragOver);
             }
 
-            // Events
+            // ── Canvas Events ────────────────────────────────────────────────
             fabricCanvas.current.on('selection:created', updateSelectedState);
             fabricCanvas.current.on('selection:updated', updateSelectedState);
             fabricCanvas.current.on('selection:cleared', updateSelectedState);
-            fabricCanvas.current.on('object:scaling', updateSelectedState);
+
+            // During scaling: update properties panel but DO NOT push undo
+            fabricCanvas.current.on('object:scaling', (e) => {
+                isScalingObj.current = true;
+                updateSelectedState();
+            });
 
             // Hide toolbar + properties when clicking empty canvas space
             fabricCanvas.current.on('mouse:down', (e) => {
@@ -1315,108 +1328,151 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 }
             });
 
-            // Magnetic Snapping Logic
-            const SNAP_THRESHOLD = 5;
+            // ── Smart Guide Lines (Biophilic Sage Green) ─────────────────────
+            // SNAP_THRESHOLD: magnetic pull distance in canvas px
+            const SNAP_THRESHOLD = 8;
+            // Larger threshold for center-of-canvas alignment (easier to hit)
+            const CENTER_SNAP_THRESHOLD = 12;
 
             const clearGuideLines = () => {
                 if (guideLines.current.length > 0) {
-                    guideLines.current.forEach(line => fabricCanvas.current.remove(line));
+                    guideLines.current.forEach(line => {
+                        if (fabricCanvas.current) fabricCanvas.current.remove(line);
+                    });
                     guideLines.current = [];
                 }
             };
 
-            const drawGuideLine = (coords) => {
+            const drawGuideLine = (coords, isCenter = false) => {
                 const line = new fabric.Line(coords, {
-                    stroke: '#8b5cf6', // Clearer purple for guides
-                    strokeWidth: 1.5,
+                    stroke: isCenter ? '#A8C69F' : '#C8DEBC', // Sage green — brighter for center guides
+                    strokeWidth: isCenter ? 1.5 : 1,
                     selectable: false,
                     evented: false,
-                    strokeDashArray: [6, 4],
-                    opacity: 1,
-                    id: 'guide'
+                    strokeDashArray: isCenter ? [8, 5] : [5, 6],
+                    opacity: isCenter ? 0.95 : 0.7,
+                    id: 'guide',
+                    shadow: isCenter
+                        ? new fabric.Shadow({ color: 'rgba(168,198,159,0.6)', blur: 6, offsetX: 0, offsetY: 0 })
+                        : null,
                 });
                 fabricCanvas.current.add(line);
                 guideLines.current.push(line);
             };
 
+            // object:moving — update position display + snap guides, but NO undo push
             fabricCanvas.current.on('object:moving', (e) => {
                 const activeObj = e.target;
                 if (!activeObj) return;
+                isMoving.current = true;
 
                 clearGuideLines();
 
                 const canvasWidth = fabricCanvas.current.width;
                 const canvasHeight = fabricCanvas.current.height;
+                const halfW = canvasWidth / 2;
+                const halfH = canvasHeight / 2;
 
                 const objBounds = activeObj.getBoundingRect();
                 const objCenter = activeObj.getCenterPoint();
 
-                const targetXs = [0, canvasWidth / 2, canvasWidth];
-                const targetYs = [0, canvasHeight / 2, canvasHeight];
+                // Canvas edge + center snap targets
+                const canvasXs = [
+                    { val: 0, isCenter: false },
+                    { val: halfW, isCenter: true },
+                    { val: canvasWidth, isCenter: false },
+                ];
+                const canvasYs = [
+                    { val: 0, isCenter: false },
+                    { val: halfH, isCenter: true },
+                    { val: canvasHeight, isCenter: false },
+                ];
 
+                // Collect sibling object edges + centers
+                const siblingXs = [];
+                const siblingYs = [];
                 fabricCanvas.current.getObjects().forEach(obj => {
                     if (obj === activeObj || obj.id === 'guide') return;
-                    const bounds = obj.getBoundingRect();
-                    const center = obj.getCenterPoint();
-                    targetXs.push(bounds.left, center.x, bounds.left + bounds.width);
-                    targetYs.push(bounds.top, center.y, bounds.top + bounds.height);
+                    const b = obj.getBoundingRect();
+                    const c = obj.getCenterPoint();
+                    siblingXs.push(
+                        { val: b.left, isCenter: false },
+                        { val: c.x, isCenter: true },
+                        { val: b.left + b.width, isCenter: false }
+                    );
+                    siblingYs.push(
+                        { val: b.top, isCenter: false },
+                        { val: c.y, isCenter: true },
+                        { val: b.top + b.height, isCenter: false }
+                    );
                 });
+
+                const allXTargets = [...canvasXs, ...siblingXs];
+                const allYTargets = [...canvasYs, ...siblingYs];
+
+                const activeXEdges = [
+                    objBounds.left,
+                    objCenter.x,
+                    objBounds.left + objBounds.width,
+                ];
+                const activeYEdges = [
+                    objBounds.top,
+                    objCenter.y,
+                    objBounds.top + objBounds.height,
+                ];
 
                 let snappedX = false;
                 let snappedY = false;
 
-                const activeXs = [
-                    { type: 'left', val: objBounds.left },
-                    { type: 'center', val: objCenter.x },
-                    { type: 'right', val: objBounds.left + objBounds.width }
-                ];
-
-                for (let i = 0; i < targetXs.length && !snappedX; i++) {
-                    const targetX = targetXs[i];
-                    for (const { val } of activeXs) {
-                        if (Math.abs(val - targetX) < SNAP_THRESHOLD) {
-                            const offset = targetX - val;
-                            activeObj.set({ left: activeObj.left + offset });
-                            drawGuideLine([targetX, 0, targetX, canvasHeight]);
+                for (const { val: targetX, isCenter: ic } of allXTargets) {
+                    if (snappedX) break;
+                    const threshold = ic ? CENTER_SNAP_THRESHOLD : SNAP_THRESHOLD;
+                    for (const edgeX of activeXEdges) {
+                        if (Math.abs(edgeX - targetX) < threshold) {
+                            activeObj.set({ left: activeObj.left + (targetX - edgeX) });
+                            drawGuideLine([targetX, 0, targetX, canvasHeight], ic);
                             snappedX = true;
                             break;
                         }
                     }
                 }
 
-                const activeYs = [
-                    { type: 'top', val: objBounds.top },
-                    { type: 'center', val: objCenter.y },
-                    { type: 'bottom', val: objBounds.top + objBounds.height }
-                ];
-
-                for (let i = 0; i < targetYs.length && !snappedY; i++) {
-                    const targetY = targetYs[i];
-                    for (const { val } of activeYs) {
-                        if (Math.abs(val - targetY) < SNAP_THRESHOLD) {
-                            const offset = targetY - val;
-                            activeObj.set({ top: activeObj.top + offset });
-                            drawGuideLine([0, targetY, canvasWidth, targetY]);
+                for (const { val: targetY, isCenter: ic } of allYTargets) {
+                    if (snappedY) break;
+                    const threshold = ic ? CENTER_SNAP_THRESHOLD : SNAP_THRESHOLD;
+                    for (const edgeY of activeYEdges) {
+                        if (Math.abs(edgeY - targetY) < threshold) {
+                            activeObj.set({ top: activeObj.top + (targetY - edgeY) });
+                            drawGuideLine([0, targetY, canvasWidth, targetY], ic);
                             snappedY = true;
                             break;
                         }
                     }
                 }
 
+                // Only update panel, no undo push
                 updateSelectedState();
             });
 
-            fabricCanvas.current.on('mouse:up', clearGuideLines);
+            // Clear guides on mouse:up
+            fabricCanvas.current.on('mouse:up', () => {
+                clearGuideLines();
+            });
 
-            // Handle rotation - hide toolbar while rotating
+            // Handle rotation — hide toolbar while rotating, no undo
             fabricCanvas.current.on('object:rotating', () => {
                 isRotating.current = true;
-                setToolbarPos(null); // Hide toolbar
+                setToolbarPos(null);
             });
 
-            fabricCanvas.current.on('object:modified', () => {
+            // object:modified fires on mouseup after move/resize/rotate
+            // This is the ONLY place we push undo for drag/resize/rotate actions
+            fabricCanvas.current.on('object:modified', (e) => {
                 isRotating.current = false;
+                isMoving.current = false;
+                isScalingObj.current = false;
                 updateSelectedState();
+                // Push a single undo snapshot for the entire drag/resize gesture
                 queueSave();
             });
 
@@ -1457,20 +1513,21 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
                 if (fabricCanvas.current) {
                     try {
-                        fabricCanvas.current.selectionLineWidth = 1;
+                        fabricCanvas.current.selectionLineWidth = 2;
                         fabricCanvas.current.uniScaleKey = 'ctrlKey';
 
-                        // Canva-style selection handles: blue border, white round corners, fixed-width stroke
+                        // Biophilic selection handles: sage green border + white handles with green stroke
                         fabric.Object.prototype.set({
                             transparentCorners: false,
                             cornerColor: '#ffffff',
-                            cornerStrokeColor: '#1a7cff',
-                            borderColor: '#1a7cff',
-                            cornerSize: 14,
-                            padding: 6,
+                            cornerStrokeColor: '#A8C69F',   // sage green
+                            borderColor: '#A8C69F',          // sage green bounding box
+                            borderDashArray: null,           // solid line
+                            cornerSize: 12,
+                            padding: 8,
                             cornerStyle: 'circle',
-                            borderScaleFactor: 1,   // border always 1px visual width, doesn't scale with object
-                            uniformScaling: true
+                            borderScaleFactor: 2,            // 2px visual border
+                            uniformScaling: true,
                         });
 
                         await fabricCanvas.current.loadFromJSON({
@@ -1554,10 +1611,12 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         return () => window.removeEventListener('resize', resize);
     }, []);
 
+    const isDarkMode = () => document.documentElement.classList.contains('dark');
+
     return (
         <div
             ref={containerRef}
-            className="origin-center shadow-2xl bg-white border border-slate-200 relative"
+            className="origin-center shadow-2xl bg-white dark:shadow-[0_0_0_1px_rgba(46,61,47,0.8),0_24px_64px_-12px_rgba(18,26,19,0.9)] border border-slate-200 dark:border-biophilic-dark-border relative"
             onContextMenu={(e) => {
                 e.preventDefault();
                 const rect = containerRef.current.getBoundingClientRect();
@@ -1578,18 +1637,27 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     style={{
                         left: contextMenu.x,
                         top: contextMenu.y,
-                        background: '#F9F7F2',
-                        border: '1.5px solid #EEE9DF',
-                        borderRadius: '1.25rem',
-                        boxShadow: '0 12px 40px -8px rgba(44,58,48,0.18), 0 2px 8px rgba(168,198,159,0.12)',
-                        backdropFilter: 'blur(16px)',
+                        ...(isDarkMode() ? {
+                            background: 'rgba(26, 36, 27, 0.82)',
+                            border: '1.5px solid rgba(46, 61, 47, 0.9)',
+                            borderRadius: '1.25rem',
+                            boxShadow: '0 12px 40px -8px rgba(18,26,19,0.8), 0 0 0 0.5px rgba(184,212,175,0.08) inset',
+                            backdropFilter: 'blur(24px) saturate(1.6)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+                        } : {
+                            background: '#F9F7F2',
+                            border: '1.5px solid #EEE9DF',
+                            borderRadius: '1.25rem',
+                            boxShadow: '0 12px 40px -8px rgba(44,58,48,0.18), 0 2px 8px rgba(168,198,159,0.12)',
+                            backdropFilter: 'blur(16px)',
+                        }),
                         transformOrigin: 'top left',
                         transform: `scale(${1 / canvasScale})`,
                     }}
                 >
                     {/* Header label */}
                     <div className="px-5 pt-4 pb-2">
-                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-biophilic-green-dark">Actions</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.18em] text-biophilic-green-dark dark:text-biophilic-dark-green">Actions</span>
                     </div>
 
                     {/* Copy / Paste / Duplicate */}
@@ -1597,40 +1665,40 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         <button
                             key={action}
                             onClick={handleContextMenuAction(action)}
-                            className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss"
+                            className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] dark:text-[#E0E8E1] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/15 hover:text-biophilic-moss dark:hover:text-biophilic-dark-green"
                         >{label}</button>
                     ))}
 
-                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+                    <div className="h-px bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-3 my-2" />
 
                     {/* Layer order */}
                     {[['bringToFront', 'Bring to Front'], ['bringForward', 'Bring Forward'], ['sendBackwards', 'Send Backward'], ['sendToBack', 'Send to Back']].map(([action, label]) => (
                         <button
                             key={action}
                             onClick={handleContextMenuAction(action)}
-                            className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss"
+                            className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] dark:text-[#E0E8E1] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/15 hover:text-biophilic-moss dark:hover:text-biophilic-dark-green"
                         >{label}</button>
                     ))}
 
-                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+                    <div className="h-px bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-3 my-2" />
 
                     {/* Flip */}
-                    <button onClick={handleContextMenuAction('flipX')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss flex items-center justify-between">
-                        Flip Horizontal <FlipHorizontal size={18} className="text-biophilic-green" />
+                    <button onClick={handleContextMenuAction('flipX')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] dark:text-[#E0E8E1] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/15 hover:text-biophilic-moss dark:hover:text-biophilic-dark-green flex items-center justify-between">
+                        Flip Horizontal <FlipHorizontal size={18} className="text-biophilic-green dark:text-biophilic-dark-green" />
                     </button>
-                    <button onClick={handleContextMenuAction('flipY')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss flex items-center justify-between">
-                        Flip Vertical <FlipVertical size={18} className="text-biophilic-green" />
+                    <button onClick={handleContextMenuAction('flipY')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] dark:text-[#E0E8E1] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/15 hover:text-biophilic-moss dark:hover:text-biophilic-dark-green flex items-center justify-between">
+                        Flip Vertical <FlipVertical size={18} className="text-biophilic-green dark:text-biophilic-dark-green" />
                     </button>
 
-                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+                    <div className="h-px bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-3 my-2" />
 
-                    <button onClick={handleContextMenuAction('group')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 hover:text-biophilic-moss">
+                    <button onClick={handleContextMenuAction('group')} className="mx-2 px-4 py-3 text-[15px] text-left font-semibold text-[#2D3A30] dark:text-[#E0E8E1] rounded-xl transition-all duration-150 hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/15 hover:text-biophilic-moss dark:hover:text-biophilic-dark-green">
                         Group / Ungroup
                     </button>
 
-                    <div className="h-px bg-biophilic-cream-dark mx-3 my-2" />
+                    <div className="h-px bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-3 my-2" />
 
-                    <button onClick={handleContextMenuAction('delete')} className="mx-2 mb-2 px-4 py-3 text-[15px] text-left font-bold text-red-500 rounded-xl transition-all duration-150 hover:bg-red-50/80">
+                    <button onClick={handleContextMenuAction('delete')} className="mx-2 mb-2 px-4 py-3 text-[15px] text-left font-bold text-red-500 dark:text-red-400 rounded-xl transition-all duration-150 hover:bg-red-50/80 dark:hover:bg-red-900/20">
                         Delete
                     </button>
                 </div>
@@ -1655,7 +1723,15 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     {/* INNER WRAPPER: Handles the spring animation and styling */}
                     <div
                         className="toolbar-pop flex items-center gap-1 pointer-events-auto"
-                        style={{
+                        style={isDarkMode() ? {
+                            background: 'rgba(26, 36, 27, 0.78)',
+                            border: '1.5px solid rgba(184, 212, 175, 0.18)',
+                            borderRadius: '999px',
+                            padding: '6px 10px',
+                            boxShadow: '0 8px 32px -4px rgba(18,26,19,0.75), 0 0 0 0.5px rgba(184,212,175,0.12) inset, 0 0 20px -4px rgba(184,212,175,0.12)',
+                            backdropFilter: 'blur(24px) saturate(1.7)',
+                            WebkitBackdropFilter: 'blur(24px) saturate(1.7)',
+                        } : {
                             background: '#F9F7F2',
                             border: '1.5px solid #EEE9DF',
                             borderRadius: '999px',
@@ -1670,28 +1746,29 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                     onClick={handleRemoveBackgroundActiveObject}
                                     disabled={isRemovingBg}
                                     title="Remove Background"
-                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-bold transition-all duration-150 ${isRemovingBg
-                                        ? 'bg-biophilic-rose/30 text-biophilic-bark cursor-wait'
-                                        : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
-                                        }`}
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-bold transition-all duration-150 ${
+                                        isRemovingBg
+                                            ? 'bg-biophilic-rose/30 dark:bg-biophilic-dark-rose/20 text-biophilic-bark dark:text-biophilic-dark-rose cursor-wait'
+                                            : 'text-[#2D3A30] dark:text-[#E0E8E1] hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-rose/20'
+                                    }`}
                                 >
                                     {isRemovingBg ? (
                                         <>
                                             <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none">
-                                                <circle cx="12" cy="12" r="10" stroke="#A8C69F" strokeWidth="3" strokeOpacity="0.3" />
-                                                <path d="M12 2a10 10 0 0 1 10 10" stroke="#A8C69F" strokeWidth="3" strokeLinecap="round" />
+                                                <circle cx="12" cy="12" r="10" stroke="#B8D4AF" strokeWidth="3" strokeOpacity="0.3" />
+                                                <path d="M12 2a10 10 0 0 1 10 10" stroke="#B8D4AF" strokeWidth="3" strokeLinecap="round" />
                                             </svg>
                                             <span>Removing…</span>
                                         </>
                                     ) : (
                                         <>
-                                            <Sparkles size={14} className="text-biophilic-green" />
+                                            <Sparkles size={14} className="text-biophilic-green dark:text-biophilic-dark-green" />
                                             <span>Remove BG</span>
                                         </>
                                     )}
                                 </button>
                                 {/* divider */}
-                                <div className="w-px h-6 mx-1 rounded-full bg-biophilic-cream-dark" />
+                                <div className="w-px h-6 mx-1 rounded-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border" />
                             </>
                         )}
 
@@ -1711,10 +1788,11 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                             queueSave(true);
                                         }}
                                         title="Bold"
-                                        className={`w-9 h-9 flex items-center justify-center rounded-full font-black text-[15px] transition-all duration-150 ${selectedObject?.fontWeight === 'bold'
-                                            ? 'bg-biophilic-green text-white'
-                                            : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
-                                            }`}
+                                        className={`w-9 h-9 flex items-center justify-center rounded-full font-black text-[15px] transition-all duration-150 ${
+                                            selectedObject?.fontWeight === 'bold'
+                                                ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg'
+                                                : 'text-[#2D3A30] dark:text-[#E0E8E1] hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/20'
+                                        }`}
                                     >B</button>
                                     {/* Italic */}
                                     <button
@@ -1728,10 +1806,11 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                             queueSave(true);
                                         }}
                                         title="Italic"
-                                        className={`w-9 h-9 flex items-center justify-center rounded-full italic font-serif text-[16px] transition-all duration-150 ${selectedObject?.fontStyle === 'italic'
-                                            ? 'bg-biophilic-green text-white'
-                                            : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
-                                            }`}
+                                        className={`w-9 h-9 flex items-center justify-center rounded-full italic font-serif text-[16px] transition-all duration-150 ${
+                                            selectedObject?.fontStyle === 'italic'
+                                                ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg'
+                                                : 'text-[#2D3A30] dark:text-[#E0E8E1] hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/20'
+                                        }`}
                                     >I</button>
                                     {/* Underline */}
                                     <button
@@ -1745,13 +1824,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                             queueSave(true);
                                         }}
                                         title="Underline"
-                                        className={`w-9 h-9 flex items-center justify-center rounded-full underline text-[15px] transition-all duration-150 ${selectedObject?.underline
-                                            ? 'bg-biophilic-green text-white'
-                                            : 'text-[#2D3A30] hover:bg-biophilic-rose/30'
-                                            }`}
+                                        className={`w-9 h-9 flex items-center justify-center rounded-full underline text-[15px] transition-all duration-150 ${
+                                            selectedObject?.underline
+                                                ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg'
+                                                : 'text-[#2D3A30] dark:text-[#E0E8E1] hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/20'
+                                        }`}
                                     >U</button>
                                 </div>
-                                <div className="w-px h-6 mx-1 rounded-full bg-biophilic-cream-dark" />
+                                <div className="w-px h-6 mx-1 rounded-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border" />
                             </>
                         )}
 
@@ -1759,9 +1839,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         <button
                             onClick={duplicateActiveObject}
                             title="Duplicate"
-                            className="w-10 h-10 flex items-center justify-center rounded-full text-[#2D3A30] hover:bg-biophilic-rose/30 transition-all duration-150 group"
+                            className="w-10 h-10 flex items-center justify-center rounded-full text-[#2D3A30] dark:text-[#E0E8E1] hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/20 transition-all duration-150 group"
                         >
-                            {/* two-layered squares icon (Duplicate) */}
                             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="8" y="8" width="12" height="12" rx="2" />
                                 <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
@@ -1769,19 +1848,19 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         </button>
 
                         {/* divider */}
-                        <div className="w-px h-6 mx-0.5 rounded-full bg-biophilic-cream-dark" />
+                        <div className="w-px h-6 mx-0.5 rounded-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border" />
 
                         {/* ── Delete ── */}
                         <button
                             onClick={deleteActiveObject}
                             title="Delete"
-                            className="w-10 h-10 flex items-center justify-center rounded-full text-red-400 hover:bg-red-50/80 hover:text-red-600 transition-all duration-150"
+                            className="w-10 h-10 flex items-center justify-center rounded-full text-red-400 dark:text-red-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-300 transition-all duration-150"
                         >
                             <Trash2 size={19} strokeWidth={2} />
                         </button>
 
                         {/* divider */}
-                        <div className="w-px h-6 mx-0.5 rounded-full bg-biophilic-cream-dark" />
+                        <div className="w-px h-6 mx-0.5 rounded-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border" />
 
                         {/* ── More Options (three dots) ── */}
                         <button
@@ -1790,9 +1869,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                 setContextMenu({ x: toolbarPos.left + (50 / canvasScale), y: toolbarPos.top + (48 / canvasScale) });
                             }}
                             title="More options"
-                            className="w-10 h-10 flex items-center justify-center rounded-full text-[#2D3A30] hover:bg-biophilic-rose/30 transition-all duration-150"
+                            className="w-10 h-10 flex items-center justify-center rounded-full text-[#2D3A30] dark:text-[#E0E8E1] hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-green/20 transition-all duration-150"
                         >
-                            {/* horizontal three dots */}
                             <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
                                 <circle cx="5" cy="12" r="2" />
                                 <circle cx="12" cy="12" r="2" />

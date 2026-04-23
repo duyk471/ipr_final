@@ -1,0 +1,234 @@
+.
+├── projects
+│   ├── 015d3a1e-b29a-481e-9911-d0e1a6a88dc8
+│   │   ├── assets
+│   │   │   └── layer_hero_img_1776834676202.png
+│   │   ├── history
+│   │   │   ├── 2026-04-22.json
+│   │   │   └── 2026-04-23.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 1f952bde-51fb-47a6-b17b-4e42d365f5ec
+│   │   ├── assets
+│   │   │   ├── layer_bg1_1774974500526.png
+│   │   │   └── layer_fg1_1774974503873.png
+│   │   ├── history
+│   │   │   ├── 2026-03-31.json
+│   │   │   ├── 2026-04-15.json
+│   │   │   ├── 2026-04-22.json
+│   │   │   ├── rollback_1776835821456.json
+│   │   │   ├── rollback_1776835845271.json
+│   │   │   └── rollback_1776835862218.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 22ff7d31-15fa-40b0-bac8-f45b786fd01b
+│   │   ├── assets
+│   │   │   ├── assistant_gen_1776836472135_0.png
+│   │   │   ├── assistant_gen_1776836561671_1.png
+│   │   │   ├── nobg_1776836247956.png
+│   │   │   ├── nobg_1776836267229.png
+│   │   │   ├── nobg_1776836267230.png
+│   │   │   ├── nobg_1776836279032.png
+│   │   │   ├── nobg_1776836291189.png
+│   │   │   ├── nobg_1776836302092.png
+│   │   │   ├── nobg_1776836333622.png
+│   │   │   ├── nobg_1776836333623.png
+│   │   │   ├── nobg_1776836333624.png
+│   │   │   ├── nobg_1776836345352.png
+│   │   │   ├── nobg_1776836356961.png
+│   │   │   ├── nobg_1776836357295.png
+│   │   │   ├── nobg_1776837137530.png
+│   │   │   ├── paste_1776837108440.png
+│   │   │   └── upload_1776836173218_1b3bc0906cdd5f0ab5fc881f44ecf765.jpg
+│   │   ├── history
+│   │   │   └── 2026-04-22.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 267ce896-ce62-4a88-8d07-596bc83cea09
+│   │   ├── assets
+│   │   │   ├── ai_bg_1774973518312.png
+│   │   │   ├── ai_person_studying_1774973523537.png
+│   │   │   └── ai_pixar_lamp_1774973531448.png
+│   │   ├── history
+│   │   │   └── 2026-03-31.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 285a69fa-6f6f-478e-8821-3c0d150cfd78
+│   │   ├── assets
+│   │   │   └── upload_1774955786498_24c49ead_909a_441b_8517_768c74d762b1_1242x1349.jpg
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 2d70343e-1b57-4d73-ac16-816cfcd01ee1
+│   │   ├── assets
+│   │   │   ├── assistant_gen_1776237436130_1.png
+│   │   │   └── layer_student_image_1776237346012.png
+│   │   ├── history
+│   │   │   └── 2026-04-15.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 4a253092-2ccc-4a6c-b7fc-97a7ae8ad25c
+│   │   ├── assets
+│   │   │   ├── ai_1776823119090.png
+│   │   │   ├── layer_hero_coffee_1776823084850.png
+│   │   │   ├── nobg_1776823275738.png
+│   │   │   └── upload_1776823243492_24c49ead_909a_441b_8517_768c74d762b1_1242x1349.jpg
+│   │   ├── history
+│   │   │   └── 2026-04-22.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 4acf162c-935a-406d-84c5-ae6b7bef520a
+│   │   ├── assets
+│   │   │   ├── assistant_gen_1776821481937_5.png
+│   │   │   └── layer_hero_coffee_cup_1776821424737.png
+│   │   ├── history
+│   │   │   └── 2026-04-22.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 576e7bed-29a2-446d-b4ab-5a890912216a
+│   │   ├── assets
+│   │   │   ├── ai_bg_1774973724008.png
+│   │   │   ├── ai_fg1_1774973730492.png
+│   │   │   ├── ai_fg2_1774973736877.png
+│   │   │   └── nobg_1776929743396.png
+│   │   ├── history
+│   │   │   ├── 2026-03-31.json
+│   │   │   └── 2026-04-23.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 5a0fffb0-8cdb-4c7e-82d5-eb1e6c5b9847
+│   │   ├── assets
+│   │   │   ├── layer_bg1_1774974699058.png
+│   │   │   ├── layer_fg1_1774974718924.png
+│   │   │   ├── paste_1776222817569.png
+│   │   │   └── paste_1776223674194.png
+│   │   ├── history
+│   │   │   └── 2026-04-15.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 68cb1bc0-fcd1-4c3b-b894-143e269d3ac6
+│   │   ├── assets
+│   │   │   ├── ai_bg_1774954585904.png
+│   │   │   ├── ai_boy_1774954589229.png
+│   │   │   └── ai_mug_1774954592295.png
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 8d72a36c-4d0f-44f3-b9e8-c7fefd67b9a7
+│   │   ├── assets
+│   │   │   ├── ai_1776822744820.png
+│   │   │   └── layer_hero_img_1776822434161.png
+│   │   ├── history
+│   │   │   └── 2026-04-22.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 8e792d0e-225d-467d-943d-70498f5b9758
+│   │   ├── assets
+│   │   │   ├── layer_banh_mi_img_1776237065298.png
+│   │   │   └── nobg_1776237107098.png
+│   │   ├── history
+│   │   │   └── 2026-04-15.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 8ed73e86-deae-45da-b948-ac9b8a73c11a
+│   │   ├── assets
+│   │   │   ├── layer_bg1_1774974340532.png
+│   │   │   └── layer_fg1_1774974344361.png
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 8fc13243-cf83-41a6-add4-819650ec3cf6
+│   │   ├── assets
+│   │   │   ├── layer_bg1_1774975778238.png
+│   │   │   └── layer_fg1_1774975781704.png
+│   │   ├── history
+│   │   │   └── 2026-03-31.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 90085c84-6b55-4fff-aafd-89a76a7889e2
+│   │   ├── assets
+│   │   │   ├── ai_bg_1774954444448.png
+│   │   │   └── ai_fg1_1774954448009.png
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── 908aa083-e72d-4352-8e2b-95b3a8f31ca4
+│   │   ├── assets
+│   │   │   └── layer_hero_coffee_illustration_1776837628249.png
+│   │   ├── history
+│   │   │   └── 2026-04-23.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── a0ce4540-c41e-471c-8ba6-929e5adc268a
+│   │   ├── assets
+│   │   │   ├── ai_1776835284723.png
+│   │   │   ├── layer_hero_img_1776834831565.png
+│   │   │   ├── nobg_1776834987934.png
+│   │   │   └── upload_1776835739414_m.jpg
+│   │   ├── history
+│   │   │   ├── 2026-04-22.json
+│   │   │   └── 2026-04-23.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── b885e368-85a5-480b-8056-40734a5c40b6
+│   │   ├── assets
+│   │   │   ├── assistant_gen_1776264574658_1.png
+│   │   │   └── layer_hero_coffee_1776264498206.png
+│   │   ├── history
+│   │   │   ├── 2026-04-15.json
+│   │   │   ├── 2026-04-19.json
+│   │   │   ├── 2026-04-22.json
+│   │   │   └── 2026-04-23.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── be606450-d244-47bf-9ef6-8fad8c661051
+│   │   ├── assets
+│   │   │   └── layer_hero_image_1776826391794.png
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── c4676a15-0c51-468c-bda7-d5e856b12959
+│   │   ├── assets
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── c5ca5cf0-66b2-4c68-a3f8-664d5c76cce9
+│   │   ├── assets
+│   │   │   ├── layer_bg1_1774974207181.png
+│   │   │   └── layer_fg1_1774974212567.png
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── c7ad8cc0-4c8c-4c95-8ed5-0a9529fb2869
+│   │   ├── assets
+│   │   │   ├── ai_1776261844781.png
+│   │   │   ├── nobg_1776223932491.png
+│   │   │   ├── paste_1776223674265.png
+│   │   │   └── paste_1776223674291.png
+│   │   ├── history
+│   │   │   ├── 2026-04-15.json
+│   │   │   └── 2026-04-22.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── d48875e5-dde8-408e-a19a-77c8ee232636
+│   │   ├── assets
+│   │   │   ├── ai_1776221784935.png
+│   │   │   ├── layer_coffee_cup_img_1776221613947.png
+│   │   │   ├── nobg_1776262896585.png
+│   │   │   └── nobg_1776262897481.png
+│   │   ├── history
+│   │   │   └── 2026-04-15.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   ├── e9a337a9-2f42-4df5-8110-a16dd69f05ba
+│   │   ├── assets
+│   │   │   ├── ai_bg_1774533180489.png
+│   │   │   └── ai_fg1_1774533183929.png
+│   │   ├── history
+│   │   │   └── 2026-03-31.json
+│   │   ├── index.json
+│   │   └── preview.png
+│   └── f3e2676d-293d-4a69-8a99-9b2d84a012e4
+│       ├── assets
+│       │   ├── ai_bg_1774954503006.png
+│       │   └── ai_fg1_1774954506486.png
+│       ├── history
+│       │   └── 2026-03-31.json
+│       ├── index.json
+│       └── preview.png
+└── tmp.txt
+
+73 directories, 159 files
