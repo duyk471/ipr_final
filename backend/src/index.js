@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import projectRoutes from './routes/projectRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import { handleImageSearch } from './controllers/imageSearchController.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/storage', (req, res, next) => {
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:id/assets', assetRoutes);
+app.get('/api/assets/search', handleImageSearch);
 app.use('/api/ai', aiRoutes);
 
 app.listen(PORT, () => {

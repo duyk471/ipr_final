@@ -121,8 +121,8 @@ export const saveProject = async (projectId, canvasState, previewBase64) => {
     const today = new Date().toISOString().split('T')[0];
     const historyFile = path.join(historyDir, `${today}.json`);
     
-    // If today's backup doesn't exist, this creates a snapshot of how it looked at the START of the day
-    if (!(await fs.pathExists(historyFile))) {
+    // Only snapshot if the original index exists and history for today hasn't been created yet
+    if (await fs.pathExists(indexPath) && !(await fs.pathExists(historyFile))) {
         await fs.copy(indexPath, historyFile);
     }
 

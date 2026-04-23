@@ -5,25 +5,26 @@ import { api } from '../../store/useCanvasStore';
 // ─── Curated Fallback Gallery ─────────────────────────────────────────────────
 // Shown when no query is entered; guaranteed to load.
 const CURATED_GALLERY = [
-    { id: 'c01', label: 'Mountain Lake',    tags: ['mountain', 'lake', 'nature'],  thumb: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=70', url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=90' },
+    { id: 'c01', label: 'Mountain Lake',    tags: ['mountain', 'lake', 'nature'],  thumb: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=70', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=90' },
     { id: 'c02', label: 'Starry Night',     tags: ['night', 'stars', 'sky'],       thumb: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&q=70', url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=90' },
-    { id: 'c03', label: 'Ocean Sunset',     tags: ['ocean', 'sunset', 'sea'],      thumb: 'https://images.unsplash.com/photo-1718363534265-43c08c01d048?w=400&q=70', url: 'https://images.unsplash.com/photo-1718363534265-43c08c01d048?w=1200&q=90' },
-    { id: 'c04', label: 'Forest Path',      tags: ['forest', 'trees', 'nature'],   thumb: 'https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=400&q=70', url: 'https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=1200&q=90' },
+    { id: 'c03', label: 'Ocean Sunset',     tags: ['ocean', 'sunset', 'sea'],      thumb: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=70', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=90' },
+    { id: 'c04', label: 'Forest Path',      tags: ['forest', 'trees', 'nature'],   thumb: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&q=70', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=90' },
     { id: 'c05', label: 'City Skyline',     tags: ['city', 'urban', 'buildings'],  thumb: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&q=70', url: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1200&q=90' },
     { id: 'c06', label: 'Spring Flowers',   tags: ['flowers', 'spring', 'bloom'],  thumb: 'https://images.unsplash.com/photo-1490750967868-88df5691cc27?w=400&q=70', url: 'https://images.unsplash.com/photo-1490750967868-88df5691cc27?w=1200&q=90' },
-    { id: 'c07', label: 'Architecture',     tags: ['architecture', 'design'],      thumb: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=70', url: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=90' },
-    { id: 'c08', label: 'Tech Abstract',    tags: ['tech', 'abstract', 'blue'],    thumb: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&q=70', url: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=1200&q=90' },
-    { id: 'c09', label: 'Portrait',         tags: ['portrait', 'person'],          thumb: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=70', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1200&q=90' },
+    { id: 'c07', label: 'Architecture',     tags: ['architecture', 'design'],      thumb: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&q=70', url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&q=90' },
+    { id: 'c08', label: 'Tech Abstract',    tags: ['tech', 'abstract', 'blue'],    thumb: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&q=70', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=90' },
+    { id: 'c09', label: 'Portrait',         tags: ['portrait', 'person'],          thumb: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=70', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=1200&q=90' },
     { id: 'c10', label: 'Aerial View',      tags: ['aerial', 'drone', 'landscape'],thumb: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=70', url: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=90' },
     { id: 'c11', label: 'Cute Dog',         tags: ['dog', 'animal', 'pet'],        thumb: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&q=70', url: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=1200&q=90' },
     { id: 'c12', label: 'Coffee & Work',    tags: ['coffee', 'desk', 'office'],    thumb: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&q=70', url: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200&q=90' },
     { id: 'c13', label: 'Abstract Art',     tags: ['abstract', 'art', 'color'],    thumb: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=400&q=70', url: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=1200&q=90' },
-    { id: 'c14', label: 'Mountain Peak',    tags: ['mountain', 'snow', 'hiking'],  thumb: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=70', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=90' },
-    { id: 'c15', label: 'Fashion',          tags: ['fashion', 'model', 'style'],   thumb: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400&q=70', url: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=1200&q=90' },
+    { id: 'c14', label: 'Minimalist',       tags: ['minimal', 'clean', 'white'],   thumb: 'https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?w=400&q=70', url: 'https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?w=1200&q=90' },
+    { id: 'c15', label: 'Fashion',          tags: ['fashion', 'model', 'style'],   thumb: 'https://images.unsplash.com/photo-1539109132382-3bf1df395ee0?w=400&q=70', url: 'https://images.unsplash.com/photo-1539109132382-3bf1df395ee0?w=1200&q=90' },
 ];
 
 // ─── Source tabs ─────────────────────────────────────────────────────────────
 const SOURCES = [
+    { id: 'all',      label: 'All',      emoji: '🌈' },
     { id: 'unsplash', label: 'Unsplash', emoji: '📷' },
     { id: 'pixabay',  label: 'Pixabay',  emoji: '🖼' },
     { id: 'pexels',   label: 'Pexels',   emoji: '🎨' },
@@ -87,32 +88,53 @@ const NoResults = ({ query, onClear }) => (
 );
 
 // ─── Search via backend proxy (avoids CORS + key management) ─────────────────
-async function searchImages(query, source) {
+async function searchImages(query, source, page = 1) {
     try {
+        console.log(`[Search] Querying backend for "${query}" from source "${source}" (page ${page})`);
         const res = await api.get('/assets/search', {
-            params: { q: query, source, per_page: 16 },
+            params: { q: query, source, page, per_page: 20 },
         });
-        if (res.data?.results?.length > 0) {
+        
+        if (res.data?.success && res.data.results && res.data.results.length > 0) {
+            console.log(`[Search] Backend returned ${res.data.results.length} results`);
             return { results: res.data.results, error: null };
         }
+        
+        console.warn(`[Search] Backend returned no results for "${query}". Falling back to curated/picsum.`);
+        if (page === 1) throw new Error('No results from backend');
         return { results: [], error: null };
     } catch (err) {
-        // Backend not configured / no API key — fall back to local curated filter
-        const localMatches = CURATED_GALLERY.filter(
+        console.warn('[Search] Backend search failed or returned empty, using fallback:', err.message);
+        if (page > 1) return { results: [], error: null };
+
+        // Fallback: search in curated gallery
+        const localMatches = (CURATED_GALLERY || []).filter(
             (img) =>
-                img.label.toLowerCase().includes(query.toLowerCase()) ||
-                img.tags.some((t) => t.includes(query.toLowerCase()))
-        );
-        // Supplement with Picsum seeds when local has < 4 hits (always some results)
-        const picsum = Array.from({ length: Math.max(0, 8 - localMatches.length) }, (_, i) => {
+                img.label?.toLowerCase().includes(query.toLowerCase()) ||
+                img.tags?.some((t) => t.toLowerCase().includes(query.toLowerCase()))
+        ).map(img => ({
+            ...img,
+            thumbnail: img.thumb,
+            fullRes: img.url,
+            source: 'curated',
+            author: 'Unsplash'
+        }));
+        
+        // Always supplement with Picsum to ensure we have results
+        const picsumCount = Math.max(4, 12 - localMatches.length);
+        const picsum = Array.from({ length: picsumCount }, (_, i) => {
             const seed = `${query}-${source}-${i}`;
             return {
-                id: `ps_${seed}`,
+                id: `ps_${seed}_${Date.now()}`,
                 label: `${query} ${i + 1}`,
-                thumb: `https://picsum.photos/seed/${encodeURIComponent(seed)}/400/300`,
-                url:   `https://picsum.photos/seed/${encodeURIComponent(seed)}/1200/800`,
+                thumbnail: `https://picsum.photos/seed/${encodeURIComponent(seed)}/400/300`,
+                fullRes:   `https://picsum.photos/seed/${encodeURIComponent(seed)}/1200/800`,
+                author: 'Picsum Photos',
+                source: 'picsum',
+                aspectRatio: 4/3
             };
         });
+        
         return { results: [...localMatches, ...picsum], error: null };
     }
 }
@@ -121,27 +143,52 @@ async function searchImages(query, source) {
 const ImageLibraryPanel = ({ canvasRef }) => {
     const [searchTerm, setSearchTerm]   = useState('');
     const [debouncedTerm, setDebouncedTerm] = useState('');
-    const [source, setSource]           = useState('unsplash');
-    const [results, setResults]         = useState(CURATED_GALLERY);
+    const [source, setSource]           = useState('all');
+    const [results, setResults]         = useState(CURATED_GALLERY.map(img => ({
+        ...img,
+        thumbnail: img.thumb,
+        fullRes: img.url,
+        source: 'curated',
+        author: 'Unsplash'
+    })));
     const [isLoading, setIsLoading]     = useState(false);
+    const [isMoreLoading, setIsMoreLoading] = useState(false);
+    const [page, setPage]               = useState(1);
+    const [hasMore, setHasMore]         = useState(true);
     const [loadingId, setLoadingId]     = useState(null);
     const [error, setError]             = useState(null);
     const abortRef = useRef(null);
+    const observer = useRef();
 
-    // ── Debounce search term: 450 ms
+    // ── Debounce search term: 500 ms
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedTerm(searchTerm.trim()), 450);
+        const t = setTimeout(() => {
+            setDebouncedTerm(searchTerm.trim());
+            setPage(1);
+            setHasMore(true);
+        }, 500);
         return () => clearTimeout(t);
     }, [searchTerm]);
 
     // ── Run search on debounced term or source change
     useEffect(() => {
-        runSearch(debouncedTerm, source);
+        runSearch(debouncedTerm, source, 1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedTerm, source]);
 
-    const runSearch = useCallback(async (query, src) => {
-        // Cancel previous in-flight search
+    // ── Intersection Observer for Infinite Scroll
+    const lastElementRef = useCallback(node => {
+        if (isLoading || isMoreLoading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore && debouncedTerm) {
+                loadMore();
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [isLoading, isMoreLoading, hasMore, debouncedTerm]);
+
+    const runSearch = async (query, src, pageNum) => {
         if (abortRef.current) abortRef.current = false;
         const myToken = {};
         abortRef.current = myToken;
@@ -150,15 +197,20 @@ const ImageLibraryPanel = ({ canvasRef }) => {
         setError(null);
 
         if (!query) {
-            // Reset to curated gallery instantly
-            setResults(CURATED_GALLERY);
+            setResults(CURATED_GALLERY.map(img => ({
+                ...img,
+                thumbnail: img.thumb,
+                fullRes: img.url,
+                source: 'curated',
+                author: 'Unsplash'
+            })));
             setIsLoading(false);
+            setHasMore(false);
             return;
         }
 
-        const { results: found, error: err } = await searchImages(query, src);
+        const { results: found, error: err } = await searchImages(query, src, pageNum);
 
-        // Guard stale response
         if (abortRef.current !== myToken) return;
 
         if (err) {
@@ -166,44 +218,53 @@ const ImageLibraryPanel = ({ canvasRef }) => {
             setResults([]);
         } else {
             setResults(found);
+            setHasMore(found.length >= 10);
         }
         setIsLoading(false);
-    }, []);
+    };
 
-    // ── Add image to Fabric.js canvas
+    const loadMore = async () => {
+        if (isMoreLoading || !hasMore) return;
+        
+        setIsMoreLoading(true);
+        const nextPage = page + 1;
+        
+        const { results: found, error: err } = await searchImages(debouncedTerm, source, nextPage);
+        
+        if (!err) {
+            if (found.length === 0) {
+                setHasMore(false);
+            } else {
+                setResults(prev => [...prev, ...found]);
+                setPage(nextPage);
+            }
+        }
+        setIsMoreLoading(false);
+    };
+
     const handleSelectImage = async (img) => {
         if (!canvasRef.current || loadingId) return;
         setLoadingId(img.id);
         try {
-            // For local-first storage: download external images and save locally
-            let imageUrl = img.url;
+            let imageUrl = img.fullRes || img.url || img.thumbnail;
 
-            // Check if this is an external URL (http/https)
             if (imageUrl.startsWith('http')) {
                 try {
-                    // Download the image
                     const response = await fetch(imageUrl);
                     const blob = await response.blob();
-
-                    // Generate filename from the label or URL
-                    const fileName = `${img.label.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+                    const fileName = `${(img.author || 'photo').replace(/\s+/g, '_')}_${Date.now()}.jpg`;
                     const file = new File([blob], fileName, { type: blob.type });
 
-                    // Upload to local project storage
                     const { uploadLocalAsset } = await import('../../services/localAssetService');
                     const assetInfo = await uploadLocalAsset(file);
 
                     imageUrl = assetInfo.url;
-                    img.metadata = { ...img.metadata, originalPath: assetInfo.path };
                 } catch (downloadError) {
-                    console.warn('Failed to download and save image locally, using external URL:', downloadError);
+                    console.warn('Failed to download image locally:', downloadError);
                 }
             }
 
-            await canvasRef.current.addImage(
-                imageUrl,
-                { source: img.label, ...img.metadata }
-            );
+            await canvasRef.current.addImage(imageUrl, { source: img.source });
         } catch (err) {
             console.error('Failed to add image:', err);
         } finally {
@@ -211,7 +272,7 @@ const ImageLibraryPanel = ({ canvasRef }) => {
         }
     };
 
-    const handleRetry = () => runSearch(debouncedTerm, source);
+    const handleRetry = () => runSearch(debouncedTerm, source, 1);
     const handleClear = () => setSearchTerm('');
 
     return (
@@ -297,65 +358,84 @@ const ImageLibraryPanel = ({ canvasRef }) => {
                 ) : results.length === 0 ? (
                     <NoResults query={debouncedTerm} onClear={handleClear} />
                 ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                        {results.map((img) => {
-                            const isAdding = loadingId === img.id;
-                            return (
-                                <button
-                                    key={img.id}
-                                    onClick={() => handleSelectImage(img)}
-                                    disabled={!!loadingId}
-                                    title={`Add "${img.label}" to canvas`}
-                                    className={`
-                                        relative group overflow-hidden rounded-2xl
-                                        border border-biophilic-cream-dark dark:border-biophilic-dark-border
-                                        bg-white dark:bg-biophilic-dark-card
-                                        aspect-square
-                                        transition-all duration-300 ease-out shadow-sm
-                                        ${!loadingId
-                                            ? 'hover:scale-[1.05] hover:border-biophilic-green dark:hover:border-biophilic-green hover:shadow-organic dark:hover:shadow-dark-green-glow cursor-pointer'
-                                            : 'opacity-60 cursor-wait'
-                                        }
-                                        ${isAdding ? 'ring-4 ring-biophilic-green/20' : ''}
-                                    `}
-                                >
-                                    {/* Thumbnail */}
-                                    <img
-                                        src={img.thumb || img.url}
-                                        alt={img.label}
-                                        loading="lazy"
-                                        crossOrigin="anonymous"
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.15]"
-                                        onError={(e) => { e.target.style.opacity = '0.3'; }}
-                                    />
+                    <>
+                        <div className="grid grid-cols-2 gap-3">
+                            {results.map((img, index) => {
+                                const isAdding = loadingId === img.id;
+                                const isLastElement = index === results.length - 1;
 
-                                    {/* Hover overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 pointer-events-none">
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-white text-[10px] font-black uppercase tracking-widest drop-shadow-md">
-                                                {img.label}
-                                            </span>
-                                            <span className="text-white/60 text-[8px] font-bold">Unsplash Photo</span>
-                                        </div>
-                                    </div>
+                                return (
+                                    <button
+                                        key={`${img.id}-${index}`}
+                                        ref={isLastElement ? lastElementRef : null}
+                                        onClick={() => handleSelectImage(img)}
+                                        disabled={!!loadingId}
+                                        className={`
+                                            relative group overflow-hidden rounded-2xl
+                                            border border-biophilic-cream-dark dark:border-biophilic-dark-border
+                                            bg-white dark:bg-biophilic-dark-card
+                                            aspect-square
+                                            transition-all duration-300 ease-out shadow-sm
+                                            ${!loadingId
+                                                ? 'hover:scale-[1.05] hover:border-biophilic-green dark:hover:border-biophilic-green hover:shadow-organic dark:hover:shadow-dark-green-glow cursor-pointer'
+                                                : 'opacity-60 cursor-wait'
+                                            }
+                                            ${isAdding ? 'ring-4 ring-biophilic-green/20' : ''}
+                                        `}
+                                    >
+                                        {/* Thumbnail */}
+                                        <img
+                                            src={img.thumbnail}
+                                            alt={img.author}
+                                            loading="lazy"
+                                            crossOrigin="anonymous"
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.15]"
+                                            onError={(e) => { e.target.style.opacity = '0.3'; }}
+                                        />
 
-                                    {/* Adding spinner */}
-                                    {isAdding && (
-                                        <div className="absolute inset-0 bg-white/80 dark:bg-biophilic-dark-surface/90 flex flex-col items-center justify-center gap-2 rounded-2xl pointer-events-none backdrop-blur-sm">
-                                            <div className="w-6 h-6 border-2 border-biophilic-green/20 dark:border-biophilic-dark-green/20 border-t-biophilic-green dark:border-t-biophilic-dark-green rounded-full animate-spin" />
-                                            <span className="text-[8px] font-black text-biophilic-green uppercase tracking-widest">Adding...</span>
+                                        {/* Hover overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 pointer-events-none text-left">
+                                            <div className="flex flex-col gap-0.5 w-full">
+                                                <span className="text-white text-[10px] font-black uppercase tracking-widest drop-shadow-md truncate">
+                                                    @{img.author}
+                                                </span>
+                                                <span className="text-white/60 text-[8px] font-bold uppercase tracking-tight">{img.source}</span>
+                                            </div>
                                         </div>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
+
+                                        {/* Adding spinner */}
+                                        {isAdding && (
+                                            <div className="absolute inset-0 bg-white/80 dark:bg-biophilic-dark-surface/90 flex flex-col items-center justify-center gap-2 rounded-2xl pointer-events-none backdrop-blur-sm">
+                                                <div className="w-6 h-6 border-2 border-biophilic-green/20 dark:border-biophilic-dark-green/20 border-t-biophilic-green dark:border-t-biophilic-dark-green rounded-full animate-spin" />
+                                                <span className="text-[8px] font-black text-biophilic-green uppercase tracking-widest">Adding...</span>
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* More Loading Indicator */}
+                        {isMoreLoading && (
+                            <div className="grid grid-cols-2 gap-3 mt-3">
+                                <SkeletonCard />
+                                <SkeletonCard />
+                            </div>
+                        )}
+
+                        {/* End of results message */}
+                        {!hasMore && results.length > 0 && debouncedTerm && (
+                            <p className="text-center text-[10px] text-biophilic-bark/30 dark:text-biophilic-dark-border mt-6 select-none font-bold uppercase tracking-[0.2em]">
+                                No more photos to load
+                            </p>
+                        )}
+                    </>
                 )}
 
                 {/* Attribution footer */}
                 {!isLoading && !error && results.length > 0 && (
-                    <p className="text-center text-[10px] text-biophilic-bark/30 dark:text-biophilic-dark-border mt-4 select-none">
-                        Photos via {SOURCES.find(s => s.id === source)?.label}
+                    <p className="text-center text-[10px] text-biophilic-bark/30 dark:text-biophilic-dark-border mt-8 select-none">
+                        Aggregated from Unsplash, Pexels, and Pixabay
                     </p>
                 )}
             </div>
