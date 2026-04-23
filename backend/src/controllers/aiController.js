@@ -15,7 +15,7 @@ const STORAGE_ROOT = path.join(__dirname, '../../../storage');
  */
 const downloadImage = async (url) => {
     try {
-        const response = await fetch(url, { 
+        const response = await fetch(url, {
             signal: AbortSignal.timeout(8000),
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
@@ -25,10 +25,10 @@ const downloadImage = async (url) => {
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        
+
         // Validation: Must be a decent size
         if (buffer.length < 1000) return null;
-        
+
         return buffer;
     } catch (err) {
         console.error(`Download error for ${url}:`, err.message);
@@ -63,7 +63,7 @@ export const analyzeDesign = async (req, res) => {
 
         const genAI = new GoogleGenerativeAI(apiKey);
         // Using 2.0 or 1.5 flash depending on what's stable/available
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         console.log(`Analyzing design for project ${projectId} using Gemini...`);
 
@@ -136,7 +136,7 @@ export const analyzeDesign = async (req, res) => {
 
             for (let i = 0; i < assistantRes.updatedJson.layers.length; i++) {
                 const layer = assistantRes.updatedJson.layers[i];
-                
+
                 // If it's a new image requested by AI Assistant
                 if (layer.type === 'image' && !layer.src && layer.prompt) {
                     console.log(`Assistant requested new image gen: ${layer.prompt}`);
@@ -151,10 +151,10 @@ export const analyzeDesign = async (req, res) => {
                                 .ensureAlpha()
                                 .raw()
                                 .toBuffer({ resolveWithObject: true });
-                            
+
                             const w = info.width;
                             const h = info.height;
-                            const threshold = 240; 
+                            const threshold = 240;
                             const visited = new Uint8Array(w * h);
                             const queue = [];
 
@@ -177,7 +177,7 @@ export const analyzeDesign = async (req, res) => {
                                 const x = queue[head++];
                                 const y = queue[head++];
                                 const idx = y * w + x;
-                                data[idx * 4 + 3] = 0; 
+                                data[idx * 4 + 3] = 0;
                                 const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
                                 for (const [nx, ny] of neighbors) {
                                     if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
@@ -197,7 +197,7 @@ export const analyzeDesign = async (req, res) => {
                             const filename = `assistant_gen_${Date.now()}_${i}.png`;
                             const filePath = path.join(assetsPath, filename);
                             await fs.writeFile(filePath, imgBuf);
-                            
+
                             layer.src = `assets/${filename}`;
                             layer.width = w;
                             layer.height = h;
@@ -207,7 +207,7 @@ export const analyzeDesign = async (req, res) => {
                             delete layer.prompt;
                         }
                     } catch (e) {
-                         console.error("Failed to generate assistant image:", e);
+                        console.error("Failed to generate assistant image:", e);
                     }
                 }
             }
@@ -290,7 +290,7 @@ export const generateImage = async (req, res) => {
                     source = "pollinations";
                     console.log(`--> Success with pollinations.ai`);
                 }
-            } catch(err) {
+            } catch (err) {
                 lastError = err.message;
             }
         }
@@ -406,7 +406,7 @@ export const generateProjectFromPrompt = async (req, res) => {
 
         // 1. SMART LAYOUT GENERATION WITH GEMINI
         const genAI = new GoogleGenerativeAI(geminiToken);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const systemPrompt = `
 You are a world-class Art Director and a strict JSON API. Your job is to transform the user's prompt into a stunning, full-page, multi-layered design composition for a 1080x1080 canvas — like a professional Canva template.
@@ -504,10 +504,10 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
 
         const result = await model.generateContent(systemPrompt);
         let responseText = result.response.text();
-        
+
         // Ensure no markdown block wraps the JSON
         responseText = responseText.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
-        
+
         let projectPlan;
         try {
             projectPlan = JSON.parse(responseText);
@@ -548,7 +548,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                     colorStops: g.colorStops
                 };
             };
-            
+
             if (asset.type === 'text') {
                 const shadow = buildShadow(asset.shadow);
                 const layer = {
@@ -661,7 +661,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                 let imageBuffer = null;
                 let usedModel = "unknown";
                 let source = "huggingface-ai";
-                
+
                 if (!hfToken) {
                     console.error("-> Cannot fallback to AI: HUGGINGFACE_API_KEY is missing.");
                     continue; // Skip this asset
@@ -713,7 +713,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                             source = "pollinations";
                             console.log(`--> Success with pollinations.ai`);
                         }
-                    } catch(err) {
+                    } catch (err) {
                         console.warn(`--> Pollinations failed: ${err.message}`);
                     }
                 }
@@ -727,7 +727,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                 const metadata = await sharp(imageBuffer).metadata();
                 const actualWidth = metadata.width || 1024;
                 const actualHeight = metadata.height || 1024;
-                
+
                 let scale = 1;
                 if (!asset.removeBackground) {
                     scale = Math.max((asset.width || 500) / actualWidth, (asset.height || 500) / actualHeight);
@@ -742,7 +742,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                         .ensureAlpha()
                         .raw()
                         .toBuffer({ resolveWithObject: true });
-                    
+
                     const width = info.width;
                     const height = info.height;
                     const threshold = 240; // High tolerance for white/bright colors
@@ -769,7 +769,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                         const x = queue[head++];
                         const y = queue[head++];
                         const idx = y * width + x;
-                        
+
                         data[idx * 4 + 3] = 0; // Set Alpha to 0
 
                         const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
@@ -839,13 +839,13 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
 
         // 6. SAVE PROJECT DATA AND PREVIEW
         const indexPath = path.join(projectPath, 'index.json');
-        await fs.writeJson(indexPath, { 
+        await fs.writeJson(indexPath, {
             version: "5.3.0",
             projectInfo: newProject.projectInfo,
             objects: [],
             background: projectPlan.canvasBackground || "#ffffff",
             canvas: { width: 1080, height: 1080 },
-            layers: generatedLayers 
+            layers: generatedLayers
         }, { spaces: 2 });
 
         if (previewLayers.length > 0) {
@@ -853,9 +853,9 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                 await sharp({
                     create: { width: 1080, height: 1080, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } }
                 })
-                .composite(previewLayers)
-                .png()
-                .toFile(path.join(projectPath, 'preview.png'));
+                    .composite(previewLayers)
+                    .png()
+                    .toFile(path.join(projectPath, 'preview.png'));
             } catch (err) {
                 console.error('Failed to generate preview.png:', err.message);
             }
