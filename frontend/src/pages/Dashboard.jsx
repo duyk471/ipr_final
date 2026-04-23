@@ -336,12 +336,15 @@ const Dashboard = () => {
     return (
         <div className="h-screen bg-biophilic-cream dark:bg-biophilic-dark-bg overflow-y-auto custom-scrollbar relative transition-colors duration-500">
 
-            {/* ── Decorative background blobs (dark only) ── */}
+            {/* ── Soft Decorative Background Blobs ── */}
             <div className="pointer-events-none fixed inset-0 overflow-hidden">
-                <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-0 dark:opacity-[0.06] bg-biophilic-dark-green blur-3xl transition-opacity duration-500" />
-                <div className="absolute top-1/2 -right-24 w-80 h-80 rounded-full opacity-0 dark:opacity-[0.05] bg-biophilic-dark-rose blur-3xl transition-opacity duration-500" />
-                <div className="absolute bottom-10 left-1/3 w-72 h-72 rounded-full opacity-0 dark:opacity-[0.04] bg-biophilic-dark-terra blur-3xl transition-opacity duration-500" />
+                <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-[0.03] dark:opacity-[0.06] bg-biophilic-green dark:bg-biophilic-dark-green blur-3xl transition-opacity duration-500" />
+                <div className="absolute top-1/2 -right-24 w-80 h-80 rounded-full opacity-[0.02] dark:opacity-[0.05] bg-biophilic-rose dark:bg-biophilic-dark-rose blur-3xl transition-opacity duration-500" />
+                <div className="absolute bottom-10 left-1/3 w-72 h-72 rounded-full opacity-[0.02] dark:opacity-[0.04] bg-biophilic-moss dark:bg-biophilic-dark-terra blur-3xl transition-opacity duration-500" />
             </div>
+
+            {/* ── Gradient Overlay for Depth ── */}
+            <div className="fixed inset-0 bg-gradient-to-b from-transparent via-biophilic-stone/10 to-biophilic-stone/5 dark:via-transparent dark:to-transparent pointer-events-none" />
 
             {/* ── Modals (Top Level) ── */}
             <NewProjectModal
@@ -362,7 +365,7 @@ const Dashboard = () => {
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
             />
 
-            <div className="pt-8 px-6">
+            <div className="pt-8 px-6 relative z-10">
                 {/* ── Header ── */}
                 <header className="sticky top-0 z-50 mx-auto max-w-5xl w-full 
                     bg-white/80 dark:bg-biophilic-dark-card/80 
@@ -402,7 +405,7 @@ const Dashboard = () => {
                             className={`flex items-center gap-2 
                                     ${!workspaceInitialized 
                                         ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-5 py-2.5 shadow-organic-lg scale-105' 
-                                        : 'bg-biophilic-blue-light/20 dark:bg-biophilic-dark-blue/10 border border-biophilic-blue/30 dark:border-biophilic-dark-blue/30 text-slate-600 dark:text-biophilic-dark-text-muted px-3.5 py-2'}
+                                        : 'bg-biophilic-stone/40 dark:bg-biophilic-dark-blue/10 border border-biophilic-stone-dark dark:border-biophilic-dark-blue/30 text-biophilic-bark/80 dark:text-biophilic-dark-text-muted px-3.5 py-2'}
                                     rounded-xl transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98] animate-in fade-in duration-500`}
                         >
                             <FolderOpen size={14} />
@@ -413,7 +416,7 @@ const Dashboard = () => {
                             <label className="flex items-center gap-2 
                                             bg-biophilic-rose/20 dark:bg-biophilic-dark-rose/10
                                             border border-biophilic-rose/30 dark:border-biophilic-dark-rose/30
-                                            text-slate-600 dark:text-biophilic-dark-text-muted 
+                                            text-biophilic-bark/80 dark:text-biophilic-dark-text-muted 
                                             px-3.5 py-2 rounded-xl 
                                             hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-rose/20
                                             transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98]">
@@ -514,7 +517,7 @@ const Dashboard = () => {
                                         onChange={(e) => setAiPrompt(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleAIGenerate()}
                                         placeholder="I want to design a minimalist poster for a coffee shop..."
-                                        className="flex-1 bg-transparent border-none outline-none px-3 py-3 text-slate-700 dark:text-biophilic-dark-text placeholder:text-slate-300 dark:placeholder:text-biophilic-dark-text-muted/40 font-bold"
+                                        className="flex-1 bg-transparent border-none outline-none px-3 py-3 text-biophilic-bark dark:text-biophilic-dark-text placeholder:text-biophilic-bark/30 dark:placeholder:text-biophilic-dark-text-muted/40 font-bold"
                                         disabled={isGenerating}
                                     />
                                     <button
@@ -556,7 +559,7 @@ const Dashboard = () => {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight">Recent Projects</h2>
-                                    <p className="text-[10px] font-bold text-slate-400 dark:text-biophilic-dark-text-muted uppercase tracking-widest">Manage your local designs</p>
+                                    <p className="text-[10px] font-bold text-biophilic-bark/50 dark:text-biophilic-dark-text-muted uppercase tracking-widest">Manage your local designs</p>
                                 </div>
                             </div>
                         </div>
@@ -647,7 +650,7 @@ const Dashboard = () => {
                                                 {project.name}
                                             </h3>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black text-slate-400 dark:text-biophilic-dark-text-muted uppercase tracking-[0.1em]">
+                                                <span className="text-[10px] font-black text-biophilic-bark/40 dark:text-biophilic-dark-text-muted uppercase tracking-[0.1em]">
                                                     {new Date(project.updatedAt).toLocaleDateString()}
                                                 </span>
                                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 duration-300">
