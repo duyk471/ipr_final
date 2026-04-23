@@ -121,24 +121,38 @@ export const getProjectByIdLocal = async (workspaceHandle, projectId) => {
 };
 
 /**
- * Get all history snapshots for a project
+ * Get all history snapshots for a project with metadata
  * @param {FileSystemDirectoryHandle} projectHandle - Project directory handle
- * @returns {Promise<Array>} Array of {date, filename}
+ * @returns {Promise<Array>} Array of {date, filename, versionName, isManual}
  */
 export const getProjectHistory = async (projectHandle) => {
     try {
         const historyHandle = await projectHandle.getDirectoryHandle('history', { create: false });
         const entries = await listDirectory(historyHandle);
 
-        const historyFiles = entries
-            .filter(entry => entry.kind === 'file' && entry.name.endsWith('.json'))
-            .map(entry => ({
-                date: entry.name.replace('.json', ''),
-                filename: entry.name,
-            }))
-            .sort((a, b) => b.date.localeCompare(a.date));
+        const historyFiles = [];
+        for (const entry of entries) {
+            if (entry.kind === 'file' && entry.name.endsWith('.json')) {
+                try {
+                    const data = await readJSONFile(historyHandle, entry.name);
+                    historyFiles.push({
+                        date: entry.name.replace('.json', ''),
+                        filename: entry.name,
+                        versionName: data.metadata?.versionName || null,
+                        isManual: data.metadata?.isManualVersion || false,
+                        savedAt: data.metadata?.savedAt || null
+                    });
+                } catch (err) {
+                    console.warn(`Failed to read history metadata for ${entry.name}:`, err);
+                    historyFiles.push({
+                        date: entry.name.replace('.json', ''),
+                        filename: entry.name
+                    });
+                }
+            }
+        }
 
-        return historyFiles;
+        return historyFiles.sort((a, b) => b.date.localeCompare(a.date));
     } catch (error) {
         // History directory might not exist
         if (error.name === 'NotFoundError') {

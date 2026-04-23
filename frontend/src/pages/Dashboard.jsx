@@ -12,14 +12,14 @@ import { getWorkspaceMetadata, getWorkspaceHandle } from '../services/indexedDBS
 const Dashboard = () => {
     const navigate = useNavigate();
     const { isDark, toggle } = useTheme();
-    const { 
-        initializeWorkspace, 
-        selectWorkspace, 
-        fetchProjects: fetchProjectsFromStore, 
-        createProject, 
+    const {
+        initializeWorkspace,
+        selectWorkspace,
+        fetchProjects: fetchProjectsFromStore,
+        createProject,
         saveAIGeneratedProject,
-        workspaceHandle, 
-        workspaceInitialized 
+        workspaceHandle,
+        workspaceInitialized
     } = useCanvasStore();
     const [isSupported, setIsSupported] = useState(true);
 
@@ -44,7 +44,7 @@ const Dashboard = () => {
         try {
             setWorkspaceInitLoading(true);
             const handle = await initializeWorkspace();
-            
+
             if (!handle) {
                 // Check if we have a saved workspace but no permission
                 const metadata = await getWorkspaceMetadata();
@@ -431,7 +431,7 @@ const Dashboard = () => {
                                     transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98]"
                         >
                             <FolderOpen size={14} />
-                            <span className="hidden sm:inline">Folder</span>
+                            <span className="hidden sm:inline">Select Workspace</span>
                         </button>
 
                         <label className="flex items-center gap-2 
@@ -602,16 +602,16 @@ const Dashboard = () => {
                                                 <img
                                                     src={typeof project.previewUrl === 'string' && (project.previewUrl.startsWith('blob:') || project.previewUrl.startsWith('data:'))
                                                         ? project.previewUrl
-                                                        : project.previewUrl?.startsWith('http') 
-                                                            ? project.previewUrl 
+                                                        : project.previewUrl?.startsWith('http')
+                                                            ? project.previewUrl
                                                             : `http://localhost:5000/${project.previewUrl?.startsWith('/') ? project.previewUrl.substring(1) : project.previewUrl}?t=${new Date().getTime()}`
                                                     }
                                                     alt={project.name}
                                                     className="w-full h-full object-cover group-hover:scale-[1.1] transition-transform duration-700 ease-out"
-                                                    onError={(e) => { 
+                                                    onError={(e) => {
                                                         console.warn('Image failed to load:', e.target.src);
-                                                        e.target.style.display = 'none'; 
-                                                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; 
+                                                        e.target.style.display = 'none';
+                                                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
                                                     }}
                                                 />
                                             ) : null}
@@ -622,7 +622,7 @@ const Dashboard = () => {
                                                 <ImageIcon size={32} />
                                                 <span className="text-[10px] font-black uppercase tracking-widest">No Preview</span>
                                             </div>
-                                            
+
                                             {/* Hover Overlay */}
                                             <div className="absolute inset-0 bg-biophilic-moss/10 dark:bg-biophilic-dark-green/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <div className="bg-white dark:bg-biophilic-dark-surface p-3 rounded-2xl shadow-organic-sm dark:shadow-dark-md transform scale-90 group-hover:scale-100 transition-transform font-black text-xs uppercase tracking-widest text-biophilic-moss dark:text-biophilic-dark-text">

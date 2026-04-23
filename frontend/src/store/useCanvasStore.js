@@ -121,6 +121,88 @@ const useCanvasStore = create((set, get) => ({
     /**
      * Save project state to local filesystem
      */
+    /**
+     * Save a manual version/snapshot of the project
+     */
+    saveProjectVersion: async (versionName) => {
+        try {
+            const { currentProjectHandle, canvasData } = get();
+            if (!currentProjectHandle || !canvasData) throw new Error('No project or canvas data');
+
+            // 1. Prepare data
+            const processedData = stripObjectUrlsFromProject(canvasData);
+            const now = new Date();
+            const timestamp = now.toISOString().replace(/[:.]/g, '-').replace('T', '_').split('-').slice(0, 5).join('-'); // YYYY-MM-DD_HH-mm
+            const safeName = versionName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 30);
+            
+            // 2. Add metadata to the version
+            if (!processedData.metadata) processedData.metadata = {};
+            processedData.metadata.versionName = versionName;
+            processedData.metadata.isManualVersion = true;
+            processedData.metadata.savedAt = now.toISOString();
+
+            // 3. Save to history folder
+            const historyDir = await getSubdirectory(currentProjectHandle, 'history', true);
+            const fileName = `${timestamp}_${safeName}.json`;
+            await writeJSONFile(historyDir, fileName, processedData);
+
+            return { fileName, versionName };
+        } catch (error) {
+            console.error('Failed to save project version:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Fetch project history locally
+     */
+    fetchHistory: async () => {
+        try {
+            const { currentProjectHandle } = get();
+            if (!currentProjectHandle) throw new Error('No active project');
+            
+            const history = await getProjectHistory(currentProjectHandle);
+            return history;
+        } catch (error) {
+            console.error('Failed to fetch history:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Restore project from a history snapshot
+     */
+    restoreHistory: async (snapshotFilename) => {
+        try {
+            const { currentProjectHandle, canvasData } = get();
+            if (!currentProjectHandle) throw new Error('No active project');
+
+            const historyDir = await getSubdirectory(currentProjectHandle, 'history', true);
+            const snapshotData = await readJSONFile(historyDir, snapshotFilename);
+
+            // 1. Backup current state before restoring
+            const backupName = `rollback_${Date.now()}.json`;
+            const currentProcessed = stripObjectUrlsFromProject(canvasData);
+            await writeJSONFile(historyDir, backupName, currentProcessed);
+
+            // 2. Restore snapshot
+            await writeJSONFile(currentProjectHandle, 'index.json', snapshotData);
+
+            // 3. Reload the project in the store
+            const processedData = await resolveAssetUrlsInProject(currentProjectHandle, snapshotData);
+            set({
+                canvasData: processedData,
+                currentProject: processedData.projectInfo,
+                history: processedData.history || { undoStack: [], redoStack: [] }
+            });
+
+            return processedData;
+        } catch (error) {
+            console.error('Failed to restore history:', error);
+            throw error;
+        }
+    },
+
     saveProjectState: async (previewBase64 = null) => {
         const { currentProject, canvasData, currentProjectHandle } = get();
         if (!currentProject?.id || !canvasData || !currentProjectHandle) return;

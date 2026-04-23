@@ -14,17 +14,31 @@ import ExportModal from '../components/UI/ExportModal';
 import ElementsPanel from '../components/Editor/ElementsPanel';
 import TextPanel from '../components/Editor/TextPanel';
 import ImageLibraryPanel from '../components/Editor/ImageLibraryPanel';
+import VersionModal from '../components/UI/VersionModal';
 
 const Editor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { fetchProject, currentProject, isLoading, selectedObject, initializeWorkspace, cleanupAssetUrls, workspaceInitialized } = useCanvasStore();
+    const { 
+        fetchProject, 
+        currentProject, 
+        isLoading, 
+        selectedObject, 
+        initializeWorkspace, 
+        cleanupAssetUrls, 
+        workspaceInitialized,
+        saveProjectVersion,
+        fetchHistory: fetchProjectHistory,
+        restoreHistory: restoreProjectSnapshot
+    } = useCanvasStore();
     const { isDark, toggle } = useTheme();
 
     const [activeTab, setActiveTab] = useState('properties');
     const [activeLeftPanel, setActiveLeftPanel] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showVersionModal, setShowVersionModal] = useState(false);
+    const [toast, setToast] = useState({ show: false, message: '' });
     const [historyList, setHistoryList] = useState([]);
     const [showExportModal, setShowExportModal] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, title: '', message: '', isDestructive: true });
@@ -80,30 +94,45 @@ const Editor = () => {
             return;
         }
         try {
-            const res = await api.get(`/projects/${id}/history`);
-            if (res.data.success) {
-                setHistoryList(res.data.history);
-                setShowHistory(true);
-            }
+            const history = await fetchProjectHistory();
+            setHistoryList(history);
+            setShowHistory(true);
         } catch (error) {
-            console.error(error);
+            console.error('Failed to fetch history:', error);
         }
     };
 
-    const restoreHistory = async (date) => {
+    const handleSaveVersion = async (name) => {
+        try {
+            await saveProjectVersion(name);
+            setShowVersionModal(false);
+            
+            // Show toast
+            setToast({ show: true, message: `Version "${name}" saved successfully!` });
+            setTimeout(() => setToast({ show: false, message: '' }), 3000);
+            
+            // Refresh history if open
+            if (showHistory) {
+                const history = await fetchProjectHistory();
+                setHistoryList(history);
+            }
+        } catch (error) {
+            alert('Failed to save version: ' + error.message);
+        }
+    };
+
+    const restoreHistory = async (filename) => {
         setConfirmModal({
             isOpen: true,
             title: "Restore Snapshot",
-            message: `Restore to snapshot ${date}? Your current unsaved state will be backed up.`,
+            message: `Restore to snapshot ${filename}? Your current unsaved state will be backed up.`,
             isDestructive: false,
             action: async () => {
                 try {
-                    const res = await api.post(`/projects/${id}/history/restore`, { date });
-                    if (res.data.success) {
-                        window.location.reload();
-                    }
+                    await restoreProjectSnapshot(filename);
+                    window.location.reload();
                 } catch (error) {
-                    alert('Failed to restore history');
+                    alert('Failed to restore history: ' + error.message);
                 }
             }
         });
@@ -234,32 +263,52 @@ const Editor = () => {
                         </button>
 
                         {showHistory && (
-                            <div className="absolute top-full right-0 mt-2 w-64 
+                            <div className="absolute top-full right-0 mt-2 w-72 
                                             bg-white dark:bg-biophilic-dark-card 
                                             border border-biophilic-cream-dark dark:border-biophilic-dark-border 
                                             shadow-organic dark:shadow-dark-md 
-                                            rounded-xl p-2 z-50">
-                                <h3 className="text-sm font-semibold text-slate-700 dark:text-biophilic-dark-text px-2 py-1 border-b dark:border-biophilic-dark-border mb-2">
-                                    Version History
-                                </h3>
+                                            rounded-[1.5rem] p-3 z-50 animate-in slide-in-from-top-2 duration-200">
+                                
+                                <div className="flex items-center justify-between mb-3 px-1">
+                                    <h3 className="text-xs font-black text-biophilic-moss dark:text-biophilic-dark-text uppercase tracking-widest">
+                                        History
+                                    </h3>
+                                    <button 
+                                        onClick={() => { setShowVersionModal(true); setShowHistory(false); }}
+                                        className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5
+                                                 bg-biophilic-green dark:bg-biophilic-dark-green 
+                                                 text-white dark:text-biophilic-dark-bg 
+                                                 rounded-lg hover:shadow-organic-sm transition-all"
+                                    >
+                                        Save Version
+                                    </button>
+                                </div>
+
                                 {historyList.length === 0 ? (
-                                    <p className="text-xs text-slate-500 dark:text-biophilic-dark-text-muted p-2">
-                                        No history snapshots found. (Saved daily upon first edit).
+                                    <p className="text-[11px] text-slate-400 dark:text-biophilic-dark-text-muted p-4 text-center italic border-t border-biophilic-cream dark:border-biophilic-dark-border">
+                                        No history snapshots found.
                                     </p>
                                 ) : (
-                                    <div className="flex flex-col gap-1 max-h-60 overflow-y-auto custom-scrollbar">
+                                    <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto custom-scrollbar border-t border-biophilic-cream dark:border-biophilic-dark-border pt-3">
                                         {historyList.map((item, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => restoreHistory(item.date)}
-                                                className="text-left px-3 py-2 text-sm 
-                                                           text-slate-600 dark:text-biophilic-dark-text 
-                                                           hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-border 
-                                                           rounded-lg transition-colors flex justify-between items-center group"
+                                                onClick={() => restoreHistory(item.filename)}
+                                                className="text-left px-3 py-2.5 
+                                                           bg-slate-50/50 dark:bg-biophilic-dark-surface/50
+                                                           hover:bg-biophilic-green-light/30 dark:hover:bg-biophilic-dark-green/10
+                                                           rounded-xl transition-all flex flex-col gap-0.5 group border border-transparent hover:border-biophilic-green-light/50"
                                             >
-                                                <span>{item.date}</span>
-                                                <span className="text-xs text-biophilic-green dark:text-biophilic-dark-green opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    Restore
+                                                <div className="flex justify-between items-center w-full">
+                                                    <span className="font-bold text-[13px] text-slate-700 dark:text-biophilic-dark-text truncate pr-4">
+                                                        {item.versionName || (item.isManual ? 'Manual Snapshot' : 'Daily Auto-save')}
+                                                    </span>
+                                                    <span className="text-[10px] text-biophilic-green font-black uppercase opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                                                        Restore
+                                                    </span>
+                                                </div>
+                                                <span className="text-[10px] text-slate-400 dark:text-biophilic-dark-text-muted font-medium">
+                                                    {item.date.replace('.json', '').replace(/_/g, ' ')}
                                                 </span>
                                             </button>
                                         ))}
@@ -418,6 +467,24 @@ const Editor = () => {
                 }}
                 onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
             />
+
+            <VersionModal
+                isOpen={showVersionModal}
+                onClose={() => setShowVersionModal(false)}
+                onSave={handleSaveVersion}
+            />
+
+            {/* Toast Notification */}
+            {toast.show && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-bottom-8 duration-500">
+                    <div className="bg-slate-900/90 dark:bg-biophilic-dark-surface/95 backdrop-blur-xl text-white dark:text-biophilic-dark-text px-6 py-4 rounded-2xl shadow-2xl border border-white/10 dark:border-biophilic-dark-border flex items-center gap-3">
+                        <div className="w-8 h-8 bg-biophilic-green dark:bg-biophilic-dark-green rounded-full flex items-center justify-center">
+                            <Sparkles size={16} className="text-white dark:text-biophilic-dark-bg" />
+                        </div>
+                        <span className="text-sm font-black tracking-tight">{toast.message}</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
