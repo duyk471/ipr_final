@@ -58,7 +58,6 @@ export const getWorkspaceDirectory = async () => {
             return null;
         }
     } catch (error) {
-        cóc
         console.warn('Failed to retrieve saved workspace handle:', error);
     }
     return null;

@@ -402,7 +402,7 @@ export const generateProjectFromPrompt = async (req, res) => {
             });
         }
 
-        console.log(`\n=========================================\nGenerating entirely new Project from prompt: "${prompt}"\n=========================================`);
+        console.log(`\n=========================================\nGenerating Project Layout: "${prompt}"\n=========================================`);
 
         // 1. SMART LAYOUT GENERATION WITH GEMINI
         const genAI = new GoogleGenerativeAI(geminiToken);
@@ -482,25 +482,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
   "canvasBackground": "<hex color — the dominant background color>",
   "assets": [ ...ordered array of 5-8 elements, background first, text last... ]
 }
-
-=== EXAMPLE OUTPUT (for reference only, do NOT copy this literally) ===
-{
-  "palette": "Modern",
-  "canvasBackground": "#0F0F1A",
-  "assets": [
-    { "id": "bg_grad", "type": "rect", "width": 1080, "height": 1080, "left": 540, "top": 540,
-      "gradient": { "type": "linear", "coords": { "x1": 0, "y1": 0, "x2": 1080, "y2": 1080 },
-        "colorStops": [{ "offset": 0, "color": "#0F0F1A" }, { "offset": 1, "color": "#1a1a3e" }] } },
-    { "id": "deco_circle_1", "type": "circle", "radius": 280, "fill": "#3A86FF", "opacity": 0.12, "left": 980, "top": 120 },
-    { "id": "deco_circle_2", "type": "circle", "radius": 180, "fill": "#FF006E", "opacity": 0.10, "left": 100, "top": 950 },
-    { "id": "accent_bar", "type": "rect", "width": 6, "height": 280, "fill": "#FF006E", "left": 124, "top": 480, "rx": 3 },
-    { "id": "hero_img", "type": "image", "prompt": "futuristic robot holding a glowing orb, cinematic lighting, dark background, highly detailed 4K", "removeBackground": true, "width": 520, "height": 650, "left": 760, "top": 580 },
-    { "id": "header_text", "type": "text", "text": "THE FUTURE\nIS NOW", "fontSize": 92, "fontFamily": "Impact", "fontWeight": "bold", "fill": "#FFFFFF", "textAlign": "left", "charSpacing": 50, "width": 500, "left": 290, "top": 260,
-      "shadow": { "color": "rgba(58,134,255,0.8)", "blur": 24, "offsetX": 0, "offsetY": 0 } },
-    { "id": "sub_text", "type": "text", "text": "AI-Powered Design Platform", "fontSize": 30, "fontFamily": "Arial", "fontWeight": "normal", "fill": "#8899CC", "textAlign": "left", "width": 500, "left": 290, "top": 450 },
-    { "id": "cta_text", "type": "text", "text": "GET STARTED →", "fontSize": 22, "fontFamily": "Arial", "fontWeight": "bold", "fill": "#FF006E", "textAlign": "left", "charSpacing": 150, "width": 300, "left": 290, "top": 840 }
-  ]
-}`;
+`;
 
         const result = await model.generateContent(systemPrompt);
         let responseText = result.response.text();
@@ -520,26 +502,42 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
             throw new Error('Invalid project plan format from AI.');
         }
 
-        // 2. CREATE PROJECT DB ENTRY
-        const newProject = await createNewProject(`AI Gen: ${prompt.substring(0, 20)}...`, 1080, 1080);
-        const projectId = newProject.projectInfo.id;
-        const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
-        const assetsPath = path.join(projectPath, 'assets');
+        // 2. INITIALIZE PROJECT DATA
+        const projectId = `ai_${Date.now()}`;
+        const now = new Date().toISOString();
+        const projectData = {
+            version: "1.0",
+            projectInfo: {
+                id: projectId,
+                name: `AI Gen: ${prompt.substring(0, 30)}`,
+                createdAt: now,
+                updatedAt: now,
+                previewUrl: "preview.png"
+            },
+            canvas: {
+                width: 1080,
+                height: 1080,
+                backgroundColor: projectPlan.canvasBackground || "#ffffff",
+                backgroundImage: null,
+                zoom: 1,
+                viewportTransform: [1, 0, 0, 1, 0, 0]
+            },
+            layers: [],
+            history: { undoStack: [], redoStack: [] }
+        };
 
-        // 3. BUILD LAYERS
+        // 3. BUILD LAYERS & COLLECT ASSETS
         const generatedLayers = [];
-        const previewLayers = [];
+        const assetsToReturn = []; // { fileName, base64 }
 
         for (const asset of projectPlan.assets) {
-            console.log(`\n--- Processing asset [${asset.id}]: ${asset.type}`);
-
-            // ── Helper: Build a Fabric.js shadow object from AI shadow descriptor ──
+            // ── Helper: Build a Fabric.js shadow object ──
             const buildShadow = (s) => {
                 if (!s) return undefined;
                 return { color: s.color || 'rgba(0,0,0,0.3)', blur: s.blur || 10, offsetX: s.offsetX || 0, offsetY: s.offsetY || 0 };
             };
 
-            // ── Helper: Build Fabric.js gradient from AI gradient descriptor ──
+            // ── Helper: Build Fabric.js gradient ──
             const buildGradient = (g) => {
                 if (!g || !g.colorStops) return undefined;
                 return {
@@ -551,7 +549,7 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
 
             if (asset.type === 'text') {
                 const shadow = buildShadow(asset.shadow);
-                const layer = {
+                generatedLayers.push({
                     id: `obj_${asset.id}_${Date.now()}`,
                     type: "textbox",
                     version: "5.3.0",
@@ -575,15 +573,14 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                     visible: true,
                     selectable: true,
                     metadata: { source: "gemini-ai" }
-                };
-                generatedLayers.push(layer);
+                });
                 continue;
             }
 
             if (asset.type === 'rect') {
                 const gradient = buildGradient(asset.gradient);
                 const shadow = buildShadow(asset.shadow);
-                const layer = {
+                generatedLayers.push({
                     id: `obj_${asset.id}_${Date.now()}`,
                     type: "rect",
                     version: "5.3.0",
@@ -603,14 +600,13 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                     visible: true,
                     selectable: true,
                     metadata: { source: "gemini-ai" }
-                };
-                generatedLayers.push(layer);
+                });
                 continue;
             }
 
             if (asset.type === 'circle') {
                 const shadow = buildShadow(asset.shadow);
-                const layer = {
+                generatedLayers.push({
                     id: `obj_${asset.id}_${Date.now()}`,
                     type: "circle",
                     version: "5.3.0",
@@ -627,14 +623,13 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                     visible: true,
                     selectable: true,
                     metadata: { source: "gemini-ai" }
-                };
-                generatedLayers.push(layer);
+                });
                 continue;
             }
 
             if (asset.type === 'triangle') {
                 const shadow = buildShadow(asset.shadow);
-                const layer = {
+                generatedLayers.push({
                     id: `obj_${asset.id}_${Date.now()}`,
                     type: "triangle",
                     version: "5.3.0",
@@ -651,222 +646,104 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
                     visible: true,
                     selectable: true,
                     metadata: { source: "gemini-ai" }
-                };
-                generatedLayers.push(layer);
+                });
                 continue;
             }
 
             // Image generation
             if (asset.type === 'image') {
                 let imageBuffer = null;
-                let usedModel = "unknown";
-                let source = "huggingface-ai";
-
-                if (!hfToken) {
-                    console.error("-> Cannot fallback to AI: HUGGINGFACE_API_KEY is missing.");
-                    continue; // Skip this asset
-                }
-
-                const models = [
-                    "black-forest-labs/FLUX.1-schnell",
-                    "stabilityai/stable-diffusion-xl-base-1.0",
-                ];
+                const models = ["black-forest-labs/FLUX.1-schnell", "stabilityai/stable-diffusion-xl-base-1.0"];
 
                 for (const modelId of models) {
                     try {
-                        console.log(`--> Calling ${modelId}`);
                         const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
                         const response = await fetch(url, {
                             method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${hfToken}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ inputs: asset.removeBackground ? `${asset.prompt}, plain white background isolated` : asset.prompt })
+                            headers: { 'Authorization': `Bearer ${hfToken}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ inputs: asset.removeBackground ? `${asset.prompt}, isolated on plain white background` : asset.prompt })
                         });
 
                         if (response.ok) {
-                            const ab = await response.arrayBuffer();
-                            imageBuffer = Buffer.from(ab);
-                            usedModel = modelId;
-                            console.log(`--> Success with ${modelId}`);
+                            imageBuffer = Buffer.from(await response.arrayBuffer());
                             break;
-                        } else {
-                            const errRaw = await response.text();
-                            console.warn(`--> ${modelId} failed: ${response.status}`, errRaw);
                         }
-                    } catch (err) {
-                        console.warn(`--> ${modelId} error: ${err.message}`);
-                    }
+                    } catch (err) { }
                 }
 
                 if (!imageBuffer) {
-                    console.log(`--> Falling back to pollinations.ai for ${asset.id}...`);
                     try {
                         const query = asset.removeBackground ? `${asset.prompt}, isolated on plain white background` : asset.prompt;
                         const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?nologo=true`;
                         const response = await fetch(pollUrl);
-                        if (response.ok) {
-                            const ab = await response.arrayBuffer();
-                            imageBuffer = Buffer.from(ab);
-                            usedModel = "pollinations.ai";
-                            source = "pollinations";
-                            console.log(`--> Success with pollinations.ai`);
-                        }
-                    } catch (err) {
-                        console.warn(`--> Pollinations failed: ${err.message}`);
-                    }
+                        if (response.ok) imageBuffer = Buffer.from(await response.arrayBuffer());
+                    } catch (err) { }
                 }
 
-                if (!imageBuffer) {
-                    console.warn(`[!] Skipping layer ${asset.id} because AI failed.`);
-                    continue;
-                }
+                if (!imageBuffer) continue;
 
-                // PROCESS IMAGE AND REMOVE BACKGROUND
                 const metadata = await sharp(imageBuffer).metadata();
                 const actualWidth = metadata.width || 1024;
                 const actualHeight = metadata.height || 1024;
+                const scale = asset.removeBackground
+                    ? Math.min((asset.width || 500) / actualWidth, (asset.height || 500) / actualHeight)
+                    : Math.max((asset.width || 500) / actualWidth, (asset.height || 500) / actualHeight);
 
-                let scale = 1;
-                if (!asset.removeBackground) {
-                    scale = Math.max((asset.width || 500) / actualWidth, (asset.height || 500) / actualHeight);
-                } else {
-                    scale = Math.min((asset.width || 500) / actualWidth, (asset.height || 500) / actualHeight);
-                }
-
-                // Smart Flood-Fill Background Removal for Foregrounds
                 if (asset.removeBackground) {
-                    console.log(`-> Extracting foreground object (removing background)...`);
-                    const { data, info } = await sharp(imageBuffer)
-                        .ensureAlpha()
-                        .raw()
-                        .toBuffer({ resolveWithObject: true });
-
-                    const width = info.width;
-                    const height = info.height;
-                    const threshold = 240; // High tolerance for white/bright colors
-                    const visited = new Uint8Array(width * height);
-                    const queue = [];
-
+                    const { data, info } = await sharp(imageBuffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+                    const w = info.width, h = info.height, threshold = 240;
+                    const visited = new Uint8Array(w * h), queue = [];
                     const isBg = (x, y) => {
-                        const idx = (y * width + x) * 4;
-                        // Check if pixel is white/very bright
+                        const idx = (y * w + x) * 4;
                         return data[idx] > threshold && data[idx + 1] > threshold && data[idx + 2] > threshold;
                     };
-
-                    for (let x = 0; x < width; x++) {
+                    for (let x = 0; x < w; x++) {
                         if (isBg(x, 0)) { visited[x] = 1; queue.push(x, 0); }
-                        if (isBg(x, height - 1)) { visited[(height - 1) * width + x] = 1; queue.push(x, height - 1); }
+                        if (isBg(x, h - 1)) { visited[(h - 1) * w + x] = 1; queue.push(x, h - 1); }
                     }
-                    for (let y = 1; y < height - 1; y++) {
-                        if (isBg(0, y)) { visited[y * width] = 1; queue.push(0, y); }
-                        if (isBg(width - 1, y)) { visited[y * width + (width - 1)] = 1; queue.push(width - 1, y); }
+                    for (let y = 1; y < h - 1; y++) {
+                        if (isBg(0, y)) { visited[y * w] = 1; queue.push(0, y); }
+                        if (isBg(w - 1, y)) { visited[y * w + (w - 1)] = 1; queue.push(w - 1, y); }
                     }
-
                     let head = 0;
                     while (head < queue.length) {
-                        const x = queue[head++];
-                        const y = queue[head++];
-                        const idx = y * width + x;
-
-                        data[idx * 4 + 3] = 0; // Set Alpha to 0
-
+                        const x = queue[head++], y = queue[head++], idx = y * w + x;
+                        data[idx * 4 + 3] = 0;
                         const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
                         for (const [nx, ny] of neighbors) {
-                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                                const nIdx = ny * width + nx;
-                                if (!visited[nIdx] && isBg(nx, ny)) {
-                                    visited[nIdx] = 1;
-                                    queue.push(nx, ny);
-                                }
+                            if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                                const nIdx = ny * w + nx;
+                                if (!visited[nIdx] && isBg(nx, ny)) { visited[nIdx] = 1; queue.push(nx, ny); }
                             }
                         }
                     }
-
-                    imageBuffer = await sharp(data, {
-                        raw: { width, height, channels: 4 }
-                    }).png().toBuffer();
+                    imageBuffer = await sharp(data, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
                 }
 
-                // 4. WRITE ASSET TO DISK
                 const filename = `layer_${asset.id}_${Date.now()}.png`;
-                const filePath = path.join(assetsPath, filename);
-                await fs.writeFile(filePath, imageBuffer);
+                assetsToReturn.push({ fileName: filename, base64: imageBuffer.toString('base64') });
 
-                // 5. UPDATE FABRIC JSON
                 generatedLayers.push({
                     id: `obj_${asset.id}_${Date.now()}`,
                     type: "image",
                     version: "5.3.0",
-                    originX: "center",
-                    originY: "center",
-                    left: asset.left || 540,
-                    top: asset.top || 540,
-                    width: actualWidth,
-                    height: actualHeight,
-                    scaleX: scale,
-                    scaleY: scale,
-                    angle: 0,
-                    flipX: false,
-                    flipY: false,
-                    opacity: 1,
-                    visible: true,
-                    selectable: true,
+                    originX: "center", originY: "center",
+                    left: asset.left || 540, top: asset.top || 540,
+                    width: actualWidth, height: actualHeight,
+                    scaleX: scale, scaleY: scale,
+                    opacity: 1, visible: true, selectable: true,
                     src: `assets/${filename}`,
-                    metadata: {
-                        source: source,
-                        model: usedModel,
-                        prompt: asset.prompt
-                    }
+                    metadata: { source: "ai-gen", prompt: asset.prompt }
                 });
-
-                // Prepare preview buffers
-                try {
-                    const resized = await sharp(imageBuffer)
-                        .resize(Math.round(actualWidth * scale), Math.round(actualHeight * scale))
-                        .toBuffer();
-                    previewLayers.push({
-                        input: resized,
-                        top: Math.round((asset.top || 540) - (actualHeight * Math.abs(scale) / 2)),
-                        left: Math.round((asset.left || 540) - (actualWidth * Math.abs(scale) / 2))
-                    });
-                } catch (err) {
-                    console.warn(`-> Preview composition failed for ${asset.id}:`, err.message);
-                }
             }
         }
 
-        // 6. SAVE PROJECT DATA AND PREVIEW
-        const indexPath = path.join(projectPath, 'index.json');
-        await fs.writeJson(indexPath, {
-            version: "5.3.0",
-            projectInfo: newProject.projectInfo,
-            objects: [],
-            background: projectPlan.canvasBackground || "#ffffff",
-            canvas: { width: 1080, height: 1080 },
-            layers: generatedLayers
-        }, { spaces: 2 });
-
-        if (previewLayers.length > 0) {
-            try {
-                await sharp({
-                    create: { width: 1080, height: 1080, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } }
-                })
-                    .composite(previewLayers)
-                    .png()
-                    .toFile(path.join(projectPath, 'preview.png'));
-            } catch (err) {
-                console.error('Failed to generate preview.png:', err.message);
-            }
-        }
-
-        console.log(`Project generation complete: ${projectId}`);
+        projectData.layers = generatedLayers;
 
         res.json({
             success: true,
-            projectId,
-            message: 'Project generated successfully'
+            projectData: projectData,
+            assets: assetsToReturn
         });
 
     } catch (error) {

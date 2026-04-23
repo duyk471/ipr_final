@@ -12,7 +12,15 @@ import { getWorkspaceMetadata, getWorkspaceHandle } from '../services/indexedDBS
 const Dashboard = () => {
     const navigate = useNavigate();
     const { isDark, toggle } = useTheme();
-    const { initializeWorkspace, selectWorkspace, fetchProjects: fetchProjectsFromStore, createProject, workspaceHandle, workspaceInitialized } = useCanvasStore();
+    const { 
+        initializeWorkspace, 
+        selectWorkspace, 
+        fetchProjects: fetchProjectsFromStore, 
+        createProject, 
+        saveAIGeneratedProject,
+        workspaceHandle, 
+        workspaceInitialized 
+    } = useCanvasStore();
     const [isSupported, setIsSupported] = useState(true);
 
     const [projects, setProjects] = useState([]);
@@ -113,7 +121,10 @@ const Dashboard = () => {
         try {
             const res = await api.post('/ai/generate-project', { prompt: aiPrompt });
             if (res.data.success) {
-                navigate(`/editor/${res.data.projectId}`);
+                const { projectData, assets } = res.data;
+                // Save the generated project locally
+                const savedProject = await saveAIGeneratedProject(projectData, assets);
+                navigate(`/editor/${savedProject.projectInfo.id}`);
             } else {
                 alert(res.data.message || 'Failed to generate project.');
             }
@@ -346,7 +357,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="h-screen bg-biophilic-cream dark:bg-biophilic-dark-bg overflow-y-auto custom-scrollbar relative transition-colors duration-300">
+        <div className="h-screen bg-biophilic-cream dark:bg-biophilic-dark-bg overflow-y-auto custom-scrollbar relative transition-colors duration-500">
 
             {/* ── Decorative background blobs (dark only) ── */}
             <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -355,320 +366,304 @@ const Dashboard = () => {
                 <div className="absolute bottom-10 left-1/3 w-72 h-72 rounded-full opacity-0 dark:opacity-[0.04] bg-biophilic-dark-terra blur-3xl transition-opacity duration-500" />
             </div>
 
-            {/* ── Header ── */}
-            <header className="sticky top-6 z-50 mx-auto max-w-5xl w-full 
-                bg-white/80 dark:bg-biophilic-dark-card/80 
-                backdrop-blur-xl 
-                border border-biophilic-cream-dark dark:border-biophilic-dark-border 
-                rounded-2xl p-3 px-6 
-                shadow-organic dark:shadow-dark-md 
-                flex items-center justify-between mb-16 transition-all duration-300">
+            {/* ── Modals (Top Level) ── */}
+            <NewProjectModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onCreate={handleCreateProject}
+            />
 
-                <h1 className="text-xl font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight flex items-center gap-2">
-                    <span className="dark:glow-green">🌿</span>
-                    AI Image Editor
-                </h1>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDestructive={confirmModal.isDestructive}
+                onConfirm={() => {
+                    if (confirmModal.action) confirmModal.action();
+                    setConfirmModal({ ...confirmModal, isOpen: false });
+                }}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+            />
 
-                <div className="flex items-center gap-2">
-                    {/* Theme toggle */}
-                    <button
-                        id="dashboard-theme-toggle"
-                        onClick={toggle}
-                        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                        className="p-2.5 rounded-xl text-biophilic-bark dark:text-biophilic-dark-text-muted
-                                   hover:bg-biophilic-cream-dark dark:hover:bg-biophilic-dark-border
-                                   transition-all duration-200 active:scale-[0.95]"
-                    >
-                        {isDark
-                            ? <Sun size={18} className="glow-green" />
-                            : <Moon size={18} />
-                        }
-                    </button>
+            <div className="pt-8 px-6">
+                {/* ── Header ── */}
+                <header className="sticky top-0 z-50 mx-auto max-w-5xl w-full 
+                    bg-white/80 dark:bg-biophilic-dark-card/80 
+                    backdrop-blur-xl 
+                    border border-biophilic-cream-dark dark:border-biophilic-dark-border 
+                    rounded-2xl p-3 px-6 
+                    shadow-organic dark:shadow-dark-md 
+                    flex items-center justify-between mb-12 transition-all duration-300">
 
+                    <h1 className="text-xl font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight flex items-center gap-2">
+                        <span className="dark:glow-green text-2xl">🌿</span>
+                        <span className="hidden xs:inline">AI Image Editor</span>
+                    </h1>
 
-                    <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-1" />
-
-                    {/* Workspace selector button */}
-                    <button
-                        onClick={handleChangeWorkspace}
-                        title="Change Workspace"
-                        className="flex items-center gap-2 
-                                   bg-biophilic-blue-light/30 dark:bg-biophilic-dark-blue/15
-                                   border border-biophilic-blue dark:border-biophilic-dark-blue/40
-                                   text-slate-700 dark:text-biophilic-dark-text 
-                                   px-4 py-2.5 rounded-xl 
-                                   hover:bg-biophilic-blue/50 dark:hover:bg-biophilic-dark-blue/25
-                                   transition-all cursor-pointer font-semibold text-sm active:scale-[0.98]"
-                    >
-                        <FolderOpen size={16} className="text-biophilic-blue-dark dark:text-biophilic-dark-blue" />
-                        <span className="hidden sm:inline">Workspace</span>
-                    </button>
-
-                    <label className="flex items-center gap-2 
-                                      bg-biophilic-rose/30 dark:bg-biophilic-dark-rose/15
-                                      border border-biophilic-rose dark:border-biophilic-dark-rose/40
-                                      text-slate-700 dark:text-biophilic-dark-text 
-                                      px-4 py-2.5 rounded-xl 
-                                      hover:bg-biophilic-rose/50 dark:hover:bg-biophilic-dark-rose/25
-                                      shadow-rose-glow dark:shadow-dark-rose-glow
-                                      transition-all cursor-pointer font-semibold text-sm active:scale-[0.98]">
-                        <Upload size={16} className="text-biophilic-bark dark:text-biophilic-dark-rose glow-rose" />
-                        <span className="hidden sm:inline">Import ZIP</span>
-                        <input
-                            type="file"
-                            accept=".zip"
-                            className="hidden"
-                            onChange={async (e) => {
-                                const file = e.target.files[0];
-                                if (!file) return;
-                                const formData = new FormData();
-                                formData.append('file', file);
-                                try {
-                                    const res = await api.post('/projects/import', formData);
-                                    if (res.data.success) {
-                                        await loadProjects();
-                                    }
-                                } catch (err) {
-                                    alert(err.response?.data?.message || 'Error importing project zip. Please make sure it is a valid project archive.');
-                                }
-                                e.target.value = '';
-                            }}
-                        />
-                    </label>
-
-                    <label className="flex items-center gap-2 
-                                      bg-biophilic-rose/30 dark:bg-biophilic-dark-rose/15
-                                      border border-biophilic-rose dark:border-biophilic-dark-rose/40
-                                      text-slate-700 dark:text-biophilic-dark-text 
-                                      px-4 py-2.5 rounded-xl 
-                                      hover:bg-biophilic-rose/50 dark:hover:bg-biophilic-dark-rose/25
-                                      shadow-rose-glow dark:shadow-dark-rose-glow
-                                      transition-all cursor-pointer font-semibold text-sm active:scale-[0.98]">
-                        <ImageIcon size={16} className="text-biophilic-bark dark:text-biophilic-dark-rose glow-rose" />
-                        <span className="hidden sm:inline">Image</span>
-                        <input
-                            type="file"
-                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                            className="hidden"
-                            onChange={handleImportImage}
-                        />
-                    </label>
-
-                    <button
-                        id="dashboard-create-btn"
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 
-                                   bg-biophilic-green dark:bg-biophilic-dark-green 
-                                   text-white dark:text-biophilic-dark-bg 
-                                   px-5 py-2.5 rounded-xl 
-                                   hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green 
-                                   shadow-organic dark:shadow-dark-green-glow 
-                                   transition-all active:scale-[0.98] font-bold text-sm ml-2"
-                    >
-                        <Plus size={18} />
-                        <span>Create Blank</span>
-                    </button>
-                </div>
-            </header>
-
-            {/* ── Main Content ── */}
-            <div className="max-w-6xl mx-auto flex flex-col px-8 pb-16 relative z-10">
-
-                <NewProjectModal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    onCreate={handleCreateProject}
-                />
-
-                <ConfirmModal
-                    isOpen={confirmModal.isOpen}
-                    title={confirmModal.title}
-                    message={confirmModal.message}
-                    isDestructive={confirmModal.isDestructive}
-                    onConfirm={() => {
-                        if (confirmModal.action) confirmModal.action();
-                        setConfirmModal({ ...confirmModal, isOpen: false });
-                    }}
-                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                />
-
-                {/* ── Hero AI Command Palette ── */}
-                <section className="w-full max-w-4xl mx-auto mb-20 text-center relative z-10">
-                    <h2 className="text-[2.5rem] font-extrabold text-biophilic-moss dark:text-biophilic-dark-text mb-4 tracking-[-0.02em]">
-                        What will you design today?
-                    </h2>
-                    <p className="text-biophilic-bark/80 dark:text-biophilic-dark-text-muted mb-8 text-lg">
-                        Use AI to generate stunning starting points in seconds.
-                    </p>
-
-                    <div className="relative group 
-                                    bg-white/90 dark:bg-biophilic-dark-card/90 
-                                    shadow-organic dark:shadow-dark-md 
-                                    rounded-3xl 
-                                    border border-biophilic-cream-dark dark:border-biophilic-dark-border 
-                                    transition-all duration-300 
-                                    focus-within:shadow-organic-lg dark:focus-within:shadow-dark-green-glow
-                                    focus-within:border-biophilic-green dark:focus-within:border-biophilic-dark-green 
-                                    p-2 pl-3 flex flex-col sm:flex-row items-center gap-2">
-                        <Sparkles
-                            className="absolute left-7 text-biophilic-green dark:text-biophilic-dark-green group-focus-within:text-biophilic-moss dark:group-focus-within:text-biophilic-green-light transition-colors duration-300 glow-green"
-                            size={24}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Describe your scene: e.g., A minimalist coffee shop banner..."
-                            className="flex-1 w-full pl-14 pr-4 py-4 text-lg bg-transparent focus:outline-none 
-                                       text-slate-800 dark:text-biophilic-dark-text 
-                                       placeholder:text-slate-400 dark:placeholder:text-biophilic-dark-text-muted/70"
-                            value={aiPrompt}
-                            onChange={(e) => setAiPrompt(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleAIGenerate(); }}
-                            disabled={isGenerating}
-                        />
+                    <div className="flex items-center gap-2">
+                        {/* Theme toggle */}
                         <button
-                            id="dashboard-ai-generate"
-                            onClick={handleAIGenerate}
-                            disabled={isGenerating || !aiPrompt.trim()}
-                            className="bg-biophilic-green dark:bg-biophilic-dark-green 
-                                       hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green 
-                                       text-white dark:text-biophilic-dark-bg 
-                                       px-8 py-4 rounded-2xl font-bold transition-all 
-                                       active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed 
-                                       flex items-center justify-center gap-2 sm:w-auto w-full 
-                                       shadow-organic dark:shadow-dark-green-glow group/btn"
+                            id="dashboard-theme-toggle"
+                            onClick={toggle}
+                            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                            className="p-2.5 rounded-xl text-biophilic-bark dark:text-biophilic-dark-text-muted
+                                    hover:bg-biophilic-cream-dark dark:hover:bg-biophilic-dark-border
+                                    transition-all duration-200 active:scale-[0.95]"
                         >
-                            {isGenerating ? (
-                                <>
-                                    <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                                    Building...
-                                </>
-                            ) : (
-                                <>
-                                    Generate
-                                    <Sparkles size={18} className="opacity-80 group-hover/btn:opacity-100 transition-opacity" />
-                                </>
-                            )}
+                            {isDark
+                                ? <Sun size={18} className="text-biophilic-green glow-green" />
+                                : <Moon size={18} />
+                            }
+                        </button>
+
+                        <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-1" />
+
+                        {/* Workspace selector button */}
+                        <button
+                            onClick={handleChangeWorkspace}
+                            title="Change Workspace"
+                            className="flex items-center gap-2 
+                                    bg-biophilic-blue-light/20 dark:bg-biophilic-dark-blue/10
+                                    border border-biophilic-blue/30 dark:border-biophilic-dark-blue/30
+                                    text-slate-600 dark:text-biophilic-dark-text-muted 
+                                    px-3.5 py-2 rounded-xl 
+                                    hover:bg-biophilic-blue/30 dark:hover:bg-biophilic-dark-blue/20
+                                    transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98]"
+                        >
+                            <FolderOpen size={14} />
+                            <span className="hidden sm:inline">Folder</span>
+                        </button>
+
+                        <label className="flex items-center gap-2 
+                                        bg-biophilic-rose/20 dark:bg-biophilic-dark-rose/10
+                                        border border-biophilic-rose/30 dark:border-biophilic-dark-rose/30
+                                        text-slate-600 dark:text-biophilic-dark-text-muted 
+                                        px-3.5 py-2 rounded-xl 
+                                        hover:bg-biophilic-rose/30 dark:hover:bg-biophilic-dark-rose/20
+                                        transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98]">
+                            <Upload size={14} />
+                            <span className="hidden sm:inline">Import</span>
+                            <input
+                                type="file"
+                                accept=".zip"
+                                className="hidden"
+                                onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+                                    try {
+                                        const res = await api.post('/projects/import', formData);
+                                        if (res.data.success) {
+                                            await loadProjects();
+                                        }
+                                    } catch (err) {
+                                        alert(err.response?.data?.message || 'Error importing project zip.');
+                                    }
+                                    e.target.value = '';
+                                }}
+                            />
+                        </label>
+
+                        <button
+                            id="dashboard-create-btn"
+                            onClick={() => setIsModalOpen(true)}
+                            className="flex items-center gap-2 
+                                    bg-biophilic-green dark:bg-biophilic-dark-green 
+                                    text-white dark:text-biophilic-dark-bg 
+                                    px-5 py-2 rounded-xl 
+                                    hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green 
+                                    shadow-organic dark:shadow-dark-green-glow 
+                                    transition-all active:scale-[0.98] font-black text-xs uppercase tracking-widest ml-1"
+                        >
+                            <Plus size={16} />
+                            <span>Create Blank</span>
                         </button>
                     </div>
+                </header>
 
-                    {isGenerating && (
-                        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-full">
-                            <p className="text-sm text-biophilic-moss dark:text-biophilic-dark-text animate-pulse font-semibold 
-                                         bg-biophilic-green-light/40 dark:bg-biophilic-dark-green/10 
-                                         inline-block px-4 py-1.5 rounded-full border dark:border-biophilic-dark-border">
-                                ✨ AI is analyzing your prompt and generating layers...
-                            </p>
-                        </div>
-                    )}
-                </section>
+                {/* ── Main Content ── */}
+                <main className="max-w-6xl mx-auto flex flex-col px-4 pb-16 relative z-10">
 
-                {/* ── Projects Grid ── */}
-                <section className="w-full">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-lg font-bold flex items-center gap-2 text-biophilic-moss dark:text-biophilic-dark-text">
-                            <ImageIcon className="text-biophilic-green dark:text-biophilic-dark-green glow-green" size={20} />
-                            Recent Projects
+                    {/* ── Hero AI Command Palette ── */}
+                    <section className="w-full max-w-4xl mx-auto mb-20 text-center relative z-10 pt-10">
+                        <h2 className="text-[2.5rem] md:text-[3.5rem] font-black text-biophilic-moss dark:text-biophilic-dark-text mb-4 tracking-tighter leading-tight">
+                            Design with <span className="text-biophilic-green italic">Nature's</span> AI.
                         </h2>
-                    </div>
+                        <p className="text-biophilic-bark/60 dark:text-biophilic-dark-text-muted mb-10 text-lg font-medium max-w-2xl mx-auto">
+                            Transform your ideas into stunning layouts using our biophilic-inspired intelligence.
+                        </p>
 
-                    {loading ? (
-                        <div className="flex w-full h-40 items-center justify-center">
-                            <div className="w-8 h-8 rounded-full border-4 border-biophilic-cream-dark dark:border-biophilic-dark-border border-t-biophilic-green dark:border-t-biophilic-dark-green animate-spin" />
-                        </div>
-                    ) : projects.length === 0 ? (
-                        <div className="text-center p-16 
-                                        bg-white/60 dark:bg-biophilic-dark-card/60 
-                                        rounded-3xl 
-                                        border border-dashed border-biophilic-cream-dark dark:border-biophilic-dark-border 
-                                        flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 
-                                            bg-biophilic-green-light/40 dark:bg-biophilic-dark-green/10 
-                                            rounded-2xl shadow-organic-sm dark:shadow-dark-green-glow 
-                                            border border-biophilic-green-light dark:border-biophilic-dark-border 
-                                            flex items-center justify-center mb-4 
-                                            text-biophilic-green dark:text-biophilic-dark-green glow-green">
-                                <ImageIcon size={32} />
-                            </div>
-                            <h3 className="text-biophilic-moss dark:text-biophilic-dark-text font-bold text-lg mb-1">No projects yet</h3>
-                            <p className="text-biophilic-bark/70 dark:text-biophilic-dark-text-muted font-medium">Create a blank project or use AI magic to start.</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {projects.map((project) => (
-                                <div
-                                    key={project.id}
-                                    onClick={() => navigate(`/editor/${project.id}`)}
-                                    className="bg-white/90 dark:bg-biophilic-dark-card 
-                                               rounded-2xl 
-                                               shadow-organic-sm dark:shadow-dark-sm 
-                                               border border-biophilic-cream-dark dark:border-biophilic-dark-border 
-                                               overflow-hidden cursor-pointer 
-                                               hover:shadow-organic dark:hover:shadow-dark-green-glow 
-                                               hover:border-biophilic-green-light dark:hover:border-biophilic-dark-green/60
-                                               transition-all duration-300 group flex flex-col"
+                        <div className="relative group max-w-2xl mx-auto">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-biophilic-green via-biophilic-moss to-biophilic-blue rounded-[2.2rem] blur-xl opacity-20 group-focus-within:opacity-40 transition-opacity duration-500" />
+                            <div className="relative bg-white dark:bg-biophilic-dark-card rounded-[2rem] shadow-organic-lg p-2.5 flex items-center border border-biophilic-cream-dark dark:border-biophilic-dark-border transition-all duration-300">
+                                <div className="w-12 h-12 flex items-center justify-center text-biophilic-green dark:text-biophilic-dark-green ml-2">
+                                    <Sparkles size={24} />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={aiPrompt}
+                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAIGenerate()}
+                                    placeholder="I want to design a minimalist poster for a coffee shop..."
+                                    className="flex-1 bg-transparent border-none outline-none px-3 py-3 text-slate-700 dark:text-biophilic-dark-text placeholder:text-slate-300 dark:placeholder:text-biophilic-dark-text-muted/40 font-bold"
+                                    disabled={isGenerating}
+                                />
+                                <button
+                                    onClick={handleAIGenerate}
+                                    disabled={isGenerating || !aiPrompt.trim()}
+                                    className="bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-8 py-4 rounded-[1.4rem] font-black text-xs uppercase tracking-widest shadow-organic hover:bg-biophilic-green-dark transition-all disabled:opacity-50 flex items-center gap-2 ml-2"
                                 >
-                                    {/* Preview thumbnail */}
-                                    <div className="aspect-[4/3] 
-                                                    bg-biophilic-cream dark:bg-biophilic-dark-bg 
-                                                    relative overflow-hidden flex items-center justify-center 
-                                                    border-b border-biophilic-cream-dark dark:border-biophilic-dark-border">
-                                        {project.previewUrl ? (
-                                            <img
-                                                src={typeof project.previewUrl === 'string' && project.previewUrl.startsWith('blob:')
-                                                    ? project.previewUrl
-                                                    : `http://localhost:5000${project.previewUrl}?t=${new Date().getTime()}`
-                                                }
-                                                alt={project.name}
-                                                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
-                                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                                            />
-                                        ) : null}
-                                        <div
-                                            className="absolute inset-0 flex items-center justify-center text-biophilic-green dark:text-biophilic-dark-text-muted font-medium text-sm"
-                                            style={{ display: project.previewUrl ? 'none' : 'flex' }}
-                                        >
-                                            No Preview
-                                        </div>
-                                    </div>
+                                    {isGenerating ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <Sparkles size={16} />
+                                    )}
+                                    <span>{isGenerating ? 'Building' : 'Generate'}</span>
+                                </button>
+                            </div>
+                        </div>
 
-                                    {/* Card footer */}
-                                    <div className="p-5 flex flex-col gap-2">
-                                        <h3 className="font-bold text-biophilic-moss dark:text-biophilic-dark-text truncate text-[15px]" title={project.name}>
-                                            {project.name}
-                                        </h3>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-semibold text-biophilic-bark/50 dark:text-biophilic-dark-text-muted uppercase tracking-wider">
-                                                {new Date(project.updatedAt).toLocaleDateString()}
-                                            </span>
-                                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300 ease-out">
-                                                <button
-                                                    onClick={(e) => handleExportProject(e, project.id)}
-                                                    className="p-1.5 text-biophilic-green dark:text-biophilic-dark-green 
-                                                               hover:text-biophilic-moss dark:hover:text-biophilic-green-light 
-                                                               hover:bg-biophilic-green-light/30 dark:hover:bg-biophilic-dark-green/15 
-                                                               rounded-lg transition-colors"
-                                                    title="Export ZIP"
-                                                >
-                                                    <Download size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleDelete(e, project.id)}
-                                                    className="p-1.5 text-slate-400 dark:text-biophilic-dark-text-muted 
-                                                               hover:text-red-600 dark:hover:text-red-400 
-                                                               hover:bg-red-50 dark:hover:bg-red-900/20 
-                                                               rounded-lg transition-colors"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                        {isGenerating && (
+                            <div className="mt-8 flex items-center justify-center gap-3">
+                                <div className="flex gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-biophilic-green animate-bounce [animation-delay:-0.3s]" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-biophilic-green animate-bounce [animation-delay:-0.15s]" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-biophilic-green animate-bounce" />
+                                </div>
+                                <p className="text-xs font-black uppercase tracking-widest text-biophilic-green italic">
+                                    AI is weaving your masterpiece...
+                                </p>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* ── Projects Grid ── */}
+                    <section className="w-full">
+                        <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-biophilic-green/10 dark:bg-biophilic-dark-green/10 rounded-xl flex items-center justify-center text-biophilic-green">
+                                    <ImageIcon size={20} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight">Recent Projects</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 dark:text-biophilic-dark-text-muted uppercase tracking-widest">Manage your local designs</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="bg-white dark:bg-biophilic-dark-card rounded-3xl h-64 animate-pulse border border-biophilic-cream-dark dark:border-biophilic-dark-border" />
+                                ))}
+                            </div>
+                        ) : projects.length === 0 ? (
+                            <div className="text-center p-20 
+                                            bg-white/40 dark:bg-biophilic-dark-card/20 
+                                            rounded-[3rem] 
+                                            border-2 border-dashed border-biophilic-cream-dark dark:border-biophilic-dark-border 
+                                            flex flex-col items-center justify-center transition-colors">
+                                <div className="w-20 h-20 
+                                                bg-biophilic-green-light/40 dark:bg-biophilic-dark-green/10 
+                                                rounded-3xl shadow-organic-sm dark:shadow-dark-green-glow 
+                                                border border-biophilic-green-light dark:border-biophilic-dark-border 
+                                                flex items-center justify-center mb-6 
+                                                text-biophilic-green dark:text-biophilic-dark-green glow-green">
+                                    <Plus size={40} />
+                                </div>
+                                <h3 className="text-biophilic-moss dark:text-biophilic-dark-text font-black text-xl mb-2">Grow your first design</h3>
+                                <p className="text-biophilic-bark/60 dark:text-biophilic-dark-text-muted font-bold text-sm max-w-xs leading-relaxed">
+                                    Start from a blank canvas or use the AI generator to plant the seeds of your next project.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                {projects.map((project) => (
+                                    <div
+                                        key={project.id}
+                                        onClick={() => navigate(`/editor/${project.id}`)}
+                                        className="bg-white dark:bg-biophilic-dark-card 
+                                                rounded-3xl 
+                                                shadow-organic-sm dark:shadow-dark-sm 
+                                                border border-biophilic-cream-dark dark:border-biophilic-dark-border 
+                                                overflow-hidden cursor-pointer 
+                                                hover:shadow-organic-lg dark:hover:shadow-dark-green-glow 
+                                                hover:border-biophilic-green dark:hover:border-biophilic-dark-green 
+                                                hover:-translate-y-1
+                                                transition-all duration-300 group flex flex-col"
+                                    >
+                                        {/* Preview thumbnail */}
+                                        <div className="aspect-[4/3] 
+                                                        bg-biophilic-cream dark:bg-biophilic-dark-bg 
+                                                        relative overflow-hidden flex items-center justify-center 
+                                                        border-b border-biophilic-cream-dark dark:border-biophilic-dark-border">
+                                            {project.previewUrl ? (
+                                                <img
+                                                    src={typeof project.previewUrl === 'string' && (project.previewUrl.startsWith('blob:') || project.previewUrl.startsWith('data:'))
+                                                        ? project.previewUrl
+                                                        : project.previewUrl?.startsWith('http') 
+                                                            ? project.previewUrl 
+                                                            : `http://localhost:5000/${project.previewUrl?.startsWith('/') ? project.previewUrl.substring(1) : project.previewUrl}?t=${new Date().getTime()}`
+                                                    }
+                                                    alt={project.name}
+                                                    className="w-full h-full object-cover group-hover:scale-[1.1] transition-transform duration-700 ease-out"
+                                                    onError={(e) => { 
+                                                        console.warn('Image failed to load:', e.target.src);
+                                                        e.target.style.display = 'none'; 
+                                                        if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; 
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <div
+                                                className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-biophilic-green/40 dark:text-biophilic-dark-text-muted/30"
+                                                style={{ display: project.previewUrl ? 'none' : 'flex' }}
+                                            >
+                                                <ImageIcon size={32} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">No Preview</span>
+                                            </div>
+                                            
+                                            {/* Hover Overlay */}
+                                            <div className="absolute inset-0 bg-biophilic-moss/10 dark:bg-biophilic-dark-green/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <div className="bg-white dark:bg-biophilic-dark-surface p-3 rounded-2xl shadow-organic-sm dark:shadow-dark-md transform scale-90 group-hover:scale-100 transition-transform font-black text-xs uppercase tracking-widest text-biophilic-moss dark:text-biophilic-dark-text">
+                                                    Open Design
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Card footer */}
+                                        <div className="p-6 flex flex-col gap-3">
+                                            <h3 className="font-black text-biophilic-moss dark:text-biophilic-dark-text truncate text-[15px] tracking-tight" title={project.name}>
+                                                {project.name}
+                                            </h3>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black text-slate-400 dark:text-biophilic-dark-text-muted uppercase tracking-[0.1em]">
+                                                    {new Date(project.updatedAt).toLocaleDateString()}
+                                                </span>
+                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 duration-300">
+                                                    <button
+                                                        onClick={(e) => handleExportProject(e, project.id)}
+                                                        className="p-2 text-biophilic-green hover:bg-biophilic-green/10 rounded-xl transition-colors"
+                                                        title="Export ZIP"
+                                                    >
+                                                        <Download size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDelete(e, project.id)}
+                                                        className="p-2 text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 rounded-xl transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </section>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </main>
             </div>
         </div>
     );

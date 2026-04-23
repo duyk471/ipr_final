@@ -86,22 +86,30 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
                 <div key={tool.id} className="relative group w-full">
                     <button
                         onClick={tool.action}
-                        className={`flex flex-col items-center justify-center p-3 gap-1.5 rounded-2xl-organic transition-all duration-300 ease-out w-full select-none ${
+                        className={`flex flex-col items-center justify-center p-3.5 gap-1.5 rounded-2xl transition-all duration-300 ease-out w-full select-none relative group/btn ${
                             activeLeftPanel === tool.id
-                                ? 'bg-[#A8C69F] text-[#2D3A30] shadow-lg scale-105 font-bold'
-                                : 'text-slate-500 dark:text-biophilic-dark-text-muted hover:bg-[#A8C69F]/10 hover:text-[#A8C69F]'
+                                ? 'bg-biophilic-green dark:bg-[#A8C69F] text-white dark:text-[#2D3A30] shadow-lg dark:shadow-dark-green-glow scale-[1.05] font-black'
+                                : 'text-slate-500 dark:text-biophilic-dark-text-muted hover:bg-biophilic-green/10 dark:hover:bg-[#A8C69F]/10 hover:text-biophilic-green dark:hover:text-[#A8C69F]'
                         }`}
                         title={tool.label}
                     >
-                        {React.cloneElement(tool.icon, { 
-                            size: 20, 
-                            strokeWidth: activeLeftPanel === tool.id ? 2.5 : 2,
-                            color: activeLeftPanel === tool.id ? '#2D3A30' : 'currentColor'
-                        })}
-                        <span className="text-[10px] uppercase tracking-wider font-extrabold">{tool.label}</span>
+                        <div className={`transition-transform duration-300 ${activeLeftPanel === tool.id ? 'scale-110' : 'group-hover/btn:scale-110'}`}>
+                            {React.cloneElement(tool.icon, { 
+                                size: 20, 
+                                strokeWidth: activeLeftPanel === tool.id ? 2.5 : 2,
+                                color: 'currentColor'
+                            })}
+                        </div>
+                        <span className={`text-[9px] uppercase tracking-[0.12em] font-black transition-colors ${activeLeftPanel === tool.id ? 'opacity-100' : 'opacity-70 group-hover/btn:opacity-100'}`}>
+                            {tool.label}
+                        </span>
+                        
+                        {activeLeftPanel === tool.id && (
+                            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-biophilic-green dark:bg-[#A8C69F] rounded-full shadow-glow-green" />
+                        )}
                     </button>
-                    {/* Tooltip delay hover */}
-                    <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1E293B] text-white text-[10px] font-medium rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 delay-100 whitespace-nowrap z-50">
+                    {/* Tooltip */}
+                    <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-900/90 dark:bg-biophilic-dark-surface/95 backdrop-blur-md text-white dark:text-biophilic-dark-text text-[10px] font-black uppercase tracking-widest rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all transform translate-x-[-10px] group-hover:translate-x-0 duration-200 z-50 shadow-xl border border-white/10 dark:border-biophilic-dark-border">
                         {tool.label}
                     </div>
                 </div>

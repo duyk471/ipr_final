@@ -3,7 +3,7 @@
  * A valid project contains an index.json file
  */
 
-import { listDirectory, readJSONFile, fileExists } from './localFilesystemService';
+import { listDirectory, readJSONFile, fileExists, getFileAsObjectURL } from './localFilesystemService';
 
 /**
  * Scan a directory for valid projects
@@ -21,13 +21,33 @@ export const scanProjectsInWorkspace = async (workspaceHandle) => {
             if (entry.kind === 'directory') {
                 const projectData = await loadProjectMetadata(entry.handle);
                 if (projectData) {
+                    let previewUrl = projectData.projectInfo?.previewUrl;
+
+                    // If previewUrl is a relative path, resolve it to an Object URL
+                    if (previewUrl && 
+                        typeof previewUrl === 'string' && 
+                        !previewUrl.startsWith('blob:') && 
+                        !previewUrl.startsWith('http') && 
+                        !previewUrl.startsWith('data:')) {
+                        try {
+                            if (await fileExists(entry.handle, previewUrl)) {
+                                previewUrl = await getFileAsObjectURL(entry.handle, previewUrl);
+                            } else {
+                                previewUrl = null;
+                            }
+                        } catch (err) {
+                            console.warn(`Failed to resolve preview URL for project '${entry.name}':`, err);
+                            previewUrl = null;
+                        }
+                    }
+
                     projects.push({
                         id: entry.name, // Use folder name as project ID
                         handle: entry.handle,
                         name: projectData.projectInfo?.name || entry.name,
                         createdAt: projectData.projectInfo?.createdAt,
                         updatedAt: projectData.projectInfo?.updatedAt,
-                        previewUrl: projectData.projectInfo?.previewUrl,
+                        previewUrl: previewUrl,
                     });
                 }
             }

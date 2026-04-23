@@ -106,11 +106,11 @@ const useCanvasStore = create((set, get) => ({
             set({
                 currentProject: projectData.projectInfo,
                 currentProjectHandle: projectHandle,
-                canvasData: projectData,
-                history: projectData.history || { undoStack: [], redoStack: [] },
+                canvasData: processedData,
+                history: processedData.history || { undoStack: [], redoStack: [] },
                 isLoading: false
             });
-            return projectData;
+            return processedData;
         } catch (error) {
             console.error('Failed to fetch project:', error);
             set({ error: error.message, isLoading: false });
@@ -170,6 +170,48 @@ const useCanvasStore = create((set, get) => ({
             }));
         } catch (error) {
             console.error('Failed to save project:', error);
+        }
+    },
+
+    /**
+     * Save an AI-generated project and its assets locally
+     */
+    saveAIGeneratedProject: async (projectData, assets) => {
+        try {
+            const { workspaceHandle } = get();
+            if (!workspaceHandle) throw new Error('Workspace not initialized');
+
+            const projectId = projectData.projectInfo.id;
+            const projectHandle = await createProjectDirectoryStructure(workspaceHandle, projectId);
+
+            // 1. Save Assets
+            if (assets && Array.isArray(assets)) {
+                const assetsDir = await getSubdirectory(projectHandle, 'assets', true);
+                for (const asset of assets) {
+                    const binaryString = atob(asset.base64);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    await writeFile(assetsDir, asset.fileName, bytes);
+                }
+            }
+
+            // 2. Save index.json
+            await writeJSONFile(projectHandle, 'index.json', projectData);
+
+            // 3. Update state
+            set({
+                currentProject: projectData.projectInfo,
+                currentProjectHandle: projectHandle,
+                canvasData: projectData,
+                history: projectData.history || { undoStack: [], redoStack: [] }
+            });
+
+            return projectData;
+        } catch (error) {
+            console.error('Failed to save AI generated project:', error);
+            throw error;
         }
     },
 
@@ -331,21 +373,28 @@ async function resolveAssetUrlsInProject(projectHandle, projectData) {
     if (processed.layers && Array.isArray(processed.layers)) {
         for (const layer of processed.layers) {
                 // Check if it's already an Object URL or external URL
-                if (layer.src && typeof layer.src === 'string' && 
-                    !layer.src.startsWith('blob:') && 
-                    !layer.src.startsWith('http') && 
-                    !layer.src.startsWith('data:')) {
+                // Resolve if it's a relative path OR if it's a blob URL with originalPath metadata
+                const isBlob = layer.src?.startsWith('blob:');
+                const hasOriginalPath = layer.metadata?.originalPath;
+                const isExternal = layer.src?.startsWith('http') || layer.src?.startsWith('data:');
+
+                if (layer.src && typeof layer.src === 'string' && !isExternal && (!isBlob || hasOriginalPath)) {
                     try {
-                        const originalPath = layer.src;
+                        const originalPath = hasOriginalPath ? layer.metadata.originalPath : layer.src;
                         // Get Object URL from local file
                         const objectUrl = await getFileAsObjectURL(projectHandle, originalPath);
                         layer.src = objectUrl;
                         
-                        // Store the original path in metadata for later stripping
+                        // Store/ensure the original path in metadata for later stripping
                         if (!layer.metadata) layer.metadata = {};
                         layer.metadata.originalPath = originalPath;
                     } catch (error) {
                         console.warn(`Failed to resolve asset URL for '${layer.src}':`, error);
+                        // If it's a dead blob URL and we can't resolve it, we might want to clear it 
+                        // to prevent Fabric from crashing during load
+                        if (isBlob) {
+                            layer.src = ''; 
+                        }
                     }
                 }
         }
@@ -376,10 +425,15 @@ function stripObjectUrlsFromProject(projectData) {
                     if (layer.metadata?.originalPath) {
                         layer.src = layer.metadata.originalPath;
                     } else {
-                        // If no original path, it's a new asset that wasn't saved properly
-                        // This shouldn't happen if we save correctly on import
                         console.warn('Found blob URL without originalPath metadata during save');
                     }
+                }
+            }
+
+            // Restore fill source if it was resolved from a local path
+            if (layer.fill && typeof layer.fill === 'object' && layer.fill.source) {
+                if (layer.fill.source.startsWith('blob:') && layer.metadata?.fillSourcePath) {
+                    layer.fill.source = layer.metadata.fillSourcePath;
                 }
             }
         }
