@@ -193,14 +193,10 @@ const ImageLibraryPanel = ({ canvasRef }) => {
                     const { uploadLocalAsset } = await import('../../services/localAssetService');
                     const assetInfo = await uploadLocalAsset(file);
 
-                    // Use the Object URL for display
                     imageUrl = assetInfo.url;
-                    
-                    // Store the relative path for serialization
                     img.metadata = { ...img.metadata, originalPath: assetInfo.path };
                 } catch (downloadError) {
                     console.warn('Failed to download and save image locally, using external URL:', downloadError);
-                    // Fall back to using the external URL directly
                 }
             }
 
@@ -215,25 +211,28 @@ const ImageLibraryPanel = ({ canvasRef }) => {
         }
     };
 
-    // ── Retry
     const handleRetry = () => runSearch(debouncedTerm, source);
     const handleClear = () => setSearchTerm('');
 
     return (
-        <div className="flex flex-col h-full bg-biophilic-cream/40 dark:bg-biophilic-dark-bg/40">
-
+        <div className="flex flex-col h-full bg-slate-50/30 dark:bg-biophilic-dark-surface transition-colors">
             {/* ── Sticky Header ── */}
             <div className="sticky top-0 z-10 
-                            bg-white/95 dark:bg-biophilic-dark-surface/95 
-                            backdrop-blur-sm px-4 pt-3 pb-3 space-y-2.5 
+                            bg-white dark:bg-biophilic-dark-surface 
+                            backdrop-blur-sm px-5 pt-5 pb-4 space-y-4 
                             border-b border-biophilic-cream-dark dark:border-biophilic-dark-border 
                             flex-shrink-0">
+
+                <div className="flex items-center gap-2 mb-1">
+                    <ImageIcon className="text-biophilic-green dark:text-biophilic-dark-green" size={18} />
+                    <h3 className="font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight text-[15px]">Image Library</h3>
+                </div>
 
                 {/* Search Input */}
                 <div className="relative flex items-center">
                     <Search
                         size={14}
-                        className="absolute left-3 text-biophilic-bark/50 dark:text-biophilic-dark-text-muted pointer-events-none"
+                        className="absolute left-3.5 text-biophilic-bark/50 dark:text-biophilic-dark-text-muted pointer-events-none"
                     />
                     <input
                         type="text"
@@ -243,56 +242,54 @@ const ImageLibraryPanel = ({ canvasRef }) => {
                         className="w-full bg-biophilic-cream dark:bg-biophilic-dark-card
                                    border border-biophilic-cream-dark dark:border-biophilic-dark-border
                                    text-slate-800 dark:text-biophilic-dark-text
-                                   rounded-xl pl-8 pr-8 py-2 text-sm
+                                   rounded-xl pl-10 pr-10 py-2.5 text-sm
                                    placeholder:text-biophilic-bark/40 dark:placeholder:text-biophilic-dark-text-muted/60
-                                   focus:outline-none focus:ring-2 focus:ring-biophilic-green/30 dark:focus:ring-biophilic-dark-green/25
+                                   focus:outline-none focus:ring-4 focus:ring-biophilic-green/10
                                    focus:border-biophilic-green dark:focus:border-biophilic-dark-green
-                                   transition-all"
+                                   transition-all shadow-sm"
                     />
                     {searchTerm && (
                         <button
                             onClick={handleClear}
-                            className="absolute right-3 text-biophilic-bark/40 dark:text-biophilic-dark-text-muted 
-                                       hover:text-biophilic-bark dark:hover:text-biophilic-dark-text transition-colors"
+                            className="absolute right-3.5 text-biophilic-bark/40 dark:text-biophilic-dark-text-muted 
+                                       hover:text-biophilic-moss dark:hover:text-biophilic-dark-green transition-colors"
                             title="Clear search"
                         >
-                            <X size={13} />
+                            <X size={14} />
                         </button>
                     )}
                 </div>
 
                 {/* Source Selector */}
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                     {SOURCES.map((src) => (
                         <button
                             key={src.id}
                             onClick={() => setSource(src.id)}
-                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-150 ${
+                            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-200 border ${
                                 source === src.id
-                                    ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg shadow-organic dark:shadow-dark-green-glow'
-                                    : 'bg-biophilic-cream dark:bg-biophilic-dark-card text-biophilic-bark/60 dark:text-biophilic-dark-text-muted hover:bg-biophilic-cream-dark dark:hover:bg-biophilic-dark-border'
+                                    ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg border-biophilic-green-dark shadow-organic-sm scale-[1.02]'
+                                    : 'bg-white dark:bg-biophilic-dark-card text-slate-400 dark:text-biophilic-dark-text-muted border-biophilic-cream-dark dark:border-biophilic-dark-border hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-border'
                             }`}
                         >
-                            {src.emoji} {src.label}
+                            <span className="mr-1.5">{src.emoji}</span>
+                            {src.label}
                         </button>
                     ))}
                 </div>
 
                 {/* Live status */}
                 {!isLoading && debouncedTerm && results.length > 0 && (
-                    <p className="text-[10px] text-biophilic-bark/50 dark:text-biophilic-dark-text-muted -mb-1">
-                        {results.length} result{results.length !== 1 ? 's' : ''} for{' '}
-                        <span className="font-semibold text-biophilic-moss dark:text-biophilic-dark-text">
-                            "{debouncedTerm}"
-                        </span>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-biophilic-dark-text-muted uppercase tracking-widest px-1">
+                        Found {results.length} results for <span className="text-biophilic-green dark:text-biophilic-dark-green italic">"{debouncedTerm}"</span>
                     </p>
                 )}
             </div>
 
             {/* ── Image Grid ── */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar">
                 {isLoading ? (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                         {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
                     </div>
                 ) : error ? (
@@ -300,7 +297,7 @@ const ImageLibraryPanel = ({ canvasRef }) => {
                 ) : results.length === 0 ? (
                     <NoResults query={debouncedTerm} onClear={handleClear} />
                 ) : (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                         {results.map((img) => {
                             const isAdding = loadingId === img.id;
                             return (
@@ -310,16 +307,16 @@ const ImageLibraryPanel = ({ canvasRef }) => {
                                     disabled={!!loadingId}
                                     title={`Add "${img.label}" to canvas`}
                                     className={`
-                                        relative group overflow-hidden rounded-xl
+                                        relative group overflow-hidden rounded-2xl
                                         border border-biophilic-cream-dark dark:border-biophilic-dark-border
-                                        bg-biophilic-cream dark:bg-biophilic-dark-card
-                                        aspect-video
-                                        transition-all duration-200 ease-out
+                                        bg-white dark:bg-biophilic-dark-card
+                                        aspect-square
+                                        transition-all duration-300 ease-out shadow-sm
                                         ${!loadingId
-                                            ? 'hover:scale-[1.04] hover:border-biophilic-green dark:hover:border-biophilic-dark-green hover:shadow-organic dark:hover:shadow-dark-green-glow cursor-pointer'
+                                            ? 'hover:scale-[1.05] hover:border-biophilic-green dark:hover:border-biophilic-green hover:shadow-organic dark:hover:shadow-dark-green-glow cursor-pointer'
                                             : 'opacity-60 cursor-wait'
                                         }
-                                        ${isAdding ? 'ring-2 ring-biophilic-green dark:ring-biophilic-dark-green ring-offset-1 dark:ring-offset-biophilic-dark-surface' : ''}
+                                        ${isAdding ? 'ring-4 ring-biophilic-green/20' : ''}
                                     `}
                                 >
                                     {/* Thumbnail */}
@@ -328,21 +325,25 @@ const ImageLibraryPanel = ({ canvasRef }) => {
                                         alt={img.label}
                                         loading="lazy"
                                         crossOrigin="anonymous"
-                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.08]"
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.15]"
                                         onError={(e) => { e.target.style.opacity = '0.3'; }}
                                     />
 
                                     {/* Hover overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-2 pointer-events-none">
-                                        <span className="text-white text-[10px] font-semibold drop-shadow leading-tight line-clamp-1">
-                                            {img.label}
-                                        </span>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3 pointer-events-none">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-white text-[10px] font-black uppercase tracking-widest drop-shadow-md">
+                                                {img.label}
+                                            </span>
+                                            <span className="text-white/60 text-[8px] font-bold">Unsplash Photo</span>
+                                        </div>
                                     </div>
 
                                     {/* Adding spinner */}
                                     {isAdding && (
-                                        <div className="absolute inset-0 bg-white/70 dark:bg-biophilic-dark-surface/80 flex items-center justify-center rounded-xl pointer-events-none backdrop-blur-sm">
-                                            <div className="w-5 h-5 border-2 border-biophilic-green-light dark:border-biophilic-dark-border border-t-biophilic-green dark:border-t-biophilic-dark-green rounded-full animate-spin" />
+                                        <div className="absolute inset-0 bg-white/80 dark:bg-biophilic-dark-surface/90 flex flex-col items-center justify-center gap-2 rounded-2xl pointer-events-none backdrop-blur-sm">
+                                            <div className="w-6 h-6 border-2 border-biophilic-green/20 dark:border-biophilic-dark-green/20 border-t-biophilic-green dark:border-t-biophilic-dark-green rounded-full animate-spin" />
+                                            <span className="text-[8px] font-black text-biophilic-green uppercase tracking-widest">Adding...</span>
                                         </div>
                                     )}
                                 </button>

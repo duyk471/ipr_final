@@ -76,7 +76,7 @@ const ElementsPanel = ({ canvasRef }) => {
     };
 
     return (
-        <div className="p-5 overflow-y-auto h-full space-y-8 bg-slate-50/50 dark:bg-[#1E293B] transition-colors">
+        <div className="p-5 overflow-y-auto h-full space-y-8 bg-slate-50/50 dark:bg-biophilic-dark-surface transition-colors">
             {/* Search */}
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -85,7 +85,7 @@ const ElementsPanel = ({ canvasRef }) => {
                     placeholder="Search icons..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-slate-600/20 focus:border-slate-600 outline-none transition-all shadow-sm"
+                    className="w-full bg-white dark:bg-biophilic-dark-card border border-slate-200 dark:border-biophilic-dark-border text-slate-900 dark:text-biophilic-dark-text rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-biophilic-green/20 focus:border-biophilic-green outline-none transition-all shadow-sm"
                 />
             </div>
 
@@ -97,13 +97,13 @@ const ElementsPanel = ({ canvasRef }) => {
                         <button
                             key={shape.name}
                             onClick={() => handleAddShape(shape.type)}
-                            className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all group"
+                            className="flex flex-col items-center justify-center p-4 bg-white dark:bg-biophilic-dark-card border border-slate-100 dark:border-biophilic-dark-border rounded-xl hover:border-biophilic-green-light dark:hover:border-biophilic-dark-green hover:shadow-md transition-all group"
                             title={shape.name}
                         >
-                            <div className="text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-400 transition-colors mb-2">
+                            <div className="text-slate-500 dark:text-biophilic-dark-text-muted group-hover:text-biophilic-moss dark:group-hover:text-biophilic-dark-green transition-colors mb-2">
                                 {shape.icon}
                             </div>
-                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-400">{shape.name}</span>
+                            <span className="text-[10px] font-medium text-slate-500 dark:text-biophilic-dark-text-muted group-hover:text-biophilic-moss dark:group-hover:text-biophilic-dark-green">{shape.name}</span>
                         </button>
                     ))}
                 </div>
@@ -120,7 +120,7 @@ const ElementsPanel = ({ canvasRef }) => {
                             <button
                                 key={name}
                                 onClick={() => handleAddIcon(IconComponent)}
-                                className="flex items-center justify-center p-3 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all group text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                                className="flex items-center justify-center p-3 bg-white dark:bg-biophilic-dark-card border border-slate-100 dark:border-biophilic-dark-border rounded-xl hover:border-biophilic-green-light dark:hover:border-biophilic-dark-green hover:shadow-md transition-all group text-slate-600 dark:text-biophilic-dark-text-muted hover:text-biophilic-moss dark:hover:text-biophilic-dark-text"
                                 title={name}
                             >
                                 <IconComponent size={24} />

@@ -385,18 +385,6 @@ const Dashboard = () => {
                         }
                     </button>
 
-                    <button
-                        onClick={() => navigate('/manual')}
-                        className="flex items-center gap-2 bg-transparent 
-                                   text-slate-600 dark:text-biophilic-dark-text-muted 
-                                   px-4 py-2.5 rounded-xl 
-                                   hover:bg-biophilic-cream-dark dark:hover:bg-biophilic-dark-border 
-                                   transition-all font-semibold text-sm"
-                        title="Help & Tutorial"
-                    >
-                        <BookOpen size={18} className="text-biophilic-green-dark dark:text-biophilic-dark-green glow-green" />
-                        <span>Manual</span>
-                    </button>
 
                     <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-1" />
 

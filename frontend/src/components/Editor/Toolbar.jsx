@@ -88,16 +88,17 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
                         onClick={tool.action}
                         className={`flex flex-col items-center justify-center p-3 gap-1.5 rounded-2xl-organic transition-all duration-300 ease-out w-full select-none ${
                             activeLeftPanel === tool.id
-                                ? 'text-white bg-biophilic-green shadow-lg scale-105'
-                                : 'text-slate-500 hover:text-biophilic-green hover:bg-biophilic-rose/20'
+                                ? 'bg-[#A8C69F] text-[#2D3A30] shadow-lg scale-105 font-bold'
+                                : 'text-slate-500 dark:text-biophilic-dark-text-muted hover:bg-[#A8C69F]/10 hover:text-[#A8C69F]'
                         }`}
                         title={tool.label}
                     >
                         {React.cloneElement(tool.icon, { 
                             size: 20, 
-                            strokeWidth: activeLeftPanel === tool.id ? 2.5 : 2 
+                            strokeWidth: activeLeftPanel === tool.id ? 2.5 : 2,
+                            color: activeLeftPanel === tool.id ? '#2D3A30' : 'currentColor'
                         })}
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{tool.label}</span>
+                        <span className="text-[10px] uppercase tracking-wider font-extrabold">{tool.label}</span>
                     </button>
                     {/* Tooltip delay hover */}
                     <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#1E293B] text-white text-[10px] font-medium rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 delay-100 whitespace-nowrap z-50">

@@ -43,7 +43,7 @@ const TextPanel = ({ canvasRef }) => {
     };
 
     return (
-        <div className="p-5 h-full flex flex-col gap-8 bg-slate-50/50 dark:bg-[#1E293B] transition-colors">
+        <div className="p-5 h-full flex flex-col gap-8 bg-slate-50/50 dark:bg-biophilic-dark-surface transition-colors">
             {/* Input Preview */}
             <div className="space-y-4">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Add Text</h3>
@@ -52,7 +52,7 @@ const TextPanel = ({ canvasRef }) => {
                     placeholder="Type your message..."
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    className="w-full bg-biophilic-cream dark:bg-slate-700 border border-biophilic-cream-dark dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-biophilic-green/30 focus:border-biophilic-green outline-none shadow-sm"
+                    className="w-full bg-biophilic-cream dark:bg-biophilic-dark-card border border-biophilic-cream-dark dark:border-biophilic-dark-border text-slate-900 dark:text-biophilic-dark-text rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-biophilic-green/30 focus:border-biophilic-green outline-none shadow-sm transition-all"
                 />
             </div>
 
@@ -60,21 +60,21 @@ const TextPanel = ({ canvasRef }) => {
             <div className="space-y-3">
                 <button
                     onClick={() => { setSelectedSize('heading'); handleAddText('heading'); }}
-                    className="w-full py-4 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 text-left transition-all group"
+                    className="w-full py-4 px-6 bg-white dark:bg-biophilic-dark-card border border-slate-100 dark:border-biophilic-dark-border rounded-xl hover:border-biophilic-green-light dark:hover:border-biophilic-dark-green text-left transition-all group"
                 >
-                    <span className="block text-2xl font-bold dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a heading</span>
+                    <span className="block text-2xl font-bold dark:text-biophilic-dark-text group-hover:text-biophilic-moss dark:group-hover:text-biophilic-dark-green transition-colors">Add a heading</span>
                 </button>
                 <button
                     onClick={() => { setSelectedSize('subheading'); handleAddText('subheading'); }}
-                    className="w-full py-3 px-6 bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 text-left transition-all group"
+                    className="w-full py-3 px-6 bg-white dark:bg-biophilic-dark-card border border-slate-100 dark:border-biophilic-dark-border rounded-xl hover:border-biophilic-green-light dark:hover:border-biophilic-dark-green text-left transition-all group"
                 >
-                    <span className="block text-lg font-semibold dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a subheading</span>
+                    <span className="block text-lg font-semibold dark:text-biophilic-dark-text group-hover:text-biophilic-moss dark:group-hover:text-biophilic-dark-green transition-colors">Add a subheading</span>
                 </button>
                 <button
                     onClick={() => { setSelectedSize('body'); handleAddText('body'); }}
-                    className="w-full py-2 px-6 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 text-left transition-all group"
+                    className="w-full py-2 px-6 bg-white dark:bg-biophilic-dark-card border border-slate-200 dark:border-biophilic-dark-border rounded-xl hover:border-biophilic-green-light dark:hover:border-biophilic-dark-green text-left transition-all group"
                 >
-                    <span className="block text-sm dark:text-slate-100 group-hover:text-slate-800 dark:group-hover:text-slate-400">Add a little bit of body text</span>
+                    <span className="block text-sm dark:text-biophilic-dark-text group-hover:text-biophilic-moss dark:group-hover:text-biophilic-dark-green transition-colors">Add a little bit of body text</span>
                 </button>
             </div>
 
@@ -89,8 +89,8 @@ const TextPanel = ({ canvasRef }) => {
                             style={{ fontFamily: font }}
                             className={`w-full px-4 py-3 rounded-lg text-left transition-all border ${
                                 selectedFont === font 
-                                ? 'bg-biophilic-green-light/30 dark:bg-slate-800 border-biophilic-green dark:border-slate-700 text-biophilic-moss dark:text-slate-100 font-bold' 
-                                : 'bg-white dark:bg-slate-700 border-transparent hover:bg-biophilic-cream dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
+                                ? 'bg-biophilic-green/10 dark:bg-biophilic-dark-green/10 border-biophilic-green dark:border-biophilic-dark-green text-biophilic-moss dark:text-biophilic-dark-green font-bold' 
+                                : 'bg-white dark:bg-biophilic-dark-card border-transparent dark:border-biophilic-dark-border/40 hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-border text-slate-700 dark:text-biophilic-dark-text-muted'
                             }`}
                         >
                             {font}
