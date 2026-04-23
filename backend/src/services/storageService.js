@@ -92,14 +92,28 @@ export const getProject = async (projectId) => {
 };
 
 export const saveProject = async (projectId, canvasState, previewBase64) => {
-    const projectPath = path.join(PROJECTS_DIR, projectId);
+    const projectPath = await ensureProjectDir(projectId);
     const indexPath = path.join(projectPath, 'index.json');
 
-    if (!(await fs.pathExists(indexPath))) {
-        throw new Error('Project not found');
+    let data = {};
+    if (await fs.pathExists(indexPath)) {
+        data = await fs.readJson(indexPath);
+    } else {
+        const now = new Date().toISOString();
+        data = {
+            version: "1.0",
+            projectInfo: {
+                id: projectId,
+                name: canvasState.projectInfo?.name || `Project ${projectId}`,
+                createdAt: now,
+                updatedAt: now,
+                previewUrl: "preview.png"
+            },
+            canvas: canvasState.canvas || { width: 1080, height: 1080 },
+            layers: [],
+            history: { undoStack: [], redoStack: [] }
+        };
     }
-
-    const data = await fs.readJson(indexPath);
     
     // Snapshot feature: backup the state before overwriting
     const historyDir = path.join(projectPath, 'history');

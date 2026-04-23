@@ -243,6 +243,16 @@ const useCanvasStore = create((set, get) => ({
                 await writeFile(currentProjectHandle, 'preview.png', bytes);
             }
 
+            // Sync with backend (for backup support)
+            try {
+                await api.put(`/projects/${currentProject.id}`, {
+                    canvasState: processedData,
+                    previewBase64: previewBase64
+                });
+            } catch (backendError) {
+                console.warn('Backend sync failed (local save succeeded):', backendError);
+            }
+
             // Update timestamp
             set(state => ({
                 currentProject: {
@@ -252,6 +262,69 @@ const useCanvasStore = create((set, get) => ({
             }));
         } catch (error) {
             console.error('Failed to save project:', error);
+        }
+    },
+
+    exportProjectAsZip: async () => {
+        try {
+            const { currentProjectHandle, canvasData } = get();
+            if (!currentProjectHandle) throw new Error('No active project');
+
+            // 1. Initialize JSZip
+            if (typeof window.JSZip === 'undefined') {
+                throw new Error('JSZip library not loaded. Please check your internet connection.');
+            }
+            const zip = new window.JSZip();
+
+            // 2. Add index.json
+            const processedData = stripObjectUrlsFromProject(canvasData);
+            zip.file('index.json', JSON.stringify(processedData, null, 2));
+
+            // 3. Add preview.png (if exists)
+            try {
+                const previewFile = await currentProjectHandle.getFileHandle('preview.png');
+                const previewBlob = await previewFile.getFile();
+                zip.file('preview.png', previewBlob);
+            } catch (err) {
+                console.warn('preview.png not found during export');
+            }
+
+            // 4. Add Assets
+            try {
+                const assetsDir = await currentProjectHandle.getDirectoryHandle('assets');
+                const assetFiles = [];
+                for await (const entry of assetsDir.values()) {
+                    if (entry.kind === 'file') {
+                        assetFiles.push(entry);
+                    }
+                }
+
+                if (assetFiles.length > 0) {
+                    const assetsFolder = zip.folder('assets');
+                    for (const entry of assetFiles) {
+                        const file = await entry.getFile();
+                        assetsFolder.file(entry.name, file);
+                    }
+                }
+            } catch (err) {
+                console.warn('assets directory not found during export');
+            }
+
+            // 5. Generate and Download
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${processedData.projectInfo.name || 'project'}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            return true;
+        } catch (error) {
+            console.error('Frontend ZIP export failed:', error);
+            throw error;
         }
     },
 
@@ -454,6 +527,131 @@ const useCanvasStore = create((set, get) => ({
             throw error;
         }
     },
+
+    /**
+     * Import a ZIP file into the local workspace
+     */
+    importProjectZip: async (zipFile) => {
+        try {
+            const { workspaceHandle } = get();
+            if (!workspaceHandle) throw new Error('Workspace not initialized');
+
+            if (typeof window.JSZip === 'undefined') {
+                throw new Error('JSZip library not loaded.');
+            }
+
+            const zip = await window.JSZip.loadAsync(zipFile);
+            
+            // 1. Find index.json to get project info
+            const indexEntry = zip.file('index.json');
+            if (!indexEntry) throw new Error('Invalid project zip: Missing index.json');
+            
+            const indexContent = await indexEntry.async('string');
+            const projectData = JSON.parse(indexContent);
+            
+            if (!projectData.projectInfo) throw new Error('Invalid project zip: Malformed index.json');
+
+            // 2. Generate new ID to avoid collisions (or use original if preferred)
+            const newProjectId = `imported_${Date.now()}`;
+            projectData.projectInfo.id = newProjectId;
+            
+            // 3. Create directory
+            const projectHandle = await workspaceHandle.getDirectoryHandle(newProjectId, { create: true });
+            
+            // 4. Extract files
+            for (const [relativePath, file] of Object.entries(zip.files)) {
+                if (file.dir) {
+                    const parts = relativePath.split('/').filter(Boolean);
+                    let current = projectHandle;
+                    for (const part of parts) {
+                        current = await current.getDirectoryHandle(part, { create: true });
+                    }
+                } else {
+                    const parts = relativePath.split('/');
+                    const fileName = parts.pop();
+                    let current = projectHandle;
+                    for (const part of parts) {
+                        current = await current.getDirectoryHandle(part, { create: true });
+                    }
+                    
+                    const content = await file.async('uint8array');
+                    
+                    if (relativePath === 'index.json') {
+                        const writable = await current.getFileHandle(fileName, { create: true });
+                        const stream = await writable.createWritable();
+                        await stream.write(JSON.stringify(projectData, null, 2));
+                        await stream.close();
+                    } else {
+                        const writable = await current.getFileHandle(fileName, { create: true });
+                        const stream = await writable.createWritable();
+                        await stream.write(content);
+                        await stream.close();
+                    }
+                }
+            }
+
+            return projectData;
+        } catch (error) {
+            console.error('Frontend Import failed:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Export a project by ID from the local workspace
+     */
+    exportProjectById: async (projectId) => {
+        try {
+            const { workspaceHandle } = get();
+            if (!workspaceHandle) throw new Error('Workspace not initialized');
+
+            if (typeof window.JSZip === 'undefined') {
+                throw new Error('JSZip library not loaded.');
+            }
+
+            const projectHandle = await workspaceHandle.getDirectoryHandle(projectId);
+            const zip = new window.JSZip();
+
+            const addFolderToZip = async (handle, folderZip) => {
+                for await (const entry of handle.values()) {
+                    if (entry.kind === 'file') {
+                        const file = await entry.getFile();
+                        folderZip.file(entry.name, file);
+                    } else if (entry.kind === 'directory') {
+                        const subFolderZip = folderZip.folder(entry.name);
+                        await addFolderToZip(entry, subFolderZip);
+                    }
+                }
+            };
+
+            await addFolderToZip(projectHandle, zip);
+
+            let projectName = projectId;
+            try {
+                const indexFile = await projectHandle.getFileHandle('index.json');
+                const content = await (await indexFile.getFile()).text();
+                const data = JSON.parse(content);
+                projectName = data.projectInfo?.name || projectId;
+            } catch (err) {
+                console.warn('Could not read index.json for project name', err);
+            }
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${projectName}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            return true;
+        } catch (error) {
+            console.error('Frontend Export failed:', error);
+            throw error;
+        }
+    },
 }));
 
 // ─── Helper Functions ───
@@ -472,7 +670,7 @@ function generateProjectId() {
 /**
  * Resolve relative asset paths to Object URLs in project data
  */
-async function resolveAssetUrlsInProject(projectHandle, projectData) {
+export async function resolveAssetUrlsInProject(projectHandle, projectData) {
     const processed = JSON.parse(JSON.stringify(projectData));
 
     if (processed.layers && Array.isArray(processed.layers)) {
@@ -511,7 +709,7 @@ async function resolveAssetUrlsInProject(projectHandle, projectData) {
 /**
  * Strip Object URLs from project data, converting back to relative paths
  */
-function stripObjectUrlsFromProject(projectData) {
+export function stripObjectUrlsFromProject(projectData) {
     if (!projectData) return projectData;
     const processed = JSON.parse(JSON.stringify(projectData));
 

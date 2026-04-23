@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Editor from './pages/Editor';
 import { ThemeProvider } from './store/useTheme';
+import NotificationContainer from './components/UI/NotificationContainer';
 
 function App() {
   const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -28,6 +29,7 @@ function App() {
 
   return (
     <ThemeProvider>
+      <NotificationContainer />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />

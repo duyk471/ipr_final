@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as fabric from 'fabric';
 import { Trash2, Copy, MoreVertical, RotateCw, Sparkles, FlipHorizontal, FlipVertical, Layers } from 'lucide-react';
-import useCanvasStore from '../../store/useCanvasStore';
-import { api } from '../../store/useCanvasStore';
+import useCanvasStore, { api } from '../../store/useCanvasStore';
+import useNotificationStore from '../../store/useNotificationStore';
+import { resolveAssetUrlsInProject } from '../../store/useCanvasStore';
 import { uploadLocalAsset, uploadPastedImage, persistBackendAsset } from '../../services/localAssetService';
 
 const FabricCanvas = forwardRef(({ projectId }, ref) => {
+    const { notify } = useNotificationStore();
     const canvasEl = useRef(null);
     const fabricCanvas = useRef(null);
     const containerRef = useRef(null);
@@ -160,7 +162,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     activeObject.set('opacity', originalOpacity);
                     fabricCanvas.current.renderAll();
                     setIsRemovingBg(false);
-                    alert('Background removal succeeded but failed to save image locally.');
+                    notify({ message: 'Background removal succeeded but failed to save image locally.', type: 'warning' });
                 }
             } else {
                 throw new Error('BG removal failed');

@@ -4,6 +4,7 @@ import { Plus, Image as ImageIcon, Trash2, Download, Upload, Sparkles, BookOpen,
 import { api } from '../store/useCanvasStore';
 import useCanvasStore from '../store/useCanvasStore';
 import { useTheme } from '../store/useTheme';
+import useNotificationStore from '../store/useNotificationStore';
 import NewProjectModal from '../components/Dashboard/NewProjectModal';
 import ConfirmModal from '../components/UI/ConfirmModal';
 import { deleteDirectory, isFileSystemAccessSupported, requestWorkspacePermission } from '../services/localFilesystemService';
@@ -150,15 +151,15 @@ const Dashboard = () => {
             const res = await api.post('/ai/generate-project', { prompt: aiPrompt });
             if (res.data.success) {
                 const { projectData, assets } = res.data;
-                // Save the generated project locally
                 const savedProject = await saveAIGeneratedProject(projectData, assets);
+                notify({ message: 'Project generated successfully!', type: 'success' });
                 navigate(`/editor/${savedProject.projectInfo.id}`);
             } else {
-                alert(res.data.message || 'Failed to generate project.');
+                notify({ message: res.data.message || 'Failed to generate project.', type: 'error' });
             }
         } catch (error) {
             console.error('Error generating project:', error);
-            alert(error.response?.data?.message || 'Error generating project. Make sure API keys are set.');
+            notify({ message: error.response?.data?.message || 'Error generating project. Make sure API keys are set.', type: 'error' });
         } finally {
             setIsGenerating(false);
             setAiPrompt('');
@@ -169,11 +170,13 @@ const Dashboard = () => {
         try {
             const project = await createProject(name, width, height);
             if (project) {
+                notify({ message: `Project "${name}" created.`, type: 'success' });
+                setIsModalOpen(false);
                 navigate(`/editor/${project.projectInfo.id}`);
             }
         } catch (error) {
             console.error('Error creating project:', error);
-            alert('Failed to create project');
+            notify({ message: 'Failed to create project', type: 'error' });
         }
     };
 
@@ -191,9 +194,10 @@ const Dashboard = () => {
                     }
                     await deleteDirectory(workspaceHandle, projectId);
                     await loadProjects();
+                    notify({ message: 'Project deleted.', type: 'success' });
                 } catch (error) {
                     console.error('Error deleting project:', error);
-                    alert('Failed to delete project');
+                    notify({ message: 'Failed to delete project', type: 'error' });
                 }
             }
         });
@@ -201,13 +205,12 @@ const Dashboard = () => {
 
     const handleExportProject = async (e, projectId) => {
         e.stopPropagation();
-        // For local-first, export is saving a ZIP from the local directory
-        // For now, we'll use the backend export if available
         try {
-            window.location.href = `http://localhost:5000/api/projects/${projectId}/export`;
+            const { exportProjectById } = useCanvasStore.getState();
+            await exportProjectById(projectId);
         } catch (error) {
             console.error('Error exporting project:', error);
-            alert('Failed to export project');
+            notify({ message: 'Failed to export project: ' + error.message, type: 'error' });
         }
     };
 
@@ -283,7 +286,7 @@ const Dashboard = () => {
             navigate(`/editor/${projectId}`);
         } catch (error) {
             console.error('Error importing image:', error);
-            alert('Failed to import image. Please try again.');
+            notify({ message: 'Failed to import image. Please try again.', type: 'error' });
         }
         e.target.value = '';
     };
@@ -405,7 +408,7 @@ const Dashboard = () => {
                             className={`flex items-center gap-2 
                                     ${!workspaceInitialized 
                                         ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg px-5 py-2.5 shadow-organic-lg scale-105' 
-                                        : 'bg-biophilic-stone/40 dark:bg-biophilic-dark-blue/10 border border-biophilic-stone-dark dark:border-biophilic-dark-blue/30 text-biophilic-bark/80 dark:text-biophilic-dark-text-muted px-3.5 py-2'}
+                                        : 'bg-biophilic-stone/40 dark:bg-biophilic-dark-card border border-biophilic-stone-dark dark:border-biophilic-dark-border text-biophilic-bark/80 dark:text-biophilic-dark-text-muted px-3.5 py-2'}
                                     rounded-xl transition-all cursor-pointer font-bold text-xs uppercase tracking-wider active:scale-[0.98] animate-in fade-in duration-500`}
                         >
                             <FolderOpen size={14} />
@@ -429,15 +432,13 @@ const Dashboard = () => {
                                     onChange={async (e) => {
                                         const file = e.target.files[0];
                                         if (!file) return;
-                                        const formData = new FormData();
-                                        formData.append('file', file);
+                                        
                                         try {
-                                            const res = await api.post('/projects/import', formData);
-                                            if (res.data.success) {
-                                                await loadProjects();
-                                            }
+                                            const { importProjectZip } = useCanvasStore.getState();
+                                            await importProjectZip(file);
+                                            await loadProjects();
                                         } catch (err) {
-                                            alert(err.response?.data?.message || 'Error importing project zip.');
+                                            notify({ message: err.message || 'Error importing project zip.', type: 'error' });
                                         }
                                         e.target.value = '';
                                     }}

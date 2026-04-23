@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Undo2, Redo2, Settings, History, Sparkles, Moon, Sun } from 'lucide-react';
 import useCanvasStore, { api } from '../store/useCanvasStore';
 import { useTheme } from '../store/useTheme';
+import useNotificationStore from '../store/useNotificationStore';
 import FabricCanvas from '../components/Editor/FabricCanvas';
 import Toolbar from '../components/Editor/Toolbar';
 import AIPrompt from '../components/Editor/AIPrompt';
@@ -32,6 +33,7 @@ const Editor = () => {
         restoreHistory: restoreProjectSnapshot
     } = useCanvasStore();
     const { isDark, toggle } = useTheme();
+    const { notify } = useNotificationStore();
 
     const [activeTab, setActiveTab] = useState('properties');
     const [activeLeftPanel, setActiveLeftPanel] = useState(null);
@@ -62,14 +64,14 @@ const Editor = () => {
                     await fetchProject(id);
                 }
             } catch (error) {
-                console.error('Failed to initialize workspace or fetch project:', error);
+                console.error('Error loading project:', error);
+                notify({ message: 'Failed to load project. Please go back and try again.', type: 'error' });
                 setWorkspaceInitLoading(false);
-                alert('Failed to load project. Please go back and try again.');
             }
         };
 
         initializeAndFetch();
-    }, [id, workspaceInitialized, initializeWorkspace, fetchProject]);
+    }, [id, workspaceInitialized, initializeWorkspace, fetchProject, notify]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -105,19 +107,11 @@ const Editor = () => {
     const handleSaveVersion = async (name) => {
         try {
             await saveProjectVersion(name);
+            notify({ message: 'Project version saved successfully.', type: 'success' });
             setShowVersionModal(false);
-            
-            // Show toast
-            setToast({ show: true, message: `Version "${name}" saved successfully!` });
-            setTimeout(() => setToast({ show: false, message: '' }), 3000);
-            
-            // Refresh history if open
-            if (showHistory) {
-                const history = await fetchProjectHistory();
-                setHistoryList(history);
-            }
         } catch (error) {
-            alert('Failed to save version: ' + error.message);
+            console.error('Error saving version:', error);
+            notify({ message: 'Failed to save version: ' + error.message, type: 'error' });
         }
     };
 
@@ -130,17 +124,25 @@ const Editor = () => {
             action: async () => {
                 try {
                     await restoreProjectSnapshot(filename);
+                    notify({ message: 'Project restored to selected version.', type: 'success' });
                     window.location.reload();
                 } catch (error) {
-                    alert('Failed to restore history: ' + error.message);
+                    console.error('Restore error:', error);
+                    notify({ message: 'Failed to restore history: ' + error.message, type: 'error' });
                 }
             }
         });
     };
 
-    const handleExport = (format, fileName) => {
+    const handleExport = async (format, fileName) => {
         if (format === 'zip') {
-            window.location.href = `http://localhost:5000/api/projects/${id}/export`;
+            try {
+                const { exportProjectAsZip } = useCanvasStore.getState();
+                await exportProjectAsZip();
+                notify({ message: 'ZIP export ready!', type: 'success' });
+            } catch (err) {
+                notify({ message: 'Failed to export ZIP: ' + err.message, type: 'error' });
+            }
         } else {
             canvasRef.current?.exportImage(format, fileName);
         }
