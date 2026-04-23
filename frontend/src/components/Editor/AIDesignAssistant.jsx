@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, AlertCircle, Loader2, Wand2 } from 'lucide-react';
-import { api } from '../../store/useCanvasStore';
+import useCanvasStore, { api } from '../../store/useCanvasStore';
 
 const AIDesignAssistant = ({ canvasRef, projectId }) => {
     const [loading, setLoading] = useState(false);
@@ -9,6 +9,9 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
     const [error, setError] = useState('');
     const [assistantPrompt, setAssistantPrompt] = useState('');
 
+    const { saveBase64Assets } = useCanvasStore();
+    const [assets, setAssets] = useState([]);
+
     const handleAnalyze = async () => {
         if (!canvasRef.current) return;
 
@@ -16,6 +19,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
         setError('');
         setSuggestions([]);
         setUpdatedJson(null);
+        setAssets([]);
 
         try {
             const snapshot = canvasRef.current.getDesignSnapshot();
@@ -24,13 +28,13 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
             const res = await api.post('/ai/analyze-design', {
                 screenshot: snapshot.screenshot,
                 canvasJson: snapshot.json,
-                projectId,
                 userPrompt: assistantPrompt.trim()
             });
 
             if (res.data.success) {
                 setSuggestions(res.data.suggestions || []);
                 setUpdatedJson(res.data.updatedJson);
+                setAssets(res.data.assets || []);
             } else {
                 throw new Error(res.data.message || 'Analysis failed');
             }
@@ -39,6 +43,7 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
             setError(err.response?.data?.message || err.message || 'Failed to analyze design');
         } finally {
             setLoading(false);
+            setAssistantPrompt('');
         }
     };
 
@@ -46,10 +51,20 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
         if (!updatedJson || !canvasRef.current) return;
 
         try {
+            // 1. Save any new assets first
+            if (assets.length > 0) {
+                await saveBase64Assets(assets);
+            }
+
+            // 2. Load the design
             await canvasRef.current.loadDesign(updatedJson);
+            
+            // 3. Cleanup
             setUpdatedJson(null);
             setSuggestions([]);
+            setAssets([]);
         } catch (err) {
+            console.error('Apply AI Improvements Error:', err);
             setError('Failed to apply improvements: ' + err.message);
         }
     };

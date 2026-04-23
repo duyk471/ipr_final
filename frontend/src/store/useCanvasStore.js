@@ -216,6 +216,29 @@ const useCanvasStore = create((set, get) => ({
     },
 
     /**
+     * Save an array of base64 assets to the current project
+     */
+    saveBase64Assets: async (assets) => {
+        const { currentProjectHandle } = get();
+        if (!currentProjectHandle) throw new Error('No active project');
+
+        try {
+            const assetsDir = await getSubdirectory(currentProjectHandle, 'assets', true);
+            for (const asset of assets) {
+                const binaryString = atob(asset.base64);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                await writeFile(assetsDir, asset.fileName, bytes);
+            }
+        } catch (error) {
+            console.error('Failed to save base64 assets:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Create a new project locally
      */
     createProject: async (name, width = 1080, height = 1080) => {

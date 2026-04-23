@@ -39,53 +39,37 @@ const downloadImage = async (url) => {
 // Design Assistant Analysis
 export const analyzeDesign = async (req, res) => {
     try {
-        const { projectId, userPrompt } = req.body;
+        const { canvasJson, screenshot, userPrompt } = req.body;
 
-        if (!projectId) {
-            return res.status(400).json({ success: false, message: 'Missing projectId' });
-        }
-
-        const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
-        const indexPath = path.join(projectPath, 'index.json');
-        const previewPath = path.join(projectPath, 'preview.png');
-
-        if (!(await fs.pathExists(indexPath))) {
-            return res.status(404).json({ success: false, message: 'Project files not found. Please save your project first.' });
+        if (!canvasJson) {
+            return res.status(400).json({ success: false, message: 'Missing canvas JSON data' });
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey || apiKey === 'your_gemini_api_key_here') {
+        if (!apiKey) {
             return res.status(400).json({
                 success: false,
-                message: 'Gemini API Key is required for the AI Design Assistant. Please add it to backend/.env'
+                message: 'Gemini API Key is required. Please add it to backend/.env'
             });
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Using 2.0 or 1.5 flash depending on what's stable/available
         const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-        console.log(`Analyzing design for project ${projectId} using Gemini...`);
+        console.log(`Analyzing design using Gemini Vision...`);
 
-        // Read files from disk
-        const indexJson = await fs.readJson(indexPath);
         let base64Image = "";
-
-        if (await fs.pathExists(previewPath)) {
-            const imageBuffer = await fs.readFile(previewPath);
-            base64Image = imageBuffer.toString('base64');
-        } else if (req.body.screenshot) {
-            // Fallback to screenshot from body if preview.png doesn't exist yet
-            base64Image = req.body.screenshot.split(',')[1] || req.body.screenshot;
+        if (screenshot) {
+            base64Image = screenshot.split(',')[1] || screenshot;
         }
 
         if (!base64Image) {
-            return res.status(400).json({ success: false, message: 'No visual design data found (preview.png or screenshot)' });
+            return res.status(400).json({ success: false, message: 'No visual design data found (screenshot required)' });
         }
 
         const systemPrompt = `
             You are a professional graphic designer and UI/UX expert.
-            Review the attached design (preview.png) and its structure (index.json).
+            Review the attached design (screenshot) and its structure (JSON).
             ${userPrompt?.trim() ? `The user wants you to follow this additional creative direction: "${userPrompt.trim()}".` : 'No extra user direction was provided, so use your best professional judgment.'}
             
             TASKS:
@@ -94,11 +78,10 @@ export const analyzeDesign = async (req, res) => {
             3. Generate a modified version of the "layers" array that implements your best suggestions.
             
             REQUIREMENTS:
-            - Treat the user's additional creative direction as a high-priority instruction unless it conflicts with the project structure.
             - Keep the EXACT SAME object structure as Fabric.js found in the source JSON.
             - **IMPORTANT**: If you believe adding a NEW AI-generated image (e.g. element, person, object) or text/rect would improve the design, you CAN insert new layer objects into the "layers" array!
             - For NEW images: Set type: "image", leave out the "src" property completely, and instead include a property "prompt" with a highly detailed description of the image to generate!
-            - Return your response EQUIVALENT to this JSON format:
+            - Return your response in this JSON format:
             {
               "suggestions": ["suggestion 1", "suggestion 2", "suggestion 3"],
               "updatedJson": {
@@ -116,30 +99,22 @@ export const analyzeDesign = async (req, res) => {
                     mimeType: "image/png"
                 }
             },
-            { text: `SOURCE_PROJECT_JSON: ${JSON.stringify(indexJson)}` }
+            { text: `SOURCE_PROJECT_JSON: ${JSON.stringify(canvasJson)}` }
         ]);
 
         const responseText = result.response.text();
-
-        // Sanitize response to extract JSON
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-            throw new Error('AI failed to return valid JSON. Response was: ' + responseText);
-        }
+        if (!jsonMatch) throw new Error('AI failed to return valid JSON');
 
         const assistantRes = JSON.parse(jsonMatch[0]);
+        const assetsToReturn = [];
 
         // Post-process to generate new images if the AI suggested any
         if (assistantRes.updatedJson && Array.isArray(assistantRes.updatedJson.layers)) {
-            const assetsPath = path.join(projectPath, 'assets');
-            await fs.ensureDir(assetsPath);
-
             for (let i = 0; i < assistantRes.updatedJson.layers.length; i++) {
                 const layer = assistantRes.updatedJson.layers[i];
 
-                // If it's a new image requested by AI Assistant
                 if (layer.type === 'image' && !layer.src && layer.prompt) {
-                    console.log(`Assistant requested new image gen: ${layer.prompt}`);
                     try {
                         const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(layer.prompt + ", isolated on plain white background")}?nologo=true`;
                         const imgRes = await fetch(pollUrl);
@@ -147,22 +122,13 @@ export const analyzeDesign = async (req, res) => {
                             let imgBuf = Buffer.from(await imgRes.arrayBuffer());
 
                             // Transparent Background extraction
-                            const { data, info } = await sharp(imgBuf)
-                                .ensureAlpha()
-                                .raw()
-                                .toBuffer({ resolveWithObject: true });
-
-                            const w = info.width;
-                            const h = info.height;
-                            const threshold = 240;
-                            const visited = new Uint8Array(w * h);
-                            const queue = [];
-
+                            const { data, info } = await sharp(imgBuf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+                            const w = info.width, h = info.height, threshold = 240;
+                            const visited = new Uint8Array(w * h), queue = [];
                             const isBg = (x, y) => {
                                 const idx = (y * w + x) * 4;
                                 return data[idx] > threshold && data[idx + 1] > threshold && data[idx + 2] > threshold;
                             };
-
                             for (let x = 0; x < w; x++) {
                                 if (isBg(x, 0)) { visited[x] = 1; queue.push(x, 0); }
                                 if (isBg(x, h - 1)) { visited[(h - 1) * w + x] = 1; queue.push(x, h - 1); }
@@ -171,44 +137,29 @@ export const analyzeDesign = async (req, res) => {
                                 if (isBg(0, y)) { visited[y * w] = 1; queue.push(0, y); }
                                 if (isBg(w - 1, y)) { visited[y * w + (w - 1)] = 1; queue.push(w - 1, y); }
                             }
-
                             let head = 0;
                             while (head < queue.length) {
-                                const x = queue[head++];
-                                const y = queue[head++];
-                                const idx = y * w + x;
+                                const x = queue[head++], y = queue[head++], idx = y * w + x;
                                 data[idx * 4 + 3] = 0;
                                 const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
                                 for (const [nx, ny] of neighbors) {
                                     if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
                                         const nIdx = ny * w + nx;
-                                        if (!visited[nIdx] && isBg(nx, ny)) {
-                                            visited[nIdx] = 1;
-                                            queue.push(nx, ny);
-                                        }
+                                        if (!visited[nIdx] && isBg(nx, ny)) { visited[nIdx] = 1; queue.push(nx, ny); }
                                     }
                                 }
                             }
-
-                            imgBuf = await sharp(data, {
-                                raw: { width: w, height: h, channels: 4 }
-                            }).png().toBuffer();
+                            imgBuf = await sharp(data, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
 
                             const filename = `assistant_gen_${Date.now()}_${i}.png`;
-                            const filePath = path.join(assetsPath, filename);
-                            await fs.writeFile(filePath, imgBuf);
+                            assetsToReturn.push({ fileName: filename, base64: imgBuf.toString('base64') });
 
                             layer.src = `assets/${filename}`;
-                            layer.width = w;
-                            layer.height = h;
-                            // Reset scaling since we provided actual dimensions
-                            layer.scaleX = 500 / w;
-                            layer.scaleY = 500 / h;
+                            layer.width = w; layer.height = h;
+                            layer.scaleX = 500 / w; layer.scaleY = 500 / h;
                             delete layer.prompt;
                         }
-                    } catch (e) {
-                        console.error("Failed to generate assistant image:", e);
-                    }
+                    } catch (e) { console.error("Assistant image gen failed:", e); }
                 }
             }
         }
@@ -216,7 +167,8 @@ export const analyzeDesign = async (req, res) => {
         res.json({
             success: true,
             suggestions: assistantRes.suggestions,
-            updatedJson: assistantRes.updatedJson
+            updatedJson: assistantRes.updatedJson,
+            assets: assetsToReturn
         });
 
     } catch (error) {
