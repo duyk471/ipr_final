@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Type, Upload, Shapes, Sparkles, Wand2, Image } from 'lucide-react';
 import { api } from '../../store/useCanvasStore';
+import { uploadLocalAsset } from '../../services/localAssetService';
 
 const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) => {
     const fileInputRef = useRef(null);
@@ -17,13 +18,14 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
         formData.append('image', file);
 
         try {
-            const res = await api.post(`/projects/${projectId}/assets/upload`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            // Use local-first upload service
+            const assetInfo = await uploadLocalAsset(file);
+            
+            // Add to canvas with metadata for local path persistence
+            canvasRef.current?.addImage(assetInfo.url, {
+                originalPath: assetInfo.path,
+                source: "upload"
             });
-
-            if (res.data.success) {
-                canvasRef.current?.addImage(res.data.asset.displayUrl);
-            }
         } catch (error) {
             console.error('Upload failed:', error);
         }

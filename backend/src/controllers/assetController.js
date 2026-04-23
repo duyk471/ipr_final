@@ -67,49 +67,74 @@ export const removeAssetBackground = async (req, res) => {
     try {
         const { id: projectId } = req.params;
         const { imagePath } = req.body; 
+        
+        let inputSource;
+        let filenameBase = `nobg_${Date.now()}`;
+        let tempFilePath = null;
 
-        if (!imagePath) {
-            return res.status(400).json({ success: false, message: 'No image path provided' });
-        }
+        // Case 1: File is uploaded directly (local-first asset)
+        if (req.file) {
+            console.log(`[AI] Processing uploaded file for background removal`);
+            const projectAssetsPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets');
+            await fs.ensureDir(projectAssetsPath);
+            
+            // Save to temp file to ensure library can read it correctly
+            const tempName = `temp_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+            tempFilePath = path.join(projectAssetsPath, tempName);
+            await fs.writeFile(tempFilePath, req.file.buffer);
+            
+            inputSource = tempFilePath;
+            filenameBase = `nobg_${Date.now()}_${req.file.originalname.split('.')[0]}`;
+        } 
+        // Case 2: Reference to an existing server-side asset
+        else if (imagePath) {
+            console.log(`[AI] Received request to remove background for path: ${imagePath}`);
 
-        console.log(`[AI] Received request to remove background for: ${imagePath}`);
+            let cleanPath = imagePath;
+            try {
+                const urlObj = new URL(imagePath);
+                cleanPath = urlObj.pathname;
+            } catch(e) {
+                cleanPath = imagePath.split('?')[0];
+            }
 
-        let cleanPath = imagePath;
-        try {
-            const urlObj = new URL(imagePath);
-            cleanPath = urlObj.pathname; // Extract /storage/... from full http://localhost:5000/...
-        } catch(e) {
-            cleanPath = imagePath.split('?')[0];
-        }
+            let fullPath;
+            if (cleanPath.startsWith('/storage')) {
+                const relativeToStorage = cleanPath.replace(/^\/storage\//, '');
+                fullPath = path.resolve(STORAGE_ROOT, relativeToStorage);
+            } else {
+                fullPath = path.resolve(STORAGE_ROOT, 'projects', projectId, cleanPath);
+            }
 
-        let fullPath;
-        if (cleanPath.startsWith('/storage')) {
-            const relativeToStorage = cleanPath.replace(/^\/storage\//, '');
-            fullPath = path.resolve(STORAGE_ROOT, relativeToStorage);
+            if (!(await fs.pathExists(fullPath))) {
+                console.error(`[AI] Image not found at resolved path: ${fullPath}`);
+                return res.status(404).json({ success: false, message: `Image not found at ${fullPath}` });
+            }
+
+            console.log(`[AI] Removing background from resolved local path: ${fullPath}`);
+            inputSource = fullPath;
         } else {
-            fullPath = path.resolve(STORAGE_ROOT, 'projects', projectId, cleanPath);
+            return res.status(400).json({ success: false, message: 'No image provided (either file or path)' });
         }
-
-        if (!(await fs.pathExists(fullPath))) {
-            console.error(`[AI] Image not found at resolved path: ${fullPath}`);
-            return res.status(404).json({ success: false, message: `Image not found at ${fullPath}` });
-        }
-
-        console.log(`[AI] Removing background from resolved local path: ${fullPath}`);
         
         // Use Node.js version of the library
-        const blob = await removeBackground(fullPath);
-        const buffer = Buffer.from(await blob.arrayBuffer());
+        const blob = await removeBackground(inputSource);
+        const resultBuffer = Buffer.from(await blob.arrayBuffer());
+
+        // Clean up temp file if created
+        if (tempFilePath) {
+            await fs.remove(tempFilePath).catch(err => console.warn('Failed to remove temp file:', err));
+        }
 
         console.log(`[AI] Background removed successfully. Saving new asset...`);
 
         // Save as a new PNG asset
-        const filename = `nobg_${Date.now()}.png`;
+        const filename = `${filenameBase}.png`;
         const projectAssetsPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets');
         await fs.ensureDir(projectAssetsPath);
         
         const newPath = path.join(projectAssetsPath, filename);
-        await fs.writeFile(newPath, buffer);
+        await fs.writeFile(newPath, resultBuffer);
 
         const relativePath = `assets/${filename}`;
         const displayUrl = `/storage/projects/${projectId}/assets/${filename}`;
@@ -119,6 +144,10 @@ export const removeAssetBackground = async (req, res) => {
             asset: { relativePath, displayUrl } 
         });
     } catch (error) {
+        // Clean up temp file if created
+        if (tempFilePath) {
+            await fs.remove(tempFilePath).catch(err => console.warn('Failed to remove temp file in error block:', err));
+        }
         console.error('Background removal error stack:', error.stack || error);
         res.status(500).json({ success: false, message: 'AI Background Removal failed: ' + (error.message || String(error)) });
     }

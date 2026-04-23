@@ -18,7 +18,7 @@ import ImageLibraryPanel from '../components/Editor/ImageLibraryPanel';
 const Editor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { fetchProject, currentProject, isLoading, selectedObject } = useCanvasStore();
+    const { fetchProject, currentProject, isLoading, selectedObject, initializeWorkspace, cleanupAssetUrls, workspaceInitialized } = useCanvasStore();
     const { isDark, toggle } = useTheme();
 
     const [activeTab, setActiveTab] = useState('properties');
@@ -28,15 +28,34 @@ const Editor = () => {
     const [historyList, setHistoryList] = useState([]);
     const [showExportModal, setShowExportModal] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, title: '', message: '', isDestructive: true });
+    const [workspaceInitLoading, setWorkspaceInitLoading] = useState(true);
 
     const canvasRef = useRef(null);
     const historyDropdownRef = useRef(null);
 
+    // Initialize workspace and load project
     useEffect(() => {
-        if (id) {
-            fetchProject(id);
-        }
-    }, [id, fetchProject]);
+        const initializeAndFetch = async () => {
+            try {
+                // Initialize workspace if not already done
+                if (!workspaceInitialized) {
+                    await initializeWorkspace();
+                }
+                setWorkspaceInitLoading(false);
+
+                // Then fetch the project
+                if (id) {
+                    await fetchProject(id);
+                }
+            } catch (error) {
+                console.error('Failed to initialize workspace or fetch project:', error);
+                setWorkspaceInitLoading(false);
+                alert('Failed to load project. Please go back and try again.');
+            }
+        };
+
+        initializeAndFetch();
+    }, [id, workspaceInitialized, initializeWorkspace, fetchProject]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -47,6 +66,13 @@ const Editor = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Cleanup Object URLs when leaving the editor
+    useEffect(() => {
+        return () => {
+            cleanupAssetUrls();
+        };
+    }, [cleanupAssetUrls]);
 
     const fetchHistory = async () => {
         if (showHistory) {
@@ -96,6 +122,17 @@ const Editor = () => {
             setActiveTab('properties');
         }
     }, [selectedObject]);
+
+    if (workspaceInitLoading) {
+        return (
+            <div className="h-screen bg-biophilic-cream dark:bg-biophilic-dark-bg flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <div className="w-8 h-8 rounded-full border-4 border-biophilic-cream-dark dark:border-biophilic-dark-border border-t-biophilic-green dark:border-t-biophilic-dark-green animate-spin mx-auto" />
+                    <p className="text-biophilic-bark dark:text-biophilic-dark-text">Loading project...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (isLoading || !currentProject) {
         return (

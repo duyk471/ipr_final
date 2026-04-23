@@ -21,12 +21,21 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                 removeBackground: transparent
             });
             if (res.data.success && res.data.asset) {
-                // Add to canvas with metadata
-                canvasRef.current?.addImage(res.data.asset.displayUrl, {
-                    source: res.data.metadata?.source || 'gemini-ai',
-                    prompt: prompt
-                });
-                setPrompt(''); // Clear after success
+                try {
+                    const { persistBackendAsset } = await import('../../services/localAssetService');
+                    const assetInfo = await persistBackendAsset(res.data.asset.displayUrl);
+                    
+                    // Add to canvas with metadata
+                    canvasRef.current?.addImage(assetInfo.url, {
+                        source: res.data.metadata?.source || 'gemini-ai',
+                        prompt: prompt,
+                        originalPath: assetInfo.path
+                    });
+                    setPrompt(''); // Clear after success
+                } catch (saveError) {
+                    console.error('Failed to save AI image locally:', saveError);
+                    setError('Image generated but failed to save to workspace.');
+                }
             } else {
                 setError('Failed to generate image. Please try again.');
             }

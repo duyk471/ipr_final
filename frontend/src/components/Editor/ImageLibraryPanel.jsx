@@ -175,11 +175,38 @@ const ImageLibraryPanel = ({ canvasRef }) => {
         if (!canvasRef.current || loadingId) return;
         setLoadingId(img.id);
         try {
+            // For local-first storage: download external images and save locally
+            let imageUrl = img.url;
+
+            // Check if this is an external URL (http/https)
+            if (imageUrl.startsWith('http')) {
+                try {
+                    // Download the image
+                    const response = await fetch(imageUrl);
+                    const blob = await response.blob();
+
+                    // Generate filename from the label or URL
+                    const fileName = `${img.label.replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+                    const file = new File([blob], fileName, { type: blob.type });
+
+                    // Upload to local project storage
+                    const { uploadLocalAsset } = await import('../../services/localAssetService');
+                    const assetInfo = await uploadLocalAsset(file);
+
+                    // Use the Object URL for display
+                    imageUrl = assetInfo.url;
+                    
+                    // Store the relative path for serialization
+                    img.metadata = { ...img.metadata, originalPath: assetInfo.path };
+                } catch (downloadError) {
+                    console.warn('Failed to download and save image locally, using external URL:', downloadError);
+                    // Fall back to using the external URL directly
+                }
+            }
+
             await canvasRef.current.addImage(
-                // addImage expects a relative /storage/... path OR a full URL
-                // Pass full URL directly; FabricCanvas.addImage handles fromURL
-                img.url,
-                { source: img.label }
+                imageUrl,
+                { source: img.label, ...img.metadata }
             );
         } catch (err) {
             console.error('Failed to add image:', err);

@@ -9,6 +9,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/upload', upload.single('image'), uploadAsset);
 router.post('/pasted', handlePastedImage);
-router.post('/remove-bg', removeAssetBackground);
+router.post('/remove-bg', upload.single('image'), removeAssetBackground);
 
 export default router;

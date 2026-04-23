@@ -3,6 +3,7 @@ import * as fabric from 'fabric';
 import { Trash2, Copy, MoreVertical, RotateCw, Sparkles, FlipHorizontal, FlipVertical, Layers } from 'lucide-react';
 import useCanvasStore from '../../store/useCanvasStore';
 import { api } from '../../store/useCanvasStore';
+import { uploadLocalAsset, uploadPastedImage, persistBackendAsset } from '../../services/localAssetService';
 
 const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const canvasEl = useRef(null);
@@ -98,39 +99,69 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
         try {
             let src = activeObject.src || activeObject.getSrc();
+            let res;
 
-            const res = await api.post(`/projects/${projectId}/assets/remove-bg`, {
-                imagePath: src
-            });
+            // For local assets (blob URLs), we must upload the file data
+            if (src.startsWith('blob:')) {
+                const response = await fetch(src);
+                const blob = await response.blob();
+                const formData = new FormData();
+                formData.append('image', blob, 'image.png');
+
+                res = await api.post(`/projects/${projectId}/assets/remove-bg`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            } else {
+                // For existing backend assets, we can just send the path
+                res = await api.post(`/projects/${projectId}/assets/remove-bg`, {
+                    imagePath: src
+                });
+            }
 
             if (res.data.success) {
-                const newUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
+                try {
+                    // Persist the background-removed image to local workspace
+                    const assetInfo = await persistBackendAsset(res.data.asset.displayUrl);
+                    
+                    const imgEl = new Image();
+                    imgEl.crossOrigin = 'anonymous';
+                    imgEl.onload = () => {
+                        // Restore filters and opacity before swapping element
+                        clearInterval(pulseInterval);
+                        activeObject.filters = originalFilters;
+                        activeObject.applyFilters();
+                        activeObject.set('opacity', originalOpacity);
 
-                const imgEl = new Image();
-                imgEl.crossOrigin = 'anonymous';
-                imgEl.onload = () => {
-                    // Restore filters and opacity before swapping element
+                        activeObject.setElement(imgEl);
+                        
+                        // Update metadata with local path
+                        activeObject.set('metadata', { 
+                            ...activeObject.metadata, 
+                            originalPath: assetInfo.path 
+                        });
+                        
+                        // Update src to the blob URL for immediate display
+                        activeObject.set('src', assetInfo.url);
+                        
+                        fabricCanvas.current.renderAll();
+                        updateSelectedState();
+                        queueSave();
+                        setIsRemovingBg(false);
+                    };
+                    imgEl.onerror = () => {
+                        throw new Error('Failed to load processed image');
+                    };
+                    imgEl.src = assetInfo.url;
+                } catch (persistError) {
+                    console.error('Failed to persist background-removed image:', persistError);
                     clearInterval(pulseInterval);
                     activeObject.filters = originalFilters;
                     activeObject.applyFilters();
                     activeObject.set('opacity', originalOpacity);
-
-                    activeObject.setElement(imgEl);
-                    activeObject.set('src', res.data.asset.displayUrl);
-                    fabricCanvas.current.renderAll();
-                    updateSelectedState();
-                    queueSave();
-                    setIsRemovingBg(false);
-                };
-                imgEl.onerror = () => {
-                    clearInterval(pulseInterval);
-                    activeObject.filters = originalFilters;
-                    activeObject.applyFilters();
-                    activeObject.set('opacity', originalOpacity);
                     fabricCanvas.current.renderAll();
                     setIsRemovingBg(false);
-                };
-                imgEl.src = newUrl;
+                    alert('Background removal succeeded but failed to save image locally.');
+                }
             } else {
                 throw new Error('BG removal failed');
             }
@@ -352,10 +383,25 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             if (!fabricCanvas.current) return;
             try {
                 const canvas = fabricCanvas.current;
-                // If url is already absolute (e.g. https://images.unsplash.com/...), use it directly.
-                // Otherwise treat as a relative backend path.
-                const isAbsolute = /^https?:\/\//i.test(url) || url.startsWith('data:');
-                const fullUrl = isAbsolute ? url : `http://localhost:5000${url}?t=${Date.now()}`;
+                // Support three types of URLs:
+                // 1. Absolute HTTP URLs (from external sources)
+                // 2. Object URLs (blob: URLs from local storage)
+                // 3. Relative paths (legacy backend URLs - for backward compat)
+                const isAbsolute = /^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:');
+                
+                // If not absolute and not starting with assets/, it might be a legacy backend path
+                let fullUrl = url;
+                if (!isAbsolute) {
+                    if (url.startsWith('assets/')) {
+                        // For local relative paths, get Object URL
+                        const { getAssetObjectUrl } = useCanvasStore.getState();
+                        fullUrl = await getAssetObjectUrl(url);
+                    } else {
+                        // Legacy backend path
+                        fullUrl = `http://localhost:5000${url.startsWith('/') ? '' : '/'}${url}?t=${Date.now()}`;
+                    }
+                }
+                
                 const activeObject = canvas.getActiveObject();
                 if (activeObject && activeObject.isFrame) {
                     fabric.util.loadImage(fullUrl, (imgElement) => {
@@ -381,7 +427,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                             isFrameFilled: true
                         });
                         if (metadata) {
-                            activeObject.set('metadata', { ...activeObject.metadata, ...metadata });
+                            activeObject.set('metadata', { ...activeObject.metadata, ...metadata, originalPath: url });
                         }
                         canvas.renderAll();
                         queueSave();
@@ -391,12 +437,32 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
                 const img = await fabric.FabricImage.fromURL(fullUrl, { crossOrigin: 'anonymous' });
 
+                // Auto-scale to fit canvas if too large
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+                if (img.width > canvasWidth * 0.8 || img.height > canvasHeight * 0.8) {
+                    const scale = Math.min(canvasWidth * 0.8 / img.width, canvasHeight * 0.8 / img.height);
+                    img.set({ scaleX: scale, scaleY: scale });
+                }
+
+                // Center origin for easier placement
+                img.set({
+                    originX: 'center',
+                    originY: 'center',
+                    left: canvasWidth / 2,
+                    top: canvasHeight / 2
+                });
+
                 if (metadata) {
-                    img.set('metadata', metadata);
+                    // Store the original URL path for later retrieval
+                    // If it's a blob URL, we prefer metadata.originalPath (which should be the relative path)
+                    img.set('metadata', { ...metadata, originalPath: metadata.originalPath || (url.startsWith('blob:') ? null : url) });
+                } else {
+                    img.set('metadata', { originalPath: url.startsWith('blob:') ? null : url });
                 }
 
                 canvas.add(img);
-                canvas.centerObject(img);
+                // canvas.centerObject(img); // Already centered via left/top + origin center
                 img.setCoords();
                 canvas.bringObjectToFront(img);
                 canvas.setActiveObject(img);
@@ -723,26 +789,32 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             // Compatibility check: Our project uses 'layers', Fabric uses 'objects'
             const objects = json.layers || json.objects || (Array.isArray(json) ? json : []);
 
-            const resolvePath = (path) => {
+            const resolvePath = async (path) => {
                 if (!path || typeof path !== 'string') return path;
-                if (path.startsWith('http') || path.startsWith('data:')) return path;
-                // Handle relative paths from storage
-                const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-                return `http://localhost:5000/storage/projects/${projectId}/${cleanPath}?t=${Date.now()}`;
+                if (path.startsWith('blob:') || path.startsWith('http') || path.startsWith('data:')) return path;
+                
+                // For local relative paths, try to get an Object URL from the store
+                try {
+                    const { getAssetObjectUrl } = useCanvasStore.getState();
+                    return await getAssetObjectUrl(path);
+                } catch (error) {
+                    console.warn(`Failed to resolve local path '${path}':`, error);
+                    return path;
+                }
             };
 
-            const filteredLayers = objects.map((obj) => {
+            const filteredLayers = await Promise.all(objects.map(async (obj) => {
                 const newObj = { ...obj };
                 if (newObj.src) {
-                    newObj.src = resolvePath(newObj.src);
+                    newObj.src = await resolvePath(newObj.src);
                     newObj.crossOrigin = 'anonymous';
                 }
                 // Handle Smart Frames (Patterns)
                 if (newObj.fill && typeof newObj.fill === 'object' && newObj.fill.source) {
-                    newObj.fill.source = resolvePath(newObj.fill.source);
+                    newObj.fill.source = await resolvePath(newObj.fill.source);
                 }
                 return newObj;
-            });
+            }));
 
             await fabricCanvas.current.loadFromJSON({
                 objects: filteredLayers.filter(o => o !== null),
@@ -792,24 +864,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const rawJson = fabricCanvas.current.toObject(['id', 'metadata']);
             const dataUrl = fabricCanvas.current.toDataURL({ format: 'png', quality: 0.5, multiplier: 0.5 });
 
-            // Helper to strip backend storage prefix back to relative
-            const stripPath = (path) => {
-                if (!path || typeof path !== 'string') return path;
-                const prefix = `http://localhost:5000/storage/projects/${projectId}/`;
-                if (path.startsWith(prefix)) {
-                    return path.replace(prefix, '').split('?')[0];
-                }
-                return path;
-            };
-
-            const cleanObjects = rawJson.objects.map(obj => {
-                const newObj = { ...obj };
-                if (newObj.src) newObj.src = stripPath(newObj.src);
-                if (newObj.fill && typeof newObj.fill === 'object' && newObj.fill.source) {
-                    newObj.fill.source = stripPath(newObj.fill.source);
-                }
-                return newObj;
-            });
+            const layers = rawJson.objects;
 
             setCanvasData({
                 ...canvasData,
@@ -818,7 +873,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     height: fabricCanvas.current.height,
                     backgroundColor: fabricCanvas.current.backgroundColor,
                 },
-                layers: cleanObjects
+                layers: layers
             });
             await saveProjectState(dataUrl);
         }, 1000);
@@ -898,6 +953,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
             // Keyboard Listeners
             const handleKeyDown = (e) => {
+                if (!fabricCanvas.current) return;
                 if (e.key === ' ' || e.code === 'Space') {
                     // Check if user is typing in an input field or textarea
                     const target = e.target;
@@ -910,7 +966,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     }
 
                     // Check if user is editing text in canvas - if so, allow normal space
-                    const activeObject = fabricCanvas.current.getActiveObject();
+                    const activeObject = fabricCanvas.current?.getActiveObject();
                     if (activeObject && activeObject.type === 'i-text' && activeObject.isEditing) {
                         return; // Don't interfere with text editing
                     }
@@ -938,7 +994,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     }
                 }
                 if (e.key === 'Control') {
-                    fabricCanvas.current.uniformScaling = true;
+                    if (fabricCanvas.current) {
+                        fabricCanvas.current.uniformScaling = true;
+                    }
                 }
                 // Copy with Ctrl+C
                 if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
@@ -1102,13 +1160,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         return;
                     }
 
-                    const activeObject = fabricCanvas.current.getActiveObject();
-                    if (activeObject && activeObject.type !== 'i-text' || (activeObject.type === 'i-text' && !activeObject.isEditing)) {
+                    const activeObject = fabricCanvas.current?.getActiveObject();
+                    if (activeObject && (activeObject.type !== 'i-text' || !activeObject.isEditing)) {
                         deleteActiveObject();
                     }
                 }
             };
             const handleKeyUp = (e) => {
+                if (!fabricCanvas.current) return;
                 if (e.key === ' ' || e.code === 'Space') {
                     // Check if user is typing in an input field or textarea
                     const target = e.target;
@@ -1140,6 +1199,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
             // Handle Paste Events
             const handlePasteEvent = async (e) => {
+                if (!fabricCanvas.current) return;
                 const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
                 if (!items) return;
                 for (const item of items) {
@@ -1150,21 +1210,19 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         reader.onload = async (event) => {
                             const base64data = event.target.result;
                             try {
-                                const res = await api.post(`/projects/${projectId}/assets/pasted`, {
-                                    imageBase64: base64data
+                                const result = await uploadPastedImage(blob);
+                                const img = await fabric.FabricImage.fromURL(result.url, { crossOrigin: 'anonymous' });
+                                img.set('metadata', { 
+                                    source: "clipboard",
+                                    originalPath: result.path 
                                 });
-                                if (res.data.success) {
-                                    const fullUrl = `http://localhost:5000${res.data.asset.displayUrl}?t=${Date.now()}`;
-                                    const img = await fabric.FabricImage.fromURL(fullUrl, { crossOrigin: 'anonymous' });
-                                    img.set('metadata', { source: "clipboard" });
-                                    fabricCanvas.current.add(img);
-                                    fabricCanvas.current.centerObject(img);
-                                    img.setCoords();
-                                    fabricCanvas.current.bringObjectToFront(img);
-                                    fabricCanvas.current.setActiveObject(img);
-                                    fabricCanvas.current.renderAll();
-                                    queueSave();
-                                }
+                                fabricCanvas.current.add(img);
+                                fabricCanvas.current.centerObject(img);
+                                img.setCoords();
+                                fabricCanvas.current.bringObjectToFront(img);
+                                fabricCanvas.current.setActiveObject(img);
+                                fabricCanvas.current.renderAll();
+                                queueSave();
                             } catch (err) {
                                 console.error("Paste upload error:", err);
                             }
@@ -1258,12 +1316,11 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             }
 
             // Drag and Drop (Native)
-            const handleNativeDrop = (e) => {
+            const handleNativeDrop = async (e) => {
                 e.preventDefault();
                 const file = e.dataTransfer?.files?.[0];
                 if (file && file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (f) => {
+                    try {
                         const imgRect = canvasEl.current.getBoundingClientRect();
                         const x = e.clientX - imgRect.left;
                         const y = e.clientY - imgRect.top;
@@ -1273,7 +1330,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
                         const target = fabricCanvas.current.getObjects().reverse().find(obj => obj.isFrame && obj.containsPoint(pointer));
 
-                        fabric.util.loadImage(f.target.result, (imgElement) => {
+                        const result = await uploadLocalAsset(file);
+                        
+                        fabric.util.loadImage(result.url, (imgElement) => {
                             if (target) {
                                 const pattern = new fabric.Pattern({ source: imgElement, repeat: 'no-repeat' });
                                 const scaleX = target.width / imgElement.width;
@@ -1282,18 +1341,29 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                 const offsetX = (target.width - imgElement.width * scale) / 2;
                                 const offsetY = (target.height - imgElement.height * scale) / 2;
                                 pattern.patternTransform = [scale, 0, 0, scale, offsetX, offsetY];
-                                target.set({ fill: pattern, stroke: null, strokeWidth: 0, isFrameFilled: true });
+                                target.set({ 
+                                    fill: pattern, 
+                                    stroke: null, 
+                                    strokeWidth: 0, 
+                                    isFrameFilled: true,
+                                    metadata: { ...target.metadata, originalPath: result.path }
+                                });
                             } else {
                                 const img = new fabric.FabricImage(imgElement);
-                                img.set({ left: pointer.x, top: pointer.y });
+                                img.set({ 
+                                    left: pointer.x, 
+                                    top: pointer.y,
+                                    metadata: { originalPath: result.path }
+                                });
                                 fabricCanvas.current.add(img);
                                 fabricCanvas.current.setActiveObject(img);
                             }
                             fabricCanvas.current.renderAll();
                             queueSave();
                         }, null, 'anonymous');
-                    };
-                    reader.readAsDataURL(file);
+                    } catch (err) {
+                        console.error('Failed to upload dropped file:', err);
+                    }
                 }
             };
 
@@ -1492,24 +1562,30 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             });
 
             if (canvasData?.layers?.length > 0) {
-                const resolvePath = (path) => {
+                const resolvePath = async (path) => {
                     if (!path || typeof path !== 'string') return path;
-                    if (path.startsWith('http') || path.startsWith('data:')) return path;
-                    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-                    return `http://localhost:5000/storage/projects/${projectId}/${cleanPath}?t=${Date.now()}`;
+                    if (path.startsWith('blob:') || path.startsWith('http') || path.startsWith('data:')) return path;
+                    
+                    try {
+                        const { getAssetObjectUrl } = useCanvasStore.getState();
+                        return await getAssetObjectUrl(path);
+                    } catch (error) {
+                        console.warn(`Failed to resolve local path '${path}':`, error);
+                        return path;
+                    }
                 };
 
-                const cleanLayers = canvasData.layers.map((obj) => {
+                const cleanLayers = await Promise.all(canvasData.layers.map(async (obj) => {
                     const newObj = { ...obj };
                     if (newObj.src) {
-                        newObj.src = resolvePath(newObj.src);
+                        newObj.src = await resolvePath(newObj.src);
                         newObj.crossOrigin = 'anonymous';
                     }
                     if (newObj.fill && typeof newObj.fill === 'object' && newObj.fill.source) {
-                        newObj.fill.source = resolvePath(newObj.fill.source);
+                        newObj.fill.source = await resolvePath(newObj.fill.source);
                     }
                     return newObj;
-                });
+                }));
 
                 if (fabricCanvas.current) {
                     try {
