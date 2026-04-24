@@ -9,6 +9,9 @@ import {
     writeFile,
     getFileAsObjectURL,
     getSubdirectory,
+    isNativeFileSystemSupported,
+    isUsingNativePersistentStorage,
+    exportProjectAsBundle,
 } from '../services/localFilesystemService';
 import { scanProjectsInWorkspace, getProjectByIdLocal, getProjectHistory } from '../services/projectScannerService';
 
@@ -651,6 +654,66 @@ const useCanvasStore = create((set, get) => ({
             console.error('Frontend Export failed:', error);
             throw error;
         }
+    },
+
+    /**
+     * Save and export project for non-native browsers (Firefox/Safari)
+     * On native browsers, just saves normally
+     * On non-native browsers, triggers an export download
+     */
+    saveAndExportProject: async (previewBase64 = null) => {
+        try {
+            const { currentProject, canvasData, currentProjectHandle } = get();
+            if (!currentProject?.id || !canvasData || !currentProjectHandle) {
+                throw new Error('No project to save');
+            }
+
+            // First, save the project locally
+            const processedData = stripObjectUrlsFromProject(canvasData);
+            processedData.projectInfo.updatedAt = new Date().toISOString();
+            await writeJSONFile(currentProjectHandle, 'index.json', processedData);
+
+            if (previewBase64) {
+                const base64Data = previewBase64.replace(/^data:image\/\w+;base64,/, '');
+                const binaryString = atob(base64Data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                await writeFile(currentProjectHandle, 'preview.png', bytes);
+            }
+
+            // If using non-native browser, trigger export
+            if (!isUsingNativePersistentStorage(currentProjectHandle)) {
+                await exportProjectAsBundle(currentProjectHandle, currentProject.name || 'project');
+            }
+
+            set(state => ({
+                currentProject: {
+                    ...state.currentProject,
+                    updatedAt: new Date().toISOString()
+                }
+            }));
+
+            return processedData;
+        } catch (error) {
+            console.error('Failed to save and export project:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Check if the browser supports native persistent file system
+     */
+    hasNativePersistentStorage: () => isNativeFileSystemSupported(),
+
+    /**
+     * Get current workspace storage type (native vs fallback)
+     */
+    getStorageType: () => {
+        const { workspaceHandle } = get();
+        if (!workspaceHandle) return 'none';
+        return isUsingNativePersistentStorage(workspaceHandle) ? 'native' : 'fallback';
     },
 }));
 

@@ -1,33 +1,69 @@
 /**
- * Local Filesystem Service - Abstracts Web File System Access API
- * Handles reading/writing files and directories in the workspace
+ * Local Filesystem Service - Cross-browser support with browser-fs-access
+ * Handles reading/writing files and directories with fallback for Firefox/Safari
  */
 
-import { saveWorkspaceHandle, getWorkspaceHandle, saveWorkspaceMetadata } from './indexedDBService';
+import { directoryOpen, fileOpen, fileSave, supported as browserFsAccessSupported } from 'browser-fs-access';
+import { saveWorkspaceHandle, getWorkspaceHandle, getWorkspaceHandleMetadata, saveWorkspaceMetadata, clearWorkspaceHandle } from './indexedDBService';
+import { AbstractDirectoryHandle, isNativeAPISupported } from './filesystemAbstractionLayer';
+
+/**
+ * Check if native File System Access API is supported (Chromium)
+ * @returns {boolean}
+ */
+export const isNativeFileSystemSupported = () => {
+    return isNativeAPISupported();
+};
+
+/**
+ * Check if any file system API is supported (native or via fallback)
+ * @returns {boolean}
+ */
+export const isFileSystemAccessSupported = () => {
+    return isNativeAPISupported() || browserFsAccessSupported;
+};
 
 /**
  * Request a directory handle from the user
  * Persists the handle in IndexedDB for later access
- * @returns {Promise<FileSystemDirectoryHandle>}
+ * Uses browser-fs-access for cross-browser compatibility
+ * @returns {Promise<AbstractDirectoryHandle>}
  */
 export const requestWorkspaceDirectory = async () => {
     if (!isFileSystemAccessSupported()) {
-        throw new Error('Your browser does not support the File System Access API. Please use a modern browser like Chrome or Edge, and ensure you are using a secure connection (HTTPS or localhost).');
+        throw new Error('Your browser does not support file system access. Please use a modern browser (Chrome, Edge, Firefox, or Safari) and ensure you are using a secure connection (HTTPS or localhost).');
     }
 
     try {
-        const handle = await window.showDirectoryPicker({
-            id: 'photo-editor-workspace',
-            mode: 'readwrite',
-        });
+        let handle;
+        let isNative = false;
+
+        if (isNativeAPISupported()) {
+            // Chromium: Use native API directly to get a persistent handle
+            const nativeHandle = await window.showDirectoryPicker({
+                mode: 'readwrite',
+            });
+            // Wrap native handle in abstract wrapper
+            handle = new AbstractDirectoryHandle(nativeHandle, null, true);
+            isNative = true;
+        } else {
+            // Firefox/Safari: Use fallback (returns array of files)
+            const files = await directoryOpen({
+                recursive: true,
+                mode: 'readwrite',
+            });
+            handle = new AbstractDirectoryHandle(null, files, false);
+            isNative = false;
+        }
 
         // Save the handle in IndexedDB for persistence
-        await saveWorkspaceHandle(handle);
+        await saveWorkspaceHandle(handle, isNative);
 
         // Save metadata
         await saveWorkspaceMetadata({
             selectedAt: new Date().toISOString(),
-            name: handle.name,
+            name: handle.name || 'workspace',
+            isNative,
         });
 
         return handle;
@@ -42,55 +78,88 @@ export const requestWorkspaceDirectory = async () => {
 
 /**
  * Get the workspace directory handle from storage
- * @returns {Promise<FileSystemDirectoryHandle|null>}
+ * @returns {Promise<AbstractDirectoryHandle|null>}
  */
 export const getWorkspaceDirectory = async () => {
     try {
         const savedHandle = await getWorkspaceHandle();
-        if (savedHandle) {
-            // Verify permission is still granted.
-
-            const permission = await savedHandle.queryPermission({ mode: 'readwrite' });
-            if (permission === 'granted') {
-                return savedHandle;
-            }
-            // We have a handle but no permission. Return null to trigger UI re-auth
+        const metadata = await getWorkspaceHandleMetadata();
+        
+        if (!savedHandle) {
             return null;
         }
+
+        // Use metadata to determine if this was a native handle
+        const isNative = metadata?.isNative === true;
+
+        if (isNative && savedHandle) {
+            // Native handle retrieved from IndexedDB
+            try {
+                // Defensive check: ensure queryPermission exists
+                if (savedHandle && typeof savedHandle.queryPermission === 'function') {
+                    const permission = await savedHandle.queryPermission({ mode: 'readwrite' });
+                    if (permission === 'granted') {
+                        // Wrap native handle in AbstractDirectoryHandle
+                        return new AbstractDirectoryHandle(savedHandle, null, true);
+                    }
+                } else {
+                    console.warn('Saved handle is missing queryPermission method. It may be corrupted or an old version.');
+                }
+            } catch (permError) {
+                console.warn('Failed to verify permission on native handle:', permError);
+            }
+            // Permission denied or error, clear and return null
+            await clearWorkspaceHandle();
+            return null;
+        } else if (!isNative) {
+            // Fallback mode - file array can't be persisted across sessions
+            // Return null to prompt user to reconnect
+            return null;
+        }
+
+        return null;
     } catch (error) {
         console.warn('Failed to retrieve saved workspace handle:', error);
+        return null;
     }
-    return null;
 };
 
 /**
  * Check if we have permission for a handle
- * @param {FileSystemDirectoryHandle} handle 
+ * @param {AbstractDirectoryHandle} handle 
  * @returns {Promise<boolean>}
  */
 export const verifyPermission = async (handle) => {
     if (!handle) return false;
-    const permission = await handle.queryPermission({ mode: 'readwrite' });
-    return permission === 'granted';
+    // Check if it's an AbstractDirectoryHandle or a raw FileSystemHandle
+    if (typeof handle.queryPermission === 'function') {
+        const permission = await handle.queryPermission({ mode: 'readwrite' });
+        return permission === 'granted';
+    }
+    return false;
 };
 
 /**
  * Request permission for a handle (must be called from user gesture)
- * @param {FileSystemDirectoryHandle} handle 
+ * @param {AbstractDirectoryHandle} handle 
  * @returns {Promise<boolean>}
  */
 export const requestWorkspacePermission = async (handle) => {
     if (!handle) return false;
-    const result = await handle.requestPermission({ mode: 'readwrite' });
-    return result === 'granted';
+    // Check if it's an AbstractDirectoryHandle or a raw FileSystemHandle
+    if (typeof handle.requestPermission === 'function') {
+        const result = await handle.requestPermission({ mode: 'readwrite' });
+        return result === 'granted';
+    }
+    return false;
 };
 
 /**
  * Get a subdirectory handle, creating it if it doesn't exist
- * @param {FileSystemDirectoryHandle} parentHandle - Parent directory handle
+ * @param {AbstractDirectoryHandle} parentHandle - Parent directory handle
  * @param {string} dirName - Name of subdirectory
  * @param {boolean} create - Whether to create if doesn't exist
- * @returns {Promise<FileSystemDirectoryHandle>}
+ * @returns {Promise<AbstractDirectoryHandle>}
  */
 export const getSubdirectory = async (parentHandle, dirName, create = true) => {
     try {
@@ -103,7 +172,7 @@ export const getSubdirectory = async (parentHandle, dirName, create = true) => {
 
 /**
  * Read a JSON file from a directory
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} fileName - Name of file
  * @returns {Promise<Object>}
  */
@@ -121,7 +190,7 @@ export const readJSONFile = async (dirHandle, fileName) => {
 
 /**
  * Write a JSON file to a directory
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} fileName - Name of file
  * @param {Object} data - Data to write
  * @returns {Promise<void>}
@@ -140,7 +209,7 @@ export const writeJSONFile = async (dirHandle, fileName, data) => {
 
 /**
  * Write a Blob/File to a directory
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} fileName - Name of file
  * @param {Blob|ArrayBuffer} data - Data to write
  * @returns {Promise<void>}
@@ -159,7 +228,7 @@ export const writeFile = async (dirHandle, fileName, data) => {
 
 /**
  * Read a file and return as Blob
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} fileName - Name of file
  * @returns {Promise<Blob>}
  */
@@ -177,7 +246,7 @@ export const readFileAsBlob = async (dirHandle, fileName) => {
 
 /**
  * List all entries in a directory
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @returns {Promise<Array>} Array of {name, kind, handle}
  */
 export const listDirectory = async (dirHandle) => {
@@ -199,7 +268,7 @@ export const listDirectory = async (dirHandle) => {
 
 /**
  * Check if a file exists in a directory
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} fileName - Name of file
  * @returns {Promise<boolean>}
  */
@@ -214,7 +283,7 @@ export const fileExists = async (dirHandle, fileName) => {
 
 /**
  * Check if a directory exists in a directory
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} dirName - Name of directory
  * @returns {Promise<boolean>}
  */
@@ -229,7 +298,7 @@ export const directoryExists = async (dirHandle, dirName) => {
 
 /**
  * Delete a file from a directory
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} fileName - Name of file
  * @returns {Promise<void>}
  */
@@ -244,7 +313,7 @@ export const deleteFile = async (dirHandle, fileName) => {
 
 /**
  * Delete a directory recursively
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} dirName - Name of directory
  * @returns {Promise<void>}
  */
@@ -259,7 +328,8 @@ export const deleteDirectory = async (dirHandle, dirName) => {
 
 /**
  * Get a file from a directory as a Data URL for use in canvas
- * @param {FileSystemDirectoryHandle} dirHandle - Directory handle
+ * Handles both native handles and fallback file objects
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
  * @param {string} filePath - Path to file (e.g., 'assets/image.png')
  * @returns {Promise<string>} Data URL or Object URL
  */
@@ -285,9 +355,9 @@ export const getFileAsObjectURL = async (dirHandle, filePath) => {
 
 /**
  * Create a project directory structure
- * @param {FileSystemDirectoryHandle} workspaceHandle - Workspace directory handle
+ * @param {AbstractDirectoryHandle} workspaceHandle - Workspace directory handle
  * @param {string} projectId - Project UUID
- * @returns {Promise<FileSystemDirectoryHandle>} Project directory handle
+ * @returns {Promise<AbstractDirectoryHandle>} Project directory handle
  */
 export const createProjectDirectoryStructure = async (workspaceHandle, projectId) => {
     try {
@@ -302,11 +372,28 @@ export const createProjectDirectoryStructure = async (workspaceHandle, projectId
 };
 
 /**
- * Check browser support for File System Access API
+ * Export project for non-native browsers (Firefox/Safari)
+ * Triggers download of project as JSON bundle
+ * @param {AbstractDirectoryHandle} dirHandle - Directory handle
+ * @param {string} projectName - Project name for export file
+ * @returns {Promise<void>}
+ */
+export const exportProjectAsBundle = async (dirHandle, projectName = 'project') => {
+    if (!dirHandle.isNative) {
+        // For non-native browsers, trigger export
+        const { triggerProjectExport } = await import('./filesystemAbstractionLayer');
+        await triggerProjectExport(dirHandle, projectName);
+    } else {
+        // For native browsers, we have persistent storage, no export needed
+        console.log('Native browser - persistent storage available, export not needed');
+    }
+};
+
+/**
+ * Check if using native persistent storage
+ * @param {AbstractDirectoryHandle} handle
  * @returns {boolean}
  */
-export const isFileSystemAccessSupported = () => {
-    return typeof window !== 'undefined' &&
-        'showDirectoryPicker' in window &&
-        'FileSystemDirectoryHandle' in window;
+export const isUsingNativePersistentStorage = (handle) => {
+    return handle && handle.isNative === true;
 };
