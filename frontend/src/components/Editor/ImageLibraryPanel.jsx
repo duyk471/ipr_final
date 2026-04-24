@@ -264,7 +264,10 @@ const ImageLibraryPanel = ({ canvasRef }) => {
                 }
             }
 
-            await canvasRef.current.addImage(imageUrl, { source: img.source });
+            await canvasRef.current.addImage(imageUrl, { 
+                source: img.source,
+                originalPath: assetInfo.path
+            });
         } catch (err) {
             console.error('Failed to add image:', err);
         } finally {

@@ -717,8 +717,9 @@ export function stripObjectUrlsFromProject(projectData) {
     delete processed.handle;
     delete processed.projectHandle;
 
-    if (processed.layers && Array.isArray(processed.layers)) {
-        for (const layer of processed.layers) {
+    const layers = processed.layers || processed.objects;
+    if (layers && Array.isArray(layers)) {
+        for (const layer of layers) {
             // Remove handles from layers too
             delete layer.handle;
             

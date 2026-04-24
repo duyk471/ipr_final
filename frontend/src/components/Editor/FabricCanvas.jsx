@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as fabric from 'fabric';
 import { Trash2, Copy, MoreVertical, RotateCw, Sparkles, FlipHorizontal, FlipVertical, Layers } from 'lucide-react';
-import useCanvasStore, { api } from '../../store/useCanvasStore';
+import useCanvasStore, { api, resolveAssetUrlsInProject, stripObjectUrlsFromProject } from '../../store/useCanvasStore';
 import useNotificationStore from '../../store/useNotificationStore';
-import { resolveAssetUrlsInProject } from '../../store/useCanvasStore';
 import { uploadLocalAsset, uploadPastedImage, persistBackendAsset } from '../../services/localAssetService';
 
 const FabricCanvas = forwardRef(({ projectId }, ref) => {
@@ -778,9 +777,12 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         },
         getDesignSnapshot: () => {
             if (!fabricCanvas.current) return null;
+            const rawJson = fabricCanvas.current.toObject(['id', 'metadata']);
+            const stripped = stripObjectUrlsFromProject(rawJson);
+            
             return {
                 screenshot: fabricCanvas.current.toDataURL({ format: 'png', quality: 1, multiplier: 1 }),
-                json: fabricCanvas.current.toObject(['id', 'metadata'])
+                json: stripped
             };
         },
         loadDesign: async (json) => {
@@ -807,6 +809,16 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
             const filteredLayers = await Promise.all(objects.map(async (obj) => {
                 const newObj = { ...obj };
+                
+                // CRITICAL: If AI returned an object without metadata, try to recover it from the existing object on canvas
+                // This preserves the originalPath which is essential for persistence.
+                if ((!newObj.metadata || !newObj.metadata.originalPath) && newObj.id) {
+                    const existingObj = fabricCanvas.current.getObjects().find(o => o.id === newObj.id);
+                    if (existingObj && existingObj.metadata) {
+                        newObj.metadata = { ...(newObj.metadata || {}), ...existingObj.metadata };
+                    }
+                }
+
                 if (newObj.src) {
                     const path = newObj.src;
                     newObj.src = await resolvePath(path);
