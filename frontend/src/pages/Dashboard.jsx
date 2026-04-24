@@ -77,6 +77,7 @@ const Dashboard = () => {
         workspaceHandle,
         workspaceInitialized
     } = useCanvasStore();
+    const { notify } = useNotificationStore();
     const [isSupported, setIsSupported] = useState(true);
     const [isNativeStorage, setIsNativeStorage] = useState(null); // null, true, or false
 

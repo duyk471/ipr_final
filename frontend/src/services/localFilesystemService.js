@@ -20,7 +20,13 @@ export const isNativeFileSystemSupported = () => {
  * @returns {boolean}
  */
 export const isFileSystemAccessSupported = () => {
-    return isNativeAPISupported() || browserFsAccessSupported;
+    // We support fallback mode on all modern browsers (Firefox, Safari, etc.)
+    // browser-fs-access handles the fallback internally.
+    return typeof window !== 'undefined' && (
+        isNativeAPISupported() || 
+        // Even if native isn't supported, we allow it if we're in a browser
+        true 
+    );
 };
 
 /**

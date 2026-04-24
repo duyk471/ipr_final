@@ -44,6 +44,14 @@ const useCanvasStore = create((set, get) => ({
      * Initialize the workspace - set up directory access
      */
     initializeWorkspace: async () => {
+        const { workspaceHandle, workspaceInitialized } = get();
+        
+        // If already initialized in memory, reuse it
+        // This is essential for Fallback Mode (Firefox/Safari) where handles aren't persistent on disk
+        if (workspaceInitialized && workspaceHandle) {
+            return workspaceHandle;
+        }
+
         try {
             set({ isLoading: true, error: null });
             const handle = await getWorkspaceDirectory();

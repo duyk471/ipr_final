@@ -19,10 +19,43 @@ export const isNativeAPISupported = () => {
 export class AbstractDirectoryHandle {
     constructor(nativeHandle = null, files = null, isNative = true, basePath = '') {
         this.nativeHandle = nativeHandle;
-        this.files = files || []; // Flat array of File objects with paths for non-native
         this.isNative = isNative;
-        this.basePath = basePath; // For fallback mode: the base path prefix (e.g., 'project1')
-        this.name = nativeHandle?.name || 'workspace';
+        this.basePath = basePath;
+        this.kind = 'directory';
+        
+        if (!isNative && files) {
+            // Normalize files: ensure they have a 'path' relative to the root
+            // browser-fs-access returns files with 'webkitRelativePath'
+            this.files = files.map(file => {
+                if (file.path) return file;
+                
+                let path = file.webkitRelativePath || '';
+                if (path) {
+                    // webkitRelativePath includes the root folder name (e.g. "workspace/proj1/index.json")
+                    // We want "proj1/index.json"
+                    const parts = path.split('/');
+                    if (parts.length > 1) {
+                        path = parts.slice(1).join('/');
+                    }
+                }
+                file.path = path;
+                return file;
+            });
+            
+            // Set name
+            if (basePath) {
+                // If we have a basePath, the name is the last part of it
+                const parts = basePath.split('/');
+                this.name = parts[parts.length - 1];
+            } else if (files.length > 0 && files[0].webkitRelativePath) {
+                this.name = files[0].webkitRelativePath.split('/')[0];
+            } else {
+                this.name = 'workspace';
+            }
+        } else {
+            this.files = files || [];
+            this.name = nativeHandle?.name || 'workspace';
+        }
     }
 
     /**
@@ -112,17 +145,19 @@ export class AbstractDirectoryHandle {
                 }
             }
 
-            // Yield entries - create AbstractDirectoryHandle for subdirectories
+            // Yield entries - create handles for both files and directories
             for (const [name, entry] of topLevelEntries.entries()) {
                 if (entry.kind === 'directory') {
-                    // For directories, create an AbstractDirectoryHandle for that subdirectory
                     const subPath = this.basePath ? `${this.basePath}/${name}` : name;
                     const subHandle = new AbstractDirectoryHandle(null, this.files, false, subPath);
                     subHandle.name = name;
                     yield [name, subHandle];
                 } else {
-                    // For files, yield the entry as-is
-                    yield [name, entry];
+                    // Find the original file object for this entry
+                    const filePath = this.basePath ? `${this.basePath}/${name}` : name;
+                    const file = this.files.find(f => f.path === filePath);
+                    const fileHandle = new AbstractFileHandle(null, file, false);
+                    yield [name, fileHandle];
                 }
             }
         }
@@ -179,6 +214,7 @@ export class AbstractFileHandle {
         this.nativeHandle = nativeHandle;
         this.file = file;
         this.isNative = isNative;
+        this.kind = 'file';
         this.name = nativeHandle?.name || file?.name || '';
     }
 
@@ -221,6 +257,17 @@ class MockWritable {
 
     async write(data) {
         this.buffer.push(data);
+    }
+
+    async truncate(size) {
+        if (size === 0) {
+            this.buffer = [];
+        } else {
+            // Buffer is an array of Blobs/Strings/ArrayBuffers
+            const currentBlob = new Blob(this.buffer);
+            const truncatedBlob = currentBlob.slice(0, size);
+            this.buffer = [truncatedBlob];
+        }
     }
 
     async close() {
