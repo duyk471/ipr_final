@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Image as ImageIcon, Trash2, Download, Upload, Sparkles, BookOpen, Moon, Sun, FolderOpen } from 'lucide-react';
+import { Plus, Image as ImageIcon, Trash2, Download, Upload, Sparkles, BookOpen, Moon, Sun, FolderOpen, AlertCircle, CheckCircle } from 'lucide-react';
 import { api } from '../store/useCanvasStore';
 import useCanvasStore from '../store/useCanvasStore';
 import { useTheme } from '../store/useTheme';
 import useNotificationStore from '../store/useNotificationStore';
 import NewProjectModal from '../components/Dashboard/NewProjectModal';
 import ConfirmModal from '../components/UI/ConfirmModal';
-import { deleteDirectory, isFileSystemAccessSupported, requestWorkspacePermission } from '../services/localFilesystemService';
+import { deleteDirectory, isFileSystemAccessSupported, requestWorkspacePermission, isNativeFileSystemSupported } from '../services/localFilesystemService';
 import { getWorkspaceMetadata, getWorkspaceHandle } from '../services/indexedDBService';
 
 const LockedFeature = ({ children, isLocked, tooltipText }) => {
@@ -38,6 +38,33 @@ const LockedFeature = ({ children, isLocked, tooltipText }) => {
     );
 };
 
+/**
+ * Storage Type Badge - shows whether using native persistent storage
+ */
+const StorageTypeBadge = ({ isNative }) => {
+    if (isNative === null) return null;
+
+    return (
+        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
+            isNative 
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300' 
+                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+        }`}>
+            {isNative ? (
+                <>
+                    <CheckCircle size={14} />
+                    <span>Native Storage</span>
+                </>
+            ) : (
+                <>
+                    <AlertCircle size={14} />
+                    <span>Fallback Mode</span>
+                </>
+            )}
+        </div>
+    );
+};
+
 const Dashboard = () => {
     const navigate = useNavigate();
     const { isDark, toggle } = useTheme();
@@ -51,6 +78,7 @@ const Dashboard = () => {
         workspaceInitialized
     } = useCanvasStore();
     const [isSupported, setIsSupported] = useState(true);
+    const [isNativeStorage, setIsNativeStorage] = useState(null); // null, true, or false
 
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -74,11 +102,17 @@ const Dashboard = () => {
             setWorkspaceInitLoading(true);
             const handle = await initializeWorkspace();
 
+            // Detect storage type
+            if (handle) {
+                setIsNativeStorage(handle.isNative === true);
+            }
+
             if (!handle) {
                 // Check if we have a saved workspace but no permission
                 const metadata = await getWorkspaceMetadata();
                 if (metadata) {
                     setSavedWorkspace(metadata);
+                    setIsNativeStorage(metadata.isNative === true);
                 }
             }
 
@@ -116,6 +150,12 @@ const Dashboard = () => {
         try {
             setWorkspaceInitLoading(true);
             await selectWorkspace();
+            
+            // Detect storage type for new workspace
+            if (workspaceHandle) {
+                setIsNativeStorage(workspaceHandle.isNative === true);
+            }
+            
             await loadProjects();
             setSavedWorkspace(null); // Clear saved workspace state as we now have a handle
         } catch (error) {
@@ -137,6 +177,12 @@ const Dashboard = () => {
                 } else {
                     setWorkspaceInitLoading(false);
                 }
+            } else {
+                console.warn('Workspace handle lost. Clearing metadata.');
+                const { clearWorkspaceMetadata } = await import('../services/indexedDBService');
+                await clearWorkspaceMetadata();
+                setSavedWorkspace(null);
+                setWorkspaceInitLoading(false);
             }
         } catch (error) {
             console.error('Failed to reconnect workspace:', error);
@@ -401,6 +447,11 @@ const Dashboard = () => {
 
                         <div className="w-px h-6 bg-biophilic-cream-dark dark:bg-biophilic-dark-border mx-1" />
 
+                        {/* Storage type badge */}
+                        {workspaceInitialized && isNativeStorage !== null && (
+                            <StorageTypeBadge isNative={isNativeStorage} />
+                        )}
+
                         {/* Workspace selector button */}
                         <button
                             onClick={handleChangeWorkspace}
@@ -492,6 +543,21 @@ const Dashboard = () => {
                                     <FolderOpen size={16} />
                                     <span>{savedWorkspace ? 'Reconnect Folder' : 'Select Folder'}</span>
                                 </button>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* ── Fallback Mode Info Banner ── */}
+                    {workspaceInitialized && isNativeStorage === false && (
+                        <section className="w-full mb-8 animate-in slide-in-from-top-4 duration-500">
+                            <div className="bg-gradient-to-r from-amber-100/40 to-amber-50/20 dark:from-amber-900/20 dark:to-amber-900/5 rounded-2xl p-6 border border-amber-200/50 dark:border-amber-800/30 flex items-start gap-4 shadow-sm">
+                                <AlertCircle className="text-amber-600 dark:text-amber-500 shrink-0 mt-1" size={20} />
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-amber-900 dark:text-amber-300 mb-1">Fallback Storage Mode</h4>
+                                    <p className="text-amber-800/70 dark:text-amber-200/70 text-sm">
+                                        Your browser doesn't support persistent file system storage. Projects will be saved locally, but you'll need to manually export them using the "Save & Export" button to preserve changes between sessions.
+                                    </p>
+                                </div>
                             </div>
                         </section>
                     )}

@@ -97,7 +97,25 @@ export const saveProject = async (projectId, canvasState, previewBase64) => {
 
     let data = {};
     if (await fs.pathExists(indexPath)) {
-        data = await fs.readJson(indexPath);
+        try {
+            data = await fs.readJson(indexPath);
+        } catch (readError) {
+            console.error(`Failed to read project index at ${indexPath}. It might be corrupted.`, readError.message);
+            // Fallback: we'll initialize with the canvasState provided
+            data = {
+                version: "1.0",
+                projectInfo: {
+                    id: projectId,
+                    name: canvasState.projectInfo?.name || `Project ${projectId}`,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    previewUrl: "preview.png"
+                },
+                canvas: canvasState.canvas || { width: 1080, height: 1080 },
+                layers: [],
+                history: { undoStack: [], redoStack: [] }
+            };
+        }
     } else {
         const now = new Date().toISOString();
         data = {
