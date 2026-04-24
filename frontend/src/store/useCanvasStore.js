@@ -12,6 +12,7 @@ import {
     isNativeFileSystemSupported,
     isUsingNativePersistentStorage,
     exportProjectAsBundle,
+    listDirectory,
 } from '../services/localFilesystemService';
 import { scanProjectsInWorkspace, getProjectByIdLocal, getProjectHistory } from '../services/projectScannerService';
 
@@ -34,6 +35,16 @@ const useCanvasStore = create((set, get) => ({
     selectedObject: null,
     isLoading: false,
     error: null,
+    hasBrokenAssets: false, // Flag for projects with missing image paths
+    repairVersion: 0,       // Used to trigger canvas remounting after repair
+    repairStatus: {
+        active: false,
+        step: '', // 'scanning', 'analyzing', 'linking'
+        progress: 0,
+        total: 0,
+        message: ''
+    },
+    pendingRepairs: [],     // Uncertain matches for user review
 
     // Asset URL mapping (for resolving local file paths to Object URLs)
     assetUrlMap: {}, // Maps local paths to Object URLs
@@ -112,21 +123,252 @@ const useCanvasStore = create((set, get) => ({
             const projectHandle = projectData.handle;
 
             // Process layers to convert relative paths to Object URLs
-            const processedData = await resolveAssetUrlsInProject(projectHandle, projectData);
-
+            const { processedData, brokenFound } = await resolveAssetUrlsInProject(projectHandle, projectData);
+            
             set({
                 currentProject: projectData.projectInfo,
                 currentProjectHandle: projectHandle,
                 canvasData: processedData,
                 history: processedData.history || { undoStack: [], redoStack: [] },
+                hasBrokenAssets: brokenFound,
                 isLoading: false
             });
             return processedData;
         } catch (error) {
             console.error('Failed to fetch project:', error);
             set({ error: error.message, isLoading: false });
-            return null;
+            throw error;
         }
+    },
+
+    /**
+     * Auto-repair broken image links in the project with AI-assisted fuzzy matching
+     */
+    autoRepairProject: async (notify) => {
+        const { currentProjectHandle, canvasData } = get();
+        if (!currentProjectHandle || !canvasData) return;
+
+        // --- Helper: Fuzzy Matching Logic ---
+        const cleanName = (name) => {
+            return name.toLowerCase()
+                .replace(/^\d+_/g, '') // Remove timestamp prefix
+                .replace(/^(nobg_|removebg_|copy_of_|repaired_)/g, '') // Remove common prefixes
+                .replace(/(_v\d+|_copy|_repaired|_nobg)(\.[a-z]+)?$/g, '$2') // Remove common suffixes
+                .replace(/\.[^/.]+$/, ""); // Remove extension
+        };
+
+        const findBestMatch = (target, options) => {
+            const cleanedTarget = cleanName(target);
+            let bestMatch = null;
+            let highestConfidence = 0;
+
+            for (const option of options) {
+                const cleanedOption = cleanName(option);
+                
+                // Exact cleaned match
+                if (cleanedTarget === cleanedOption) {
+                    const confidence = target.includes(option) || option.includes(target) ? 0.95 : 0.85;
+                    if (confidence > highestConfidence) {
+                        highestConfidence = confidence;
+                        bestMatch = option;
+                    }
+                }
+                
+                // Partial match (e.g., target is "logo", option is "logo_v2")
+                else if (cleanedOption.includes(cleanedTarget) || cleanedTarget.includes(cleanedOption)) {
+                    const confidence = 0.7;
+                    if (confidence > highestConfidence) {
+                        highestConfidence = confidence;
+                        bestMatch = option;
+                    }
+                }
+            }
+
+            return { filename: bestMatch, confidence: highestConfidence };
+        };
+
+        try {
+            set({ 
+                repairStatus: { active: true, step: 'scanning', progress: 0, total: 0, message: 'Scanning local assets...' },
+                pendingRepairs: []
+            });
+            
+            // 1. Scan assets folder
+            let assetFilenames = [];
+            try {
+                const assetsHandle = await currentProjectHandle.getDirectoryHandle('assets', { create: false });
+                const entries = await listDirectory(assetsHandle);
+                assetFilenames = entries.filter(e => e.kind === 'file').map(e => e.name);
+            } catch (err) {
+                console.warn('No assets folder found during repair:', err);
+            }
+
+            set(state => ({ repairStatus: { ...state.repairStatus, step: 'analyzing', message: 'Analyzing metadata with AI matching...' } }));
+
+            // 2. Iterate through objects to find and repair broken images
+            let repairedCount = 0;
+            const layers = canvasData.layers || canvasData.objects || [];
+            const brokenLayers = layers.filter(layer => {
+                const type = layer.type ? layer.type.toLowerCase() : '';
+                const isImage = type === 'image' || type === 'fabricimage' || (layer.src && !layer.text);
+                const hasBrokenSrc = !layer.src || layer.src === '' || (typeof layer.src === 'string' && layer.src.startsWith('blob:') && !layer.src.includes(window.location.host));
+                return isImage && hasBrokenSrc && layer.metadata?.originalPath;
+            });
+
+            set(state => ({ repairStatus: { ...state.repairStatus, total: brokenLayers.length } }));
+
+            const pendingRepairs = [];
+            const repairedLayersMap = new Map(); // Store repaired versions of layers
+
+            for (let i = 0; i < brokenLayers.length; i++) {
+                const layer = brokenLayers[i];
+                const originalPath = layer.metadata.originalPath;
+                const originalFilename = originalPath.split('/').pop();
+                
+                set(state => ({ 
+                    repairStatus: { 
+                        ...state.repairStatus, 
+                        progress: i + 1, 
+                        message: `Matching ${originalFilename}...` 
+                    } 
+                }));
+
+                // Try to find a match
+                const match = findBestMatch(originalFilename, assetFilenames);
+                
+                if (match.filename) {
+                    const newPath = `assets/${match.filename}`;
+                    
+                    if (match.confidence >= 0.85) {
+                        // High confidence: Auto-apply
+                        try {
+                            const objectUrl = await getFileAsObjectURL(currentProjectHandle, newPath);
+                            repairedLayersMap.set(layer.id || originalPath, {
+                                ...layer,
+                                src: objectUrl,
+                                metadata: { ...layer.metadata, originalPath: newPath, repaired: true }
+                            });
+                            repairedCount++;
+                        } catch (err) {
+                            console.warn(`Failed to resolve high-confidence match '${newPath}':`, err);
+                        }
+                    } else {
+                        // Low confidence: Queue for user review
+                        try {
+                            const previewUrl = await getFileAsObjectURL(currentProjectHandle, newPath);
+                            pendingRepairs.push({
+                                layerId: layer.id || originalPath,
+                                originalFilename,
+                                suggestedFilename: match.filename,
+                                previewUrl,
+                                confidence: match.confidence,
+                                layer: layer
+                            });
+                        } catch (err) {
+                            console.warn(`Failed to resolve preview for match '${newPath}':`, err);
+                        }
+                    }
+                }
+            }
+
+            // 3. Batch Update & Save for auto-applied repairs
+            if (repairedCount > 0) {
+                const updatedLayers = layers.map(layer => {
+                    const id = layer.id || (layer.metadata?.originalPath);
+                    return repairedLayersMap.get(id) || layer;
+                });
+
+                const updatedData = { 
+                    ...canvasData, 
+                    [canvasData.layers ? 'layers' : 'objects']: updatedLayers 
+                };
+                
+                set({ canvasData: updatedData });
+                
+                // Save back to disk
+                const dataToSave = stripObjectUrlsFromProject(updatedData);
+                await writeJSONFile(currentProjectHandle, 'index.json', dataToSave);
+            }
+
+            // 4. Final state update
+            // Re-calculate if any broken assets still remain (excluding those we just fixed)
+            const remainingBrokenCount = brokenLayers.length - repairedCount;
+            
+            set({ 
+                repairStatus: { active: false, step: '', progress: 0, total: 0, message: '' },
+                hasBrokenAssets: remainingBrokenCount > 0,
+                pendingRepairs: pendingRepairs,
+                repairVersion: get().repairVersion + 1
+            });
+
+            if (repairedCount > 0 && pendingRepairs.length === 0) {
+                notify({ message: `Success! ${repairedCount} images have been intelligently restored.`, type: 'success' });
+            } else if (pendingRepairs.length > 0) {
+                notify({ message: `Repaired ${repairedCount} images. ${pendingRepairs.length} potential matches require your review.`, type: 'info' });
+            } else if (repairedCount === 0 && pendingRepairs.length === 0) {
+                notify({ message: 'Auto-repair complete. No matching files were found in the assets folder.', type: 'info' });
+            }
+        } catch (error) {
+            console.error('Auto-repair failed:', error);
+            set({ repairStatus: { active: false, step: '', progress: 0, total: 0, message: '' }, isLoading: false });
+            notify({ message: 'Failed to auto-repair project: ' + error.message, type: 'error' });
+        }
+    },
+
+    /**
+     * Apply a pending fuzzy match repair
+     */
+    applyPendingRepair: async (pendingRepair, notify) => {
+        const { currentProjectHandle, canvasData, pendingRepairs } = get();
+        if (!currentProjectHandle || !canvasData) return;
+
+        try {
+            const newPath = `assets/${pendingRepair.suggestedFilename}`;
+            const objectUrl = await getFileAsObjectURL(currentProjectHandle, newPath);
+            
+            const layers = canvasData.layers || canvasData.objects || [];
+            const updatedLayers = layers.map(layer => {
+                const id = layer.id || (layer.metadata?.originalPath);
+                if (id === pendingRepair.layerId) {
+                    return {
+                        ...layer,
+                        src: objectUrl,
+                        metadata: { ...layer.metadata, originalPath: newPath, repaired: true }
+                    };
+                }
+                return layer;
+            });
+
+            const updatedData = { 
+                ...canvasData, 
+                [canvasData.layers ? 'layers' : 'objects']: updatedLayers 
+            };
+
+            // Update store
+            set({ 
+                canvasData: updatedData,
+                pendingRepairs: pendingRepairs.filter(p => p.layerId !== pendingRepair.layerId),
+                repairVersion: get().repairVersion + 1
+            });
+
+            // Auto-save
+            const dataToSave = stripObjectUrlsFromProject(updatedData);
+            await writeJSONFile(currentProjectHandle, 'index.json', dataToSave);
+
+            notify({ message: 'Asset re-linked successfully.', type: 'success' });
+        } catch (error) {
+            console.error('Failed to apply pending repair:', error);
+            notify({ message: 'Failed to re-link asset: ' + error.message, type: 'error' });
+        }
+    },
+
+    /**
+     * Skip a pending fuzzy match repair
+     */
+    skipPendingRepair: (pendingRepair) => {
+        set(state => ({
+            pendingRepairs: state.pendingRepairs.filter(p => p.layerId !== pendingRepair.layerId)
+        }));
     },
 
     /**
@@ -747,14 +989,31 @@ function generateProjectId() {
  */
 export async function resolveAssetUrlsInProject(projectHandle, projectData) {
     const processed = JSON.parse(JSON.stringify(projectData));
+    let brokenFound = false;
+    const layers = processed.layers || processed.objects;
 
-    if (processed.layers && Array.isArray(processed.layers)) {
-        for (const layer of processed.layers) {
+    if (layers && Array.isArray(layers)) {
+        for (const layer of layers) {
                 // Check if it's already an Object URL or external URL
                 // Resolve if it's a relative path OR if it's a blob URL with originalPath metadata
                 const isBlob = layer.src?.startsWith('blob:');
                 const hasOriginalPath = layer.metadata?.originalPath;
                 const isExternal = layer.src?.startsWith('http') || layer.src?.startsWith('data:');
+                
+                const type = layer.type ? layer.type.toLowerCase() : '';
+                const isImage = type === 'image' || type === 'fabricimage';
+
+                // Flag as broken if it's an image and src is missing/empty
+                if (isImage && (!layer.src || layer.src === '')) {
+                    brokenFound = true;
+                }
+
+                // If it's a blob URL from a previous session that we can't recover (no metadata),
+                // it's dead and will cause Fabric to crash during load.
+                if (isBlob && !hasOriginalPath) {
+                    if (isImage) brokenFound = true;
+                    layer.src = '';
+                }
 
                 if (layer.src && typeof layer.src === 'string' && !isExternal && (!isBlob || hasOriginalPath)) {
                     try {
@@ -768,6 +1027,12 @@ export async function resolveAssetUrlsInProject(projectHandle, projectData) {
                         layer.metadata.originalPath = originalPath;
                     } catch (error) {
                         console.warn(`Failed to resolve asset URL for '${layer.src}':`, error);
+                        
+                        // Flag as broken if we can't resolve a local path
+                        if (isImage) {
+                            brokenFound = true;
+                        }
+
                         // If it's a dead blob URL and we can't resolve it, we might want to clear it 
                         // to prevent Fabric from crashing during load
                         if (isBlob) {
@@ -778,7 +1043,7 @@ export async function resolveAssetUrlsInProject(projectHandle, projectData) {
         }
     }
 
-    return processed;
+    return { processedData: processed, brokenFound };
 }
 
 /**

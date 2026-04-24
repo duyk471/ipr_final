@@ -30,7 +30,14 @@ const Editor = () => {
         workspaceInitialized,
         saveProjectVersion,
         fetchHistory: fetchProjectHistory,
-        restoreHistory: restoreProjectSnapshot
+        restoreHistory: restoreProjectSnapshot,
+        hasBrokenAssets,
+        autoRepairProject,
+        repairVersion,
+        repairStatus,
+        pendingRepairs,
+        applyPendingRepair,
+        skipPendingRepair
     } = useCanvasStore();
     const { isDark, toggle } = useTheme();
     const { notify } = useNotificationStore();
@@ -440,6 +447,7 @@ const Editor = () => {
                         }}
                     >
                         <FabricCanvas
+                            key={`${id}-${repairVersion}`}
                             ref={canvasRef}
                             projectId={id}
                         />
@@ -475,6 +483,118 @@ const Editor = () => {
                 onClose={() => setShowVersionModal(false)}
                 onSave={handleSaveVersion}
             />
+
+            {/* Auto-Repair Button */}
+            {hasBrokenAssets && !repairStatus.active && pendingRepairs.length === 0 && (
+                <button
+                    onClick={() => autoRepairProject(notify)}
+                    className="fixed bottom-24 right-8 z-[100] flex items-center gap-2 
+                               bg-biophilic-moss dark:bg-biophilic-dark-green 
+                               hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green 
+                               text-white dark:text-biophilic-dark-bg 
+                               px-6 py-3 rounded-2xl text-sm font-black transition-all 
+                               shadow-[0_0_20px_rgba(74,92,75,0.4)] hover:shadow-[0_0_30px_rgba(74,92,75,0.6)]
+                               animate-in fade-in slide-in-from-bottom-4 duration-500
+                               border border-white/20 dark:border-biophilic-dark-border"
+                >
+                    <Sparkles size={18} className="text-biophilic-green-light animate-pulse" />
+                    Auto-Repair Project
+                </button>
+            )}
+
+            {/* Repair Loading Overlay */}
+            {repairStatus.active && (
+                <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-white/40 dark:bg-biophilic-dark-bg/40 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="bg-white dark:bg-biophilic-dark-card p-10 rounded-[40px] shadow-organic flex flex-col items-center gap-6 border border-biophilic-moss/10">
+                        {/* Biophilic Spinner */}
+                        <div className="relative">
+                            <div className="w-20 h-20 rounded-full border-4 border-biophilic-moss/20 border-t-biophilic-moss animate-spin" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Sparkles className="text-biophilic-moss animate-pulse" size={32} />
+                            </div>
+                        </div>
+                        
+                        <div className="text-center">
+                            <h3 className="text-xl font-black text-biophilic-bark dark:text-biophilic-dark-green mb-2">
+                                AI Auto-Repair in Progress
+                            </h3>
+                            <p className="text-biophilic-moss dark:text-biophilic-green-light font-bold text-sm">
+                                {repairStatus.message}
+                            </p>
+                        </div>
+
+                        {repairStatus.total > 0 && (
+                            <div className="w-64">
+                                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-biophilic-moss/60 mb-2">
+                                    <span>Progress</span>
+                                    <span>{Math.round((repairStatus.progress / repairStatus.total) * 100)}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-biophilic-moss/10 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-biophilic-moss transition-all duration-300"
+                                        style={{ width: `${(repairStatus.progress / repairStatus.total) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Repair Confirmation Modal */}
+            {pendingRepairs.length > 0 && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-biophilic-bark/20 dark:bg-black/60 backdrop-blur-sm p-6">
+                    <div className="bg-white dark:bg-biophilic-dark-card max-w-lg w-full rounded-[32px] shadow-premium overflow-hidden border border-biophilic-moss/10 animate-in zoom-in-95 duration-300">
+                        <div className="p-8">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-full bg-biophilic-moss/10 flex items-center justify-center">
+                                    <Sparkles size={20} className="text-biophilic-moss" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-biophilic-bark dark:text-biophilic-dark-green">
+                                        Potential Match Found
+                                    </h3>
+                                    <p className="text-xs font-bold text-biophilic-moss/60 uppercase tracking-tighter">
+                                        AI Confidence: {Math.round(pendingRepairs[0].confidence * 100)}%
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-biophilic-cream/30 dark:bg-biophilic-dark-bg/40 p-6 rounded-2xl mb-8 border border-biophilic-moss/5">
+                                <p className="text-sm text-biophilic-bark/80 dark:text-biophilic-green-light/80 mb-4 font-medium leading-relaxed">
+                                    Is this the correct replacement for the missing asset <span className="font-black text-biophilic-moss">"{pendingRepairs[0].originalFilename}"</span>?
+                                </p>
+                                
+                                <div className="aspect-video w-full rounded-xl bg-white dark:bg-biophilic-dark-border overflow-hidden shadow-inner flex items-center justify-center border border-biophilic-moss/10">
+                                    <img 
+                                        src={pendingRepairs[0].previewUrl} 
+                                        alt="Suggested Match" 
+                                        className="max-w-full max-h-full object-contain"
+                                    />
+                                </div>
+                                <p className="mt-3 text-center text-xs font-black text-biophilic-moss italic">
+                                    Suggested: {pendingRepairs[0].suggestedFilename}
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => skipPendingRepair(pendingRepairs[0])}
+                                    className="px-6 py-4 rounded-2xl text-sm font-black text-biophilic-moss hover:bg-biophilic-moss/5 transition-all"
+                                >
+                                    No, skip it
+                                </button>
+                                <button
+                                    onClick={() => applyPendingRepair(pendingRepairs[0], notify)}
+                                    className="px-6 py-4 rounded-2xl text-sm font-black bg-biophilic-moss text-white shadow-organic hover:bg-biophilic-green-dark transition-all"
+                                >
+                                    Yes, re-link it
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Toast Notification */}
             {toast.show && (

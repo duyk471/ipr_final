@@ -1588,62 +1588,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 }
             });
 
-            if (canvasData?.layers?.length > 0) {
-                const resolvePath = async (path) => {
-                    if (!path || typeof path !== 'string') return path;
-                    if (path.startsWith('blob:') || path.startsWith('http') || path.startsWith('data:')) return path;
-                    
-                    try {
-                        const { getAssetObjectUrl } = useCanvasStore.getState();
-                        return await getAssetObjectUrl(path);
-                    } catch (error) {
-                        console.warn(`Failed to resolve local path '${path}':`, error);
-                        return path;
-                    }
-                };
-
-                const cleanLayers = await Promise.all(canvasData.layers.map(async (obj) => {
-                    const newObj = { ...obj };
-                    const isBlob = newObj.src && typeof newObj.src === 'string' && newObj.src.startsWith('blob:');
-                    const isExternal = newObj.src && typeof newObj.src === 'string' && (newObj.src.startsWith('http') || newObj.src.startsWith('data:'));
-                    const hasOriginalPath = newObj.metadata?.originalPath;
-
-                    // If it's a local asset (relative path) OR a blob URL with recovery metadata
-                    if (newObj.src && typeof newObj.src === 'string' && !isExternal && (!isBlob || hasOriginalPath)) {
-                        try {
-                            const path = hasOriginalPath ? newObj.metadata.originalPath : newObj.src;
-                            newObj.src = await resolvePath(path);
-                            newObj.crossOrigin = 'anonymous';
-                            
-                            // Ensure metadata has originalPath
-                            if (!newObj.metadata) newObj.metadata = {};
-                            newObj.metadata.originalPath = path;
-                        } catch (error) {
-                            console.warn(`Failed to resolve asset path:`, error);
-                            // If it's a dead blob URL, clear it so Fabric doesn't crash
-                            if (isBlob) newObj.src = '';
-                        }
-                    }
-                    
-                    // Handle fill sources (patterns)
-                    if (newObj.fill && typeof newObj.fill === 'object' && newObj.fill.source) {
-                        const fillSource = newObj.fill.source;
-                        const isFillBlob = fillSource.startsWith('blob:');
-                        const hasFillPath = newObj.metadata?.fillSourcePath;
-                        
-                        if (!fillSource.startsWith('http') && (!isFillBlob || hasFillPath)) {
-                            try {
-                                const path = hasFillPath ? newObj.metadata.fillSourcePath : fillSource;
-                                newObj.fill.source = await resolvePath(path);
-                                if (!newObj.metadata) newObj.metadata = {};
-                                newObj.metadata.fillSourcePath = path;
-                            } catch (err) {
-                                if (isFillBlob) newObj.fill.source = '';
-                            }
-                        }
-                    }
-                    return newObj;
-                }));
+            const cleanLayers = canvasData.layers || canvasData.objects || [];
 
                 if (fabricCanvas.current) {
                     try {
@@ -1675,7 +1620,6 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         console.error('Error loading initial JSON:', err);
                     }
                 }
-            }
 
             // Push initial state to undo
             const initialJson = fabricCanvas.current.toObject(['id', 'metadata']);
