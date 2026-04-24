@@ -6,6 +6,8 @@ import { createNewProject } from '../services/storageService.js';
 import { generateMask, bboxToSAMInput, pointsToSAMInput } from '../services/samService.js';
 import { inpaintImage, blendInpaintResult } from '../services/inpaintingService.js';
 import { poissonBlend, simpleComposite } from '../services/blendingService.js';
+import { expandImage } from '../services/outpaintingService.js';
+import { relightImage } from '../services/relightingService.js';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -938,6 +940,88 @@ export const blendImages = async (req, res) => {
 
     } catch (error) {
         console.error('Blending Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Generic AI Processing Endpoint
+ * POST /api/ai/process
+ * Body: {
+ *   task_type: 'expand' | 'erase' | 'relight',
+ *   image: base64 string,
+ *   mask: base64 string (optional, for 'erase'),
+ *   expansionData: Object (optional, for 'expand'),
+ *   preset: string (optional, for 'relight'),
+ *   projectId: string (optional)
+ * }
+ */
+export const processAI = async (req, res) => {
+    try {
+        const { task_type, image, mask, expansionData, preset, projectId } = req.body;
+
+        if (!task_type || !image) {
+            return res.status(400).json({ success: false, message: 'Missing task_type or image' });
+        }
+
+        const imageBase64 = image.startsWith('data:') ? image.split(',')[1] : image;
+        const imageBuffer = Buffer.from(imageBase64, 'base64');
+
+        let resultBuffer;
+        let filenamePrefix = 'ai_result';
+
+        switch (task_type) {
+            case 'expand':
+                if (!expansionData) return res.status(400).json({ success: false, message: 'Missing expansionData' });
+                resultBuffer = await expandImage(imageBuffer, expansionData);
+                filenamePrefix = 'expanded';
+                break;
+
+            case 'erase':
+                if (!mask) return res.status(400).json({ success: false, message: 'Missing mask for erasing' });
+                const maskBase64 = mask.startsWith('data:') ? mask.split(',')[1] : mask;
+                const maskBuffer = Buffer.from(maskBase64, 'base64');
+                resultBuffer = await inpaintImage(imageBuffer, maskBuffer, "clean background, remove object, seamless background reconstruction");
+                filenamePrefix = 'erased';
+                break;
+
+            case 'relight':
+                if (!preset) return res.status(400).json({ success: false, message: 'Missing preset for relighting' });
+                resultBuffer = await relightImage(imageBuffer, preset);
+                filenamePrefix = 'relighted';
+                break;
+
+            default:
+                return res.status(400).json({ success: false, message: `Unsupported task_type: ${task_type}` });
+        }
+
+        // Save to project if projectId provided
+        let savedPath = null;
+        if (projectId) {
+            try {
+                const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
+                const assetsPath = path.join(projectPath, 'assets');
+                await fs.ensureDir(assetsPath);
+
+                const filename = `${filenamePrefix}_${Date.now()}.png`;
+                const filePath = path.join(assetsPath, filename);
+                await fs.writeFile(filePath, resultBuffer);
+
+                savedPath = `/storage/projects/${projectId}/assets/${filename}`;
+            } catch (saveError) {
+                console.warn('Failed to save AI processed image:', saveError.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            image: resultBuffer.toString('base64'),
+            savedPath: savedPath,
+            task_type
+        });
+
+    } catch (error) {
+        console.error('AI Processing Error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

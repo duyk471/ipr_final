@@ -40,6 +40,11 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const lastPosY = useRef(0);
     const panOffsetX = useRef(0);
     const panOffsetY = useRef(0);
+    const isSelecting = useRef(false);
+    const selectionCallback = useRef(null);
+    const selectionType = useRef(null);
+    const selectionStartPos = useRef(null);
+    const activeSelectionObj = useRef(null);
 
     // Zoom State
     const zoomLevel = useRef(1);
@@ -387,11 +392,21 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 // Support three types of URLs:
                 // 1. Absolute HTTP URLs (from external sources)
                 // 2. Object URLs (blob: URLs from local storage)
-                // 3. Relative paths (legacy backend URLs - for backward compat)
-                const isAbsolute = /^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:');
+                // 3. Data URLs (base64)
+                // 4. Relative paths (legacy backend URLs)
                 
-                // If not absolute and not starting with assets/, it might be a legacy backend path
+                let isAbsolute = /^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:');
+                
+                // Detection for raw base64 strings (start with iVBOR or similar)
+                // Use substring to avoid stack overflow on massive strings
+                const isRawBase64 = !isAbsolute && url && url.length > 100 && /^[A-Za-z0-9+/=]+$/.test(url.substring(0, 1000));
+                
                 let fullUrl = url;
+                if (isRawBase64) {
+                    fullUrl = `data:image/png;base64,${url}`;
+                    isAbsolute = true;
+                }
+
                 if (!isAbsolute) {
                     if (url.startsWith('assets/')) {
                         // For local relative paths, get Object URL
@@ -784,6 +799,60 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 screenshot: fabricCanvas.current.toDataURL({ format: 'png', quality: 1, multiplier: 1 }),
                 json: stripped
             };
+        },
+        getCanvasImage: (options = {}) => {
+            if (!fabricCanvas.current) return null;
+            return fabricCanvas.current.toDataURL({
+                format: options.format || 'png',
+                quality: options.quality || 1,
+                multiplier: options.multiplier || 1,
+                ...options
+            });
+        },
+        startSelection: (type = 'scribble', callback) => {
+            if (!fabricCanvas.current) return;
+            isSelecting.current = true;
+            selectionType.current = type;
+            selectionCallback.current = callback;
+
+            fabricCanvas.current.discardActiveObject();
+            fabricCanvas.current.selection = false;
+            
+            if (type === 'scribble') {
+                fabricCanvas.current.isDrawingMode = true;
+                fabricCanvas.current.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas.current);
+                fabricCanvas.current.freeDrawingBrush.width = 20;
+                fabricCanvas.current.freeDrawingBrush.color = 'rgba(168, 198, 159, 0.4)'; // Biophilic Moss Transparent
+            }
+            
+            // Disable interaction with existing objects
+            fabricCanvas.current.forEachObject(obj => {
+                obj.selectable = false;
+                obj.evented = false;
+            });
+            
+            fabricCanvas.current.renderAll();
+        },
+        stopSelection: () => {
+            if (!fabricCanvas.current) return;
+            isSelecting.current = false;
+            selectionType.current = null;
+            selectionCallback.current = null;
+            
+            fabricCanvas.current.isDrawingMode = false;
+            fabricCanvas.current.selection = true;
+            
+            // Re-enable interaction
+            fabricCanvas.current.forEachObject(obj => {
+                obj.selectable = !obj.locked;
+                obj.evented = !obj.locked;
+            });
+            
+            // Clear any temporary selection drawings
+            const tempPaths = fabricCanvas.current.getObjects().filter(obj => obj.isTempSelection);
+            fabricCanvas.current.remove(...tempPaths);
+            
+            fabricCanvas.current.renderAll();
         },
         loadDesign: async (json) => {
             if (!fabricCanvas.current) return;
@@ -1586,6 +1655,71 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     textarea.style.top = '0px';
                     textarea.style.left = '0px';
                     textarea.style.zIndex = '-9999';
+                }
+            });
+
+            // AI Selection Handler
+            fabricCanvas.current.on('mouse:down', (e) => {
+                if (isSelecting.current && selectionType.current === 'bbox') {
+                    const pointer = fabricCanvas.current.getPointer(e.e);
+                    selectionStartPos.current = pointer;
+                    
+                    const rect = new fabric.Rect({
+                        left: pointer.x,
+                        top: pointer.y,
+                        width: 0,
+                        height: 0,
+                        fill: 'rgba(168, 198, 159, 0.2)',
+                        stroke: '#A8C69F',
+                        strokeWidth: 2,
+                        strokeDashArray: [5, 5],
+                        selectable: false,
+                        evented: false,
+                        isTempSelection: true
+                    });
+                    
+                    fabricCanvas.current.add(rect);
+                    activeSelectionObj.current = rect;
+                }
+            });
+
+            fabricCanvas.current.on('mouse:move', (e) => {
+                if (isSelecting.current && selectionType.current === 'bbox' && activeSelectionObj.current) {
+                    const pointer = fabricCanvas.current.getPointer(e.e);
+                    const start = selectionStartPos.current;
+                    
+                    const left = Math.min(start.x, pointer.x);
+                    const top = Math.min(start.y, pointer.y);
+                    const width = Math.abs(start.x - pointer.x);
+                    const height = Math.abs(start.y - pointer.y);
+                    
+                    activeSelectionObj.current.set({ left, top, width, height });
+                    fabricCanvas.current.renderAll();
+                }
+            });
+
+            fabricCanvas.current.on('mouse:up', (e) => {
+                if (isSelecting.current && selectionType.current === 'bbox' && activeSelectionObj.current) {
+                    const obj = activeSelectionObj.current;
+                    selectionCallback.current({
+                        type: 'bbox',
+                        bbox: [obj.left, obj.top, obj.width, obj.height]
+                    });
+                    activeSelectionObj.current = null;
+                }
+            });
+
+            fabricCanvas.current.on('path:created', (e) => {
+                if (isSelecting.current && selectionType.current === 'scribble' && selectionCallback.current) {
+                    const path = e.path;
+                    path.set({ isTempSelection: true, selectable: false, evented: false });
+                    
+                    // Convert path to points
+                    const points = path.path.filter(segment => segment[0] === 'M' || segment[0] === 'L')
+                                           .map(segment => [segment[1], segment[2]]);
+                    
+                    selectionCallback.current({ type: 'scribble', points });
+                    fabricCanvas.current.renderAll();
                 }
             });
 

@@ -16,7 +16,16 @@ const PropertiesPanel = ({ canvasRef }) => {
     useEffect(() => {
         if (canvasRef.current && !selectedObject) {
             const size = canvasRef.current.getCanvasSize();
-            const bgColor = canvasRef.current.getBackgroundColor();
+            let bgColor = canvasRef.current.getBackgroundColor();
+            
+            // Normalize color to hex for <input type="color">
+            if (bgColor && bgColor.startsWith('rgb')) {
+                const rgb = bgColor.match(/\d+/g);
+                if (rgb && rgb.length >= 3) {
+                    bgColor = "#" + ((1 << 24) + (parseInt(rgb[0]) << 16) + (parseInt(rgb[1]) << 8) + parseInt(rgb[2])).toString(16).slice(1);
+                }
+            }
+
             if (size && size.width > 0 && size.height > 0) {
                 setCanvasSize(size);
             }
@@ -64,13 +73,24 @@ const PropertiesPanel = ({ canvasRef }) => {
             {/* Fill Color */}
             <div className="flex items-center gap-2 shrink-0">
                 <div className="relative group">
-                    <input
-                        type="color"
-                        value={selectedObject.fill || '#000000'}
-                        onChange={(e) => handleChange('fill', e.target.value)}
-                        className="w-8 h-8 rounded-lg border-2 border-biophilic-cream-dark dark:border-biophilic-dark-border cursor-pointer p-0 bg-transparent transition-transform group-hover:scale-110"
-                        title="Fill Color"
-                    />
+                    {(() => {
+                        let fillColor = selectedObject.fill || '#000000';
+                        if (typeof fillColor === 'string' && fillColor.startsWith('rgb')) {
+                            const rgb = fillColor.match(/\d+/g);
+                            if (rgb && rgb.length >= 3) {
+                                fillColor = "#" + ((1 << 24) + (parseInt(rgb[0]) << 16) + (parseInt(rgb[1]) << 8) + parseInt(rgb[2])).toString(16).slice(1);
+                            }
+                        }
+                        return (
+                            <input
+                                type="color"
+                                value={fillColor}
+                                onChange={(e) => handleChange('fill', e.target.value)}
+                                className="w-8 h-8 rounded-lg border-2 border-biophilic-cream-dark dark:border-biophilic-dark-border cursor-pointer p-0 bg-transparent transition-transform group-hover:scale-110"
+                                title="Fill Color"
+                            />
+                        );
+                    })()}
                 </div>
             </div>
 

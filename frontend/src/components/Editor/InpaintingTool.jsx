@@ -67,118 +67,120 @@ export const InpaintingTool = ({
 
     if (!mask) {
         return (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-                <p className="text-yellow-700">
-                    Please generate a mask first using the Masking Tool above.
+            <div className="bg-biophilic-moss/5 border border-biophilic-moss/10 rounded-3xl p-8 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="w-12 h-12 bg-biophilic-moss/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="text-biophilic-moss" size={24} />
+                </div>
+                <p className="text-biophilic-bark font-bold text-sm">
+                    Selection Required
+                </p>
+                <p className="text-biophilic-moss/60 text-[11px] font-bold uppercase tracking-widest mt-1">
+                    Please apply a selection above to continue
                 </p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Wand2 className="w-5 h-5" />
-                Step 2: Inpainting with Stable Diffusion
-            </h3>
+        <div className="bg-biophilic-cream/30 dark:bg-biophilic-dark-bg/40 rounded-3xl p-6 border border-biophilic-moss/10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-2xl bg-biophilic-moss/10 flex items-center justify-center">
+                    <Wand2 className="w-5 h-5 text-biophilic-moss" />
+                </div>
+                <div>
+                    <h3 className="text-sm font-black text-biophilic-bark dark:text-biophilic-dark-green uppercase tracking-tight">
+                        AI Generation
+                    </h3>
+                    <p className="text-[10px] font-bold text-biophilic-moss/60 uppercase tracking-widest">
+                        Step 2: Stable Diffusion Fill
+                    </p>
+                </div>
+            </div>
 
             {/* Prompts */}
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Inpainting Prompt *
-                </label>
-                <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="e.g., 'swap background to a beach sunset' or 'change outfit to elegant formal wear'"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical min-h-24"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                    Describe what you want to generate in the selected area. Be detailed and specific.
-                </p>
+            <div className="space-y-4 mb-8">
+                <div>
+                    <label className="block text-[10px] font-black text-biophilic-moss uppercase tracking-widest mb-2 ml-1">
+                        Describe what to generate
+                    </label>
+                    <textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="e.g., 'swap background to a beach sunset'"
+                        className="w-full px-4 py-3 bg-white dark:bg-biophilic-dark-border border border-biophilic-moss/10 rounded-2xl focus:ring-2 focus:ring-biophilic-green focus:border-transparent resize-none min-h-[100px] text-sm text-biophilic-bark dark:text-biophilic-dark-text shadow-inner transition-all"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-[10px] font-black text-biophilic-moss uppercase tracking-widest mb-2 ml-1">
+                        Avoid (Negative)
+                    </label>
+                    <input
+                        type="text"
+                        value={negativePrompt}
+                        onChange={(e) => setNegativePrompt(e.target.value)}
+                        placeholder="e.g., 'blurry, low quality'"
+                        className="w-full px-4 py-3 bg-white dark:bg-biophilic-dark-border border border-biophilic-moss/10 rounded-2xl focus:ring-2 focus:ring-biophilic-green focus:border-transparent text-sm text-biophilic-bark dark:text-biophilic-dark-text shadow-inner transition-all"
+                    />
+                </div>
             </div>
 
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Negative Prompt (Optional)
-                </label>
-                <input
-                    type="text"
-                    value={negativePrompt}
-                    onChange={(e) => setNegativePrompt(e.target.value)}
-                    placeholder="e.g., 'blurry, distorted, low quality'"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                    Things you don't want in the generated image.
-                </p>
-            </div>
-
-            {/* Error */}
+            {/* Error/Success */}
             {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-2xl flex gap-3 text-red-600 text-xs font-bold animate-in slide-in-from-top-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {error}
                 </div>
             )}
 
-            {/* Success */}
             {success && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2 text-green-700 text-sm">
-                    <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div className="mb-6 p-4 bg-biophilic-green/10 border border-biophilic-green/20 rounded-2xl flex gap-3 text-biophilic-green text-xs font-bold animate-in slide-in-from-top-2">
+                    <Check className="w-4 h-4 flex-shrink-0" />
                     Inpainting completed successfully!
                 </div>
             )}
 
-            {/* Preview */}
+            {/* Preview Section */}
             {result && (
-                <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                    <div className="flex border-b border-gray-200 bg-gray-100">
+                <div className="mb-8 border border-biophilic-moss/10 rounded-[2rem] overflow-hidden bg-white dark:bg-biophilic-dark-border shadow-premium animate-in zoom-in-95 duration-500">
+                    <div className="flex p-1 bg-biophilic-moss/5">
                         <button
                             onClick={() => setPreviewMode('result')}
-                            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+                            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                 previewMode === 'result'
-                                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white dark:bg-biophilic-dark-green text-biophilic-moss dark:text-biophilic-dark-bg shadow-sm'
+                                    : 'text-biophilic-moss/50 hover:text-biophilic-moss'
                             }`}
                         >
                             Result
                         </button>
                         <button
                             onClick={() => setPreviewMode('comparison')}
-                            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+                            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                 previewMode === 'comparison'
-                                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white dark:bg-biophilic-dark-green text-biophilic-moss dark:text-biophilic-dark-bg shadow-sm'
+                                    : 'text-biophilic-moss/50 hover:text-biophilic-moss'
                             }`}
                         >
-                            Before/After
+                            Comparison
                         </button>
                     </div>
-                    <div className="p-4 bg-white">
+                    <div className="p-4 bg-biophilic-cream/10">
                         {previewMode === 'result' ? (
                             <img
                                 src={`data:image/png;base64,${result.inpaintedImage}`}
-                                alt="Inpainted result"
-                                className="w-full max-h-96 object-contain rounded"
+                                alt="Result"
+                                className="w-full max-h-72 object-contain rounded-2xl"
                             />
                         ) : (
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <p className="text-xs text-gray-500 mb-2 font-medium">BEFORE</p>
-                                    <img
-                                        src={image}
-                                        alt="Original"
-                                        className="w-full max-h-48 object-contain rounded"
-                                    />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p className="text-[9px] font-black text-biophilic-moss/40 uppercase tracking-widest mb-2 text-center">Before</p>
+                                    <img src={image} alt="Before" className="w-full h-32 object-contain rounded-xl bg-white/50" />
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-xs text-gray-500 mb-2 font-medium">AFTER</p>
-                                    <img
-                                        src={`data:image/png;base64,${result.inpaintedImage}`}
-                                        alt="Inpainted"
-                                        className="w-full max-h-48 object-contain rounded"
-                                    />
+                                <div>
+                                    <p className="text-[9px] font-black text-biophilic-moss/40 uppercase tracking-widest mb-2 text-center">After</p>
+                                    <img src={`data:image/png;base64,${result.inpaintedImage}`} alt="After" className="w-full h-32 object-contain rounded-xl bg-white/50" />
                                 </div>
                             </div>
                         )}
@@ -186,30 +188,30 @@ export const InpaintingTool = ({
                 </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex gap-2">
+            {/* Actions */}
+            <div className="flex gap-3">
                 <button
                     onClick={handleInpaint}
                     disabled={isProcessing || !prompt.trim()}
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors font-medium"
+                    className="flex-1 py-4 bg-biophilic-moss dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-organic hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green transition-all active:scale-[0.98] disabled:opacity-40"
                 >
-                    Generate Inpainting
+                    {isProcessing ? 'Generating...' : 'Start AI Generation'}
                 </button>
                 {result && (
                     <button
                         onClick={handleDownload}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center gap-2"
+                        className="p-4 bg-biophilic-cream-dark/20 text-biophilic-moss rounded-2xl hover:bg-biophilic-cream-dark/30 transition-all active:scale-[0.95]"
+                        title="Download Result"
                     >
-                        <Download className="w-4 h-4" />
-                        Download
+                        <Download size={20} />
                     </button>
                 )}
             </div>
 
             <ProcessingIndicator
                 isVisible={isProcessing}
-                message="Generating Inpainting..."
-                details="Using Stable Diffusion to fill the masked area"
+                message="AI Imagining"
+                details="Stable Diffusion is rendering your description..."
             />
         </div>
     );

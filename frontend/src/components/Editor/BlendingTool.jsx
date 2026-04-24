@@ -98,176 +98,177 @@ export const BlendingTool = ({
     };
 
     return (
-        <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Wand2 className="w-5 h-5" />
-                AI Image Blending (Seamless Integration)
-            </h3>
+        <div className="bg-biophilic-cream/30 dark:bg-biophilic-dark-bg/40 rounded-3xl p-6 border border-biophilic-moss/10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-2xl bg-biophilic-moss/10 flex items-center justify-center">
+                    <Wand2 className="w-5 h-5 text-biophilic-moss" />
+                </div>
+                <div>
+                    <h3 className="text-sm font-black text-biophilic-bark dark:text-biophilic-dark-green uppercase tracking-tight">
+                        Seamless Blending
+                    </h3>
+                    <p className="text-[10px] font-bold text-biophilic-moss/60 uppercase tracking-widest">
+                        AI Poisson Integration
+                    </p>
+                </div>
+            </div>
 
             {/* Upload sections */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {/* Background */}
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Background Image</p>
+                <div className="bg-white dark:bg-biophilic-dark-border/40 border border-biophilic-moss/10 rounded-2xl p-4 shadow-inner">
+                    <p className="text-[9px] font-black text-biophilic-moss uppercase tracking-widest mb-3">Target Background</p>
                     {backgroundImage ? (
-                        <div>
+                        <div className="relative group">
                             <img
                                 src={backgroundImage}
                                 alt="Background"
-                                className="w-full max-h-32 object-contain rounded mb-2"
+                                className="w-full h-24 object-cover rounded-xl border border-biophilic-moss/10"
                             />
-                            <p className="text-xs text-green-600">✓ Loaded</p>
+                            <div className="absolute top-2 right-2 bg-biophilic-green/90 text-white text-[8px] font-black uppercase px-2 py-1 rounded-md shadow-sm">
+                                Loaded
+                            </div>
                         </div>
                     ) : (
-                        <p className="text-xs text-gray-500">Using current canvas</p>
+                        <div className="h-24 bg-biophilic-moss/5 rounded-xl flex items-center justify-center text-[10px] text-biophilic-moss/40 font-bold uppercase">
+                            Canvas Active
+                        </div>
                     )}
                 </div>
 
                 {/* Foreground */}
                 <div
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="bg-white dark:bg-biophilic-dark-border/40 border border-biophilic-moss/10 rounded-2xl p-4 shadow-inner cursor-pointer hover:bg-biophilic-moss/5 transition-all group"
                     onClick={() => fileInputRef.current?.click()}
                 >
-                    <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        Foreground Image *
-                    </p>
+                    <p className="text-[9px] font-black text-biophilic-moss uppercase tracking-widest mb-3">Foreground Element</p>
                     {foregroundImage ? (
-                        <div>
+                        <div className="relative">
                             <img
                                 src={foregroundImage}
                                 alt="Foreground"
-                                className="w-full max-h-32 object-contain rounded mb-2"
+                                className="w-full h-24 object-cover rounded-xl border border-biophilic-moss/10"
                             />
-                            <p className="text-xs text-green-600">✓ Loaded</p>
+                            <div className="absolute top-2 right-2 bg-biophilic-green/90 text-white text-[8px] font-black uppercase px-2 py-1 rounded-md shadow-sm">
+                                Change
+                            </div>
                         </div>
                     ) : (
-                        <p className="text-xs text-gray-500">Click to upload or drag & drop</p>
+                        <div className="h-24 bg-biophilic-moss/5 rounded-xl flex flex-col items-center justify-center gap-2 group-hover:scale-[0.98] transition-transform">
+                            <Upload size={16} className="text-biophilic-moss/40" />
+                            <span className="text-[9px] text-biophilic-moss/40 font-bold uppercase tracking-widest">Upload Image</span>
+                        </div>
                     )}
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleForegroundUpload}
-                        className="hidden"
-                    />
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleForegroundUpload} className="hidden" />
                 </div>
             </div>
 
             {/* Mask section */}
             <div
-                className="mb-6 border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                className="mb-6 bg-white dark:bg-biophilic-dark-border/40 border border-biophilic-moss/10 rounded-2xl p-4 shadow-inner cursor-pointer hover:bg-biophilic-moss/5 transition-all group"
                 onClick={() => maskInputRef.current?.click()}
             >
-                <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    Blending Mask *
-                </p>
+                <div className="flex justify-between items-center mb-3">
+                    <p className="text-[9px] font-black text-biophilic-moss uppercase tracking-widest">Blending Mask (Alpha)</p>
+                    <Upload size={12} className="text-biophilic-moss/40" />
+                </div>
                 {mask ? (
-                    <div>
+                    <div className="relative">
                         <img
                             src={mask}
                             alt="Mask"
-                            className="w-full max-h-24 object-contain rounded mb-2"
+                            className="w-full h-16 object-cover rounded-xl border border-biophilic-moss/10"
                         />
-                        <p className="text-xs text-green-600">✓ Loaded (white = foreground, black = background)</p>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                            <span className="text-white text-[8px] font-black uppercase tracking-widest">Click to Change</span>
+                        </div>
                     </div>
                 ) : (
-                    <p className="text-xs text-gray-500">Click to upload or use generated mask</p>
+                    <div className="h-16 bg-biophilic-moss/5 rounded-xl flex items-center justify-center text-[9px] text-biophilic-moss/40 font-bold uppercase tracking-widest">
+                        Required: White=Solid, Black=Clear
+                    </div>
                 )}
-                <input
-                    ref={maskInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleMaskUpload}
-                    className="hidden"
-                />
+                <input ref={maskInputRef} type="file" accept="image/*" onChange={handleMaskUpload} className="hidden" />
             </div>
 
             {/* Blend mode */}
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Blending Mode
+            <div className="mb-8">
+                <label className="block text-[10px] font-black text-biophilic-moss uppercase tracking-widest mb-2 ml-1">
+                    Blending mode
                 </label>
-                <select
-                    value={blendMode}
-                    onChange={(e) => setBlendMode(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                    <option value="normal">Normal (Alpha Blending)</option>
-                    <option value="color-match">Color Match (Adjust foreground to match background colors)</option>
-                    <option value="brightness-match">Brightness Match (Adjust brightness and colors)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                    Choose how the foreground should be blended with the background.
-                </p>
+                <div className="grid grid-cols-1 gap-2">
+                    {['normal', 'color-match', 'brightness-match'].map((mode) => (
+                        <button
+                            key={mode}
+                            onClick={() => setBlendMode(mode)}
+                            className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-left transition-all ${
+                                blendMode === mode
+                                    ? 'bg-biophilic-moss text-white shadow-md scale-[1.02]'
+                                    : 'bg-white dark:bg-biophilic-dark-border/40 text-biophilic-moss/60 hover:bg-biophilic-moss/5'
+                            }`}
+                        >
+                            {mode.replace('-', ' ')}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Error */}
+            {/* Error/Success */}
             {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex gap-3 text-red-600 text-xs font-bold">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {error}
                 </div>
             )}
 
-            {/* Success */}
             {success && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex gap-2 text-green-700 text-sm">
-                    <Check className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    Blending completed successfully!
+                <div className="mb-6 p-4 bg-biophilic-green/10 border border-biophilic-green/20 rounded-2xl flex gap-3 text-biophilic-green text-xs font-bold">
+                    <Check className="w-4 h-4 flex-shrink-0" />
+                    Blending successful!
                 </div>
             )}
 
-            {/* Preview */}
+            {/* Preview Section */}
             {result && (
-                <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                    <div className="flex border-b border-gray-200 bg-gray-100">
+                <div className="mb-8 border border-biophilic-moss/10 rounded-[2rem] overflow-hidden bg-white dark:bg-biophilic-dark-border shadow-premium animate-in zoom-in-95">
+                    <div className="flex p-1 bg-biophilic-moss/5">
                         <button
                             onClick={() => setPreviewMode('result')}
-                            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+                            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                 previewMode === 'result'
-                                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white dark:bg-biophilic-dark-green text-biophilic-moss dark:text-biophilic-dark-bg shadow-sm'
+                                    : 'text-biophilic-moss/50 hover:text-biophilic-moss'
                             }`}
                         >
                             Blended Result
                         </button>
                         <button
                             onClick={() => setPreviewMode('comparison')}
-                            className={`flex-1 px-4 py-2 font-medium transition-colors ${
+                            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                 previewMode === 'comparison'
-                                    ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'bg-white dark:bg-biophilic-dark-green text-biophilic-moss dark:text-biophilic-dark-bg shadow-sm'
+                                    : 'text-biophilic-moss/50 hover:text-biophilic-moss'
                             }`}
                         >
-                            Before/After
+                            Comparison
                         </button>
                     </div>
-                    <div className="p-4 bg-white">
+                    <div className="p-4 bg-biophilic-cream/10">
                         {previewMode === 'result' ? (
                             <img
                                 src={`data:image/png;base64,${result.blendedImage}`}
-                                alt="Blended result"
-                                className="w-full max-h-96 object-contain rounded"
+                                alt="Result"
+                                className="w-full max-h-72 object-contain rounded-2xl"
                             />
                         ) : (
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <p className="text-xs text-gray-500 mb-2 font-medium">BEFORE</p>
-                                    <img
-                                        src={backgroundImage}
-                                        alt="Background"
-                                        className="w-full max-h-48 object-contain rounded"
-                                    />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p className="text-[9px] font-black text-biophilic-moss/40 uppercase tracking-widest mb-2 text-center">Background</p>
+                                    <img src={backgroundImage} alt="BG" className="w-full h-32 object-contain rounded-xl bg-white/50" />
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-xs text-gray-500 mb-2 font-medium">AFTER</p>
-                                    <img
-                                        src={`data:image/png;base64,${result.blendedImage}`}
-                                        alt="Blended"
-                                        className="w-full max-h-48 object-contain rounded"
-                                    />
+                                <div>
+                                    <p className="text-[9px] font-black text-biophilic-moss/40 uppercase tracking-widest mb-2 text-center">Blended</p>
+                                    <img src={`data:image/png;base64,${result.blendedImage}`} alt="Blended" className="w-full h-32 object-contain rounded-xl bg-white/50" />
                                 </div>
                             </div>
                         )}
@@ -275,30 +276,29 @@ export const BlendingTool = ({
                 </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex gap-2">
+            {/* Actions */}
+            <div className="flex gap-3">
                 <button
                     onClick={handleBlend}
                     disabled={isProcessing || !foregroundImage || !mask}
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors font-medium"
+                    className="flex-1 py-4 bg-biophilic-moss dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-organic hover:bg-biophilic-green-dark dark:hover:bg-biophilic-green transition-all active:scale-[0.98] disabled:opacity-40"
                 >
-                    Blend Images
+                    {isProcessing ? 'Blending...' : 'Run Integration'}
                 </button>
                 {result && (
                     <button
                         onClick={handleDownload}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center gap-2"
+                        className="p-4 bg-biophilic-cream-dark/20 text-biophilic-moss rounded-2xl hover:bg-biophilic-cream-dark/30 transition-all active:scale-[0.95]"
                     >
-                        <Download className="w-4 h-4" />
-                        Download
+                        <Download size={20} />
                     </button>
                 )}
             </div>
 
             <ProcessingIndicator
                 isVisible={isProcessing}
-                message="Blending Images..."
-                details="Applying Poisson Blending with color/brightness matching"
+                message="Poisson Blending"
+                details="Harmonizing colors and lighting for seamless integration..."
             />
         </div>
     );

@@ -48,10 +48,10 @@ export const poissonBlend = async (
         // Apply feathering to mask for soft edges
         const featheredMask = await featherMask(maskResized, featherRadius, width, height);
 
-        // Get raw pixel data
+        // Get raw pixel data (force RGB to ensure 3 channels for processing)
         const [bgRaw, fgRaw, maskRaw] = await Promise.all([
-            sharp(backgroundBuffer).resize(width, height).raw().toBuffer(),
-            sharp(fgResized).raw().toBuffer(),
+            sharp(backgroundBuffer).resize(width, height).removeAlpha().raw().toBuffer(),
+            sharp(fgResized).removeAlpha().raw().toBuffer(),
             featheredMask
         ]);
 

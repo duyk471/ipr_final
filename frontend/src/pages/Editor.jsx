@@ -15,6 +15,7 @@ import ExportModal from '../components/UI/ExportModal';
 import ElementsPanel from '../components/Editor/ElementsPanel';
 import TextPanel from '../components/Editor/TextPanel';
 import ImageLibraryPanel from '../components/Editor/ImageLibraryPanel';
+import AIToolsPanel from '../components/Editor/AIToolsPanel';
 import VersionModal from '../components/UI/VersionModal';
 
 const Editor = () => {
@@ -52,9 +53,45 @@ const Editor = () => {
     const [showExportModal, setShowExportModal] = useState(false);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, title: '', message: '', isDestructive: true });
     const [workspaceInitLoading, setWorkspaceInitLoading] = useState(true);
+    const [canvasSnapshot, setCanvasSnapshot] = useState(null);
 
     const canvasRef = useRef(null);
     const historyDropdownRef = useRef(null);
+
+    // Capture canvas for AI tools
+    useEffect(() => {
+        if (activeLeftPanel === 'ai-features') {
+            const snapshot = canvasRef.current?.getCanvasImage({
+                multiplier: 2 // High quality for AI
+            });
+            setCanvasSnapshot(snapshot);
+        }
+    }, [activeLeftPanel]);
+
+    const handleImageGenerated = async (imageData, type) => {
+        if (!canvasRef.current) return;
+        
+        notify({ message: `AI ${type} complete! Persisting to local project...`, type: 'success' });
+        
+        try {
+            // Persist locally to assets/ folder
+            const { uploadCanvasImage } = await import('../services/localAssetService');
+            const assetInfo = await uploadCanvasImage(imageData, `ai_${type}_${Date.now()}.png`);
+            
+            // Add to canvas using the relative path (for persistence) and Object URL (for display)
+            await canvasRef.current.addImage(assetInfo.url, {
+                source: `ai-${type}`,
+                generatedAt: new Date().toISOString(),
+                originalPath: assetInfo.path // Important for saveProjectState
+            });
+            
+            // Automatically switch back to properties to allow immediate editing
+            setActiveLeftPanel(null);
+        } catch (error) {
+            console.error('Failed to persist AI image:', error);
+            notify({ message: 'AI generation succeeded but failed to save locally.', type: 'error' });
+        }
+    };
 
     // Initialize workspace and load project
     useEffect(() => {
@@ -374,7 +411,8 @@ const Editor = () => {
                                       border border-biophilic-cream-dark dark:border-biophilic-dark-border 
                                       rounded-2xl flex flex-col items-center py-4 
                                       shadow-organic-sm dark:shadow-dark-sm 
-                                      transition-all flex-shrink-0 pointer-events-auto">
+                                      transition-all flex-shrink-0 pointer-events-auto
+                                      overflow-y-auto overflow-x-hidden scrollbar-hide max-h-full">
                         <Toolbar
                             canvasRef={canvasRef}
                             projectId={id}
@@ -392,12 +430,14 @@ const Editor = () => {
                                           rounded-2xl flex flex-col shrink-0 
                                           shadow-organic dark:shadow-dark-md 
                                           overflow-hidden animate-in slide-in-from-left-4 duration-300 ease-out 
-                                          pointer-events-auto">
+                                          pointer-events-auto
+                                          max-h-full overflow-x-hidden scrollbar-hide">
                             <div className="flex items-center justify-between px-5 pt-5 pb-3 bg-transparent">
                                 <h3 className="text-[10px] font-bold text-slate-400 dark:text-biophilic-dark-text-muted uppercase tracking-widest">
                                     {activeLeftPanel === 'elements' && 'Elements Library'}
                                     {activeLeftPanel === 'text' && 'Text Elements'}
                                     {activeLeftPanel === 'ai' && 'AI Generator'}
+                                    {activeLeftPanel.startsWith('ai-') && 'AI Magic Features'}
                                     {activeLeftPanel === 'assistant' && 'Design Assistant'}
                                     {activeLeftPanel === 'images' && 'Image Library'}
                                 </h3>
@@ -411,10 +451,20 @@ const Editor = () => {
                                     <ArrowLeft size={16} />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
                                 {activeLeftPanel === 'elements' && <ElementsPanel canvasRef={canvasRef} />}
                                 {activeLeftPanel === 'text' && <TextPanel canvasRef={canvasRef} />}
                                 {activeLeftPanel === 'ai' && <AIPrompt canvasRef={canvasRef} projectId={id} />}
+                                {activeLeftPanel.startsWith('ai-') && (
+                                    <AIToolsPanel 
+                                        canvasImage={canvasSnapshot} 
+                                        projectId={id} 
+                                        onImageGenerated={handleImageGenerated} 
+                                        canvasRef={canvasRef}
+                                        initialTab={activeLeftPanel.replace('ai-', '')}
+                                        key={activeLeftPanel} // Ensure re-mount on tool change
+                                    />
+                                )}
                                 {activeLeftPanel === 'assistant' && <AIDesignAssistant canvasRef={canvasRef} projectId={id} />}
                                 {activeLeftPanel === 'images' && <ImageLibraryPanel canvasRef={canvasRef} />}
                             </div>

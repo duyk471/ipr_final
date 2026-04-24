@@ -6,8 +6,7 @@ import sharp from 'sharp';
  */
 
 const HF_INPAINTING_MODELS = [
-    'stabilityai/stable-diffusion-xl-1.0-inpainting-0.1',
-    'runwayml/stable-diffusion-inpainting'
+    'black-forest-labs/FLUX.2-dev'
 ];
 
 /**
@@ -34,11 +33,31 @@ export const inpaintImage = async (
             throw new Error('Prompt is required for inpainting');
         }
 
-        // Convert images to base64
-        const originalBase64 = originalImageBuffer.toString('base64');
-        const maskBase64 = maskBuffer.toString('base64');
+        // Prepare the "masked image" (blacken areas to change) for FLUX I2I
+        // FLUX.2-devperforms best when the input image has the target areas blackened.
+        console.log('Preparing blackened image for FLUX I2I...');
+        
+        // Ensure mask is same size as original
+        const metadata = await sharp(originalImageBuffer).metadata();
+        const { width, height } = metadata;
+        
+        const resizedMask = await sharp(maskBuffer)
+            .resize(width, height)
+            .grayscale()
+            .toBuffer();
 
-        console.log(`Starting inpainting with prompt: "${prompt}"`);
+        // Blacken areas where mask is white (>= 128)
+        // We use 'dest-out' to remove masked area, then flatten against black
+        const blackenedImageBuffer = await sharp(originalImageBuffer)
+            .composite([{
+                input: resizedMask,
+                blend: 'dest-out'
+            }])
+            .flatten({ background: '#000000' })
+            .png()
+            .toBuffer();
+
+        const inputBase64 = blackenedImageBuffer.toString('base64');
 
         let result = null;
         let lastError = null;
@@ -46,15 +65,18 @@ export const inpaintImage = async (
         // Try each model in the list
         for (const modelId of HF_INPAINTING_MODELS) {
             try {
-                console.log(`Attempting inpainting with model: ${modelId}`);
+                console.log(`Attempting FLUX I2I with model: ${modelId}`);
 
-                const url = `https://api-inference.huggingface.co/models/${modelId}`;
-                const payload = {
-                    inputs: prompt,
+                const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
+                
+                // FLUX I2I payload format
+                const body = {
+                    inputs: inputBase64,
                     parameters: {
-                        negative_prompt: negativePrompt || '',
+                        prompt: prompt,
+                        strength: 0.55, // Low denoising strength (0.4-0.6) as recommended
                         num_inference_steps: 30,
-                        guidance_scale: 7.5
+                        guidance_scale: 3.5
                     }
                 };
 
@@ -64,19 +86,13 @@ export const inpaintImage = async (
                         'Authorization': `Bearer ${hfToken}`,
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        image: originalBase64,
-                        mask_image: maskBase64,
-                        prompt: prompt,
-                        negative_prompt: negativePrompt || '',
-                        num_inference_steps: 30,
-                        guidance_scale: 7.5
-                    }),
+                    body: JSON.stringify(body),
                     timeout: 180000 // 3 minute timeout
                 });
 
                 if (response.ok) {
-                    result = await response.buffer();
+                    const arrayBuffer = await response.arrayBuffer();
+                    result = Buffer.from(arrayBuffer);
                     console.log(`Success with model: ${modelId}`);
                     break;
                 } else {
@@ -96,8 +112,8 @@ export const inpaintImage = async (
         }
 
         // Validate result is a valid image
-        const { info } = await sharp(result).metadata();
-        if (!info) {
+        const resultMetadata = await sharp(result).metadata();
+        if (!resultMetadata || !resultMetadata.width) {
             throw new Error('Inpainting result is not a valid image');
         }
 
@@ -157,7 +173,7 @@ export const blendInpaintResult = async (
             // Blend each channel
             for (let c = 0; c < channels; c++) {
                 blended[i + c] = Math.round(
-                    originalRaw[i + c] * (1 - maskValue) + 
+                    originalRaw[i + c] * (1 - maskValue) +
                     inpaintedRaw[i + c] * maskValue
                 );
             }

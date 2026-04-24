@@ -108,6 +108,30 @@ export const blendImages = async (
 };
 
 /**
+ * Generic AI Processing
+ * @param {string} taskType - 'expand' | 'erase' | 'relight'
+ * @param {Object} data - Task specific data
+ * @returns {Promise<Object>} Result with image and metadata
+ */
+export const processAI = async (taskType, data) => {
+    try {
+        const response = await axios.post(`${API_BASE}/ai/process`, {
+            task_type: taskType,
+            ...data
+        });
+
+        if (!response.data.success) {
+            throw new Error(response.data.message);
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error(`AI ${taskType} error:`, error);
+        throw error;
+    }
+};
+
+/**
  * Convert canvas to base64 image
  * @param {HTMLCanvasElement} canvas
  * @param {string} format - 'image/png' or 'image/jpeg'
