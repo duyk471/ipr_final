@@ -3,6 +3,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 import { createNewProject } from '../services/storageService.js';
+import { generateMask, bboxToSAMInput, pointsToSAMInput } from '../services/samService.js';
+import { inpaintImage, blendInpaintResult } from '../services/inpaintingService.js';
+import { poissonBlend, simpleComposite } from '../services/blendingService.js';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -700,6 +703,241 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
 
     } catch (error) {
         console.error('Project Generation Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Generate a mask using SAM based on user selection
+ * POST /api/ai/mask
+ * Body: {
+ *   image: base64 string,
+ *   selectionType: 'bbox' | 'points',
+ *   bbox: [x, y, width, height],
+ *   points: [[x, y], [x, y], ...]
+ * }
+ */
+export const generateMaskFromSelection = async (req, res) => {
+    try {
+        const { image, selectionType = 'bbox', bbox, points } = req.body;
+
+        if (!image) {
+            return res.status(400).json({ success: false, message: 'Missing image data' });
+        }
+
+        // Convert base64 to buffer
+        let imageBuffer;
+        if (typeof image === 'string') {
+            const base64Data = image.startsWith('data:') ? image.split(',')[1] : image;
+            imageBuffer = Buffer.from(base64Data, 'base64');
+        } else {
+            imageBuffer = image;
+        }
+
+        console.log(`Generating mask with selection type: ${selectionType}`);
+
+        // Prepare selection data
+        let selectionData = {};
+        if (selectionType === 'bbox' && bbox) {
+            selectionData = bboxToSAMInput(bbox);
+        } else if (selectionType === 'points' && points && points.length > 0) {
+            selectionData = pointsToSAMInput(points);
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid selection data. Provide bbox or points.'
+            });
+        }
+
+        // Generate mask
+        const maskResult = await generateMask(imageBuffer, selectionData);
+
+        // Return mask as base64
+        res.json({
+            success: true,
+            mask: maskResult.maskBuffer.toString('base64'),
+            dimensions: maskResult.dimensions,
+            previewUrl: null // Frontend can generate preview locally
+        });
+
+    } catch (error) {
+        console.error('Mask Generation Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Perform inpainting with Stable Diffusion
+ * POST /api/ai/inpaint
+ * Body: {
+ *   image: base64 string,
+ *   mask: base64 string,
+ *   prompt: string,
+ *   negativePrompt: string (optional),
+ *   projectId: string (optional, for saving result)
+ * }
+ */
+export const performInpainting = async (req, res) => {
+    try {
+        const { image, mask, prompt, negativePrompt = '', projectId } = req.body;
+
+        if (!image || !mask || !prompt) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing image, mask, or prompt'
+            });
+        }
+
+        // Convert base64 to buffers
+        const imageBase64 = typeof image === 'string' && image.startsWith('data:')
+            ? image.split(',')[1]
+            : image;
+        const maskBase64 = typeof mask === 'string' && mask.startsWith('data:')
+            ? mask.split(',')[1]
+            : mask;
+
+        const imageBuffer = Buffer.from(imageBase64, 'base64');
+        const maskBuffer = Buffer.from(maskBase64, 'base64');
+
+        console.log(`Performing inpainting with prompt: "${prompt}"`);
+
+        // Perform inpainting
+        const inpaintedBuffer = await inpaintImage(
+            imageBuffer,
+            maskBuffer,
+            prompt,
+            negativePrompt
+        );
+
+        // Optionally blend result with original
+        let finalBuffer = inpaintedBuffer;
+        try {
+            finalBuffer = await blendInpaintResult(
+                imageBuffer,
+                inpaintedBuffer,
+                maskBuffer,
+                10 // feather radius
+            );
+        } catch (blendError) {
+            console.warn('Blending failed, using inpainted result:', blendError.message);
+        }
+
+        // Save to project if projectId provided
+        let savedPath = null;
+        if (projectId) {
+            try {
+                const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
+                const assetsPath = path.join(projectPath, 'assets');
+                await fs.ensureDir(assetsPath);
+
+                const filename = `inpainted_${Date.now()}.png`;
+                const filePath = path.join(assetsPath, filename);
+                await fs.writeFile(filePath, finalBuffer);
+
+                savedPath = `/storage/projects/${projectId}/assets/${filename}`;
+            } catch (saveError) {
+                console.warn('Failed to save inpainted image:', saveError.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            inpaintedImage: finalBuffer.toString('base64'),
+            savedPath: savedPath,
+            metadata: {
+                prompt,
+                negativePrompt,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('Inpainting Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Blend images seamlessly
+ * POST /api/ai/blend
+ * Body: {
+ *   background: base64 string,
+ *   foreground: base64 string,
+ *   mask: base64 string,
+ *   blendMode: 'normal' | 'color-match' | 'brightness-match',
+ *   projectId: string (optional)
+ * }
+ */
+export const blendImages = async (req, res) => {
+    try {
+        const {
+            background,
+            foreground,
+            mask,
+            blendMode = 'color-match',
+            projectId
+        } = req.body;
+
+        if (!background || !foreground || !mask) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing background, foreground, or mask'
+            });
+        }
+
+        // Convert base64 to buffers
+        const bgBase64 = typeof background === 'string' && background.startsWith('data:')
+            ? background.split(',')[1]
+            : background;
+        const fgBase64 = typeof foreground === 'string' && foreground.startsWith('data:')
+            ? foreground.split(',')[1]
+            : foreground;
+        const maskBase64 = typeof mask === 'string' && mask.startsWith('data:')
+            ? mask.split(',')[1]
+            : mask;
+
+        const bgBuffer = Buffer.from(bgBase64, 'base64');
+        const fgBuffer = Buffer.from(fgBase64, 'base64');
+        const maskBuffer = Buffer.from(maskBase64, 'base64');
+
+        console.log(`Blending images with mode: ${blendMode}`);
+
+        // Perform blending
+        const blendedBuffer = await poissonBlend(bgBuffer, fgBuffer, maskBuffer, {
+            featherRadius: 15,
+            blendMode
+        });
+
+        // Save to project if projectId provided
+        let savedPath = null;
+        if (projectId) {
+            try {
+                const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
+                const assetsPath = path.join(projectPath, 'assets');
+                await fs.ensureDir(assetsPath);
+
+                const filename = `blended_${Date.now()}.png`;
+                const filePath = path.join(assetsPath, filename);
+                await fs.writeFile(filePath, blendedBuffer);
+
+                savedPath = `/storage/projects/${projectId}/assets/${filename}`;
+            } catch (saveError) {
+                console.warn('Failed to save blended image:', saveError.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            blendedImage: blendedBuffer.toString('base64'),
+            savedPath: savedPath,
+            metadata: {
+                blendMode,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('Blending Error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
