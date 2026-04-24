@@ -177,6 +177,12 @@ const Dashboard = () => {
                 } else {
                     setWorkspaceInitLoading(false);
                 }
+            } else {
+                console.warn('Workspace handle lost. Clearing metadata.');
+                const { clearWorkspaceMetadata } = await import('../services/indexedDBService');
+                await clearWorkspaceMetadata();
+                setSavedWorkspace(null);
+                setWorkspaceInitLoading(false);
             }
         } catch (error) {
             console.error('Failed to reconnect workspace:', error);

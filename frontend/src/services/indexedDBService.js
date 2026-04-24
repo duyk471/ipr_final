@@ -213,3 +213,26 @@ export const getWorkspaceMetadata = async () => {
         };
     });
 };
+/**
+ * Clear workspace metadata
+ * @returns {Promise<void>}
+ */
+export const clearWorkspaceMetadata = async () => {
+    if (!db) {
+        await initIndexedDB();
+    }
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete('workspace-metadata');
+
+        request.onerror = () => {
+            reject(new Error('Failed to clear workspace metadata'));
+        };
+
+        request.onsuccess = () => {
+            resolve();
+        };
+    });
+};

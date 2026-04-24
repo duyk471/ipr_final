@@ -247,13 +247,17 @@ const useCanvasStore = create((set, get) => ({
             }
 
             // Sync with backend (for backup support)
-            try {
-                await api.put(`/projects/${currentProject.id}`, {
-                    canvasState: processedData,
-                    previewBase64: previewBase64
-                });
-            } catch (backendError) {
-                console.warn('Backend sync failed (local save succeeded):', backendError);
+            // Skip sync if we have a workspace handle to avoid race conditions 
+            // especially when the workspace is the same as the backend storage
+            if (!get().workspaceHandle) {
+                try {
+                    await api.put(`/projects/${currentProject.id}`, {
+                        canvasState: processedData,
+                        previewBase64: previewBase64
+                    });
+                } catch (backendError) {
+                    console.warn('Backend sync failed (local save succeeded):', backendError);
+                }
             }
 
             // Update timestamp

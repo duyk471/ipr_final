@@ -106,10 +106,15 @@ export const getWorkspaceDirectory = async () => {
                     console.warn('Saved handle is missing queryPermission method. It may be corrupted or an old version.');
                 }
             } catch (permError) {
-                console.warn('Failed to verify permission on native handle:', permError);
+                // If it's a NotFoundError, the directory might have been moved or deleted
+                if (permError.name === 'NotFoundError') {
+                    console.warn('Saved workspace directory not found. Clearing handle.');
+                    await clearWorkspaceHandle();
+                } else {
+                    console.warn('Failed to verify permission on native handle:', permError);
+                }
             }
-            // Permission denied or error, clear and return null
-            await clearWorkspaceHandle();
+            // For other states (like 'prompt'), just return null so the UI can show the Reconnect button
             return null;
         } else if (!isNative) {
             // Fallback mode - file array can't be persisted across sessions
@@ -199,6 +204,8 @@ export const writeJSONFile = async (dirHandle, fileName, data) => {
     try {
         const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
         const writable = await fileHandle.createWritable();
+        // Explicitly truncate to ensure no garbage is left if new content is shorter
+        await writable.truncate(0);
         await writable.write(JSON.stringify(data, null, 2));
         await writable.close();
     } catch (error) {
@@ -218,6 +225,8 @@ export const writeFile = async (dirHandle, fileName, data) => {
     try {
         const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
         const writable = await fileHandle.createWritable();
+        // Explicitly truncate to ensure no garbage is left if new content is shorter
+        await writable.truncate(0);
         await writable.write(data);
         await writable.close();
     } catch (error) {
