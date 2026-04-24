@@ -942,6 +942,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 top: Math.round(top),
                 right: Math.round(right),
                 bottom: Math.round(bottom),
+                angle: Math.round(activeObject.angle) || 0,
                 filters: filters,
                 isLocked: activeObject.locked || false,
                 isGroup: activeObject.type === 'group',
@@ -1608,6 +1609,67 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                             borderScaleFactor: 2,            // 2px visual border
                             uniformScaling: true,
                         });
+
+                        // Custom Rotation Handle (Biophilic Style)
+                        // In Fabric 7, we use FabricObject and ensure controls are initialized
+                        const TargetClass = fabric.FabricObject || fabric.Object;
+                        if (TargetClass && TargetClass.prototype) {
+                            // Safely access controls or initialize if missing
+                            if (!TargetClass.prototype.controls) {
+                                try {
+                                    // Try to get default controls from various possible locations in different Fabric versions
+                                    const defaultControls = (fabric.controlsUtils && typeof fabric.controlsUtils.createDefaultControls === 'function') 
+                                        ? fabric.controlsUtils.createDefaultControls() 
+                                        : (typeof fabric.createDefaultControls === 'function' ? fabric.createDefaultControls() : {});
+                                    TargetClass.prototype.controls = defaultControls;
+                                } catch (e) {
+                                    TargetClass.prototype.controls = {};
+                                }
+                            }
+                            
+                            const rotateImg = new Image();
+                            rotateImg.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C14.4853 3 16.7353 4.00736 18.364 5.63604M21 2V6H17" stroke="#A8C69F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            `);
+
+                            if (TargetClass.prototype.controls) {
+                                TargetClass.prototype.controls.mtr = new fabric.Control({
+                            x: 0,
+                            y: -0.5,
+                            offsetY: -45,
+                            cursorStyle: 'crosshair',
+                            actionHandler: fabric.controlsUtils.rotationWithSnapping,
+                            actionName: 'rotate',
+                            render: function(ctx, left, top, styleOverride, fabricObject) {
+                                const size = 28;
+                                ctx.save();
+                                ctx.translate(left, top);
+                                ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle));
+                                
+                                // Background Circle
+                                ctx.beginPath();
+                                ctx.arc(0, 0, size / 2, 0, 2 * Math.PI, false);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+                                ctx.shadowBlur = 8;
+                                ctx.fill();
+                                
+                                // Border
+                                ctx.strokeStyle = '#A8C69F';
+                                ctx.lineWidth = 1.5;
+                                ctx.stroke();
+
+                                // Icon
+                                if (rotateImg.complete) {
+                                    ctx.drawImage(rotateImg, -9, -9, 18, 18);
+                                }
+                                ctx.restore();
+                            }
+                        });
+                    }
+                }
 
                         await fabricCanvas.current.loadFromJSON({
                             objects: cleanLayers,

@@ -83,7 +83,7 @@ const PropertiesPanel = ({ canvasRef }) => {
                     <input
                         type="number"
                         min="1"
-                        value={Math.round(selectedObject.width * selectedObject.scaleX) || 0}
+                        value={selectedObject.width || 0}
                         onChange={(e) => handleChange('width', Math.max(1, parseFloat(e.target.value) || 1))}
                         className="w-16 px-2 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all"
                     />
@@ -93,8 +93,17 @@ const PropertiesPanel = ({ canvasRef }) => {
                     <input
                         type="number"
                         min="1"
-                        value={Math.round(selectedObject.height * selectedObject.scaleY) || 0}
+                        value={selectedObject.height || 0}
                         onChange={(e) => handleChange('height', Math.max(1, parseFloat(e.target.value) || 1))}
+                        className="w-16 px-2 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-biophilic-moss/40 dark:text-biophilic-dark-text-muted uppercase">A</span>
+                    <input
+                        type="number"
+                        value={selectedObject.angle || 0}
+                        onChange={(e) => handleChange('angle', parseFloat(e.target.value) || 0)}
                         className="w-16 px-2 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all"
                     />
                 </div>
