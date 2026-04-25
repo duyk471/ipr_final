@@ -23,6 +23,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const [canvasScale, setCanvasScale] = useState(1);
     // Remove Background loading state
     const [isRemovingBg, setIsRemovingBg] = useState(false);
+    // AI Merge loading state
+    const [isMerging, setIsMerging] = useState(false);
 
     // Undo/Redo Stacks
     const undoStack = useRef([]);
@@ -175,6 +177,84 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             activeObject.set('opacity', originalOpacity);
             fabricCanvas.current?.renderAll();
             setIsRemovingBg(false);
+        }
+    };
+
+    const handleAIMerge = async () => {
+        const activeObject = fabricCanvas.current?.getActiveObject();
+        if (!activeObject || activeObject.type !== 'activeSelection') return;
+        
+        const imageObjects = activeObject.getObjects().filter(o => 
+            o.type === 'image' || o.type === 'fabricImage' || o.type?.toLowerCase().includes('image')
+        );
+        if (imageObjects.length < 2) return;
+        
+        if (isMerging) return;
+        setIsMerging(true);
+        
+        try {
+            const dataUrl = activeObject.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
+            const prompt = "A seamless, professional photo-composite of the subjects placed in the background environment, matching lighting, consistent shadows, high resolution, 8k.";
+            
+            const res = await api.post(`/ai/merge`, {
+                image: dataUrl,
+                projectId: projectId,
+                prompt: prompt
+            });
+            
+            if (res.data.success) {
+                try {
+                    const assetInfo = await persistBackendAsset(res.data.asset.displayUrl);
+                    
+                    const imgEl = new Image();
+                    imgEl.crossOrigin = 'anonymous';
+                    imgEl.onload = () => {
+                        const canvas = fabricCanvas.current;
+                        const fabricImg = new fabric.FabricImage(imgEl, {
+                            left: activeObject.left,
+                            top: activeObject.top,
+                            scaleX: activeObject.width / imgEl.width * activeObject.scaleX,
+                            scaleY: activeObject.height / imgEl.height * activeObject.scaleY,
+                            originX: activeObject.originX,
+                            originY: activeObject.originY,
+                            metadata: {
+                                originalPath: assetInfo.path,
+                                source: "ai-merge"
+                            }
+                        });
+                        
+                        const objectsToRemove = activeObject.getObjects();
+                        canvas.discardActiveObject();
+                        canvas.remove(...objectsToRemove);
+                        
+                        canvas.add(fabricImg);
+                        canvas.setActiveObject(fabricImg);
+                        canvas.renderAll();
+                        
+                        updateSelectedState();
+                        queueSave();
+                        setIsMerging(false);
+                    };
+                    imgEl.onerror = () => {
+                        throw new Error('Failed to load merged image');
+                    };
+                    imgEl.src = assetInfo.url;
+                } catch (persistError) {
+                    console.error('Failed to persist merged image:', persistError);
+                    setIsMerging(false);
+                    notify({ message: 'Merge succeeded but failed to save image locally.', type: 'warning' });
+                }
+            } else {
+                throw new Error('Merge failed');
+            }
+        } catch (err) {
+            console.error('AI Merge error:', err);
+            setIsMerging(false);
+            if (err.response && err.response.status === 503) {
+                notify({ message: "AI Server is busy. Please try again in a few seconds.", type: 'warning' });
+            } else {
+                notify({ message: "Failed to merge images. " + (err.response?.data?.message || err.message), type: 'error' });
+            }
         }
     };
 
@@ -909,6 +989,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const updateSelectedState = () => {
         if (!fabricCanvas.current) return;
         const activeObject = fabricCanvas.current.getActiveObject();
+        const activeObjects = fabricCanvas.current.getActiveObjects();
+
         if (activeObject) {
             const canvasWidth = fabricCanvas.current.width;
             const canvasHeight = fabricCanvas.current.height;
@@ -946,7 +1028,11 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 filters: filters,
                 isLocked: activeObject.locked || false,
                 isGroup: activeObject.type === 'group',
-                isActiveSelection: activeObject.type === 'activeSelection',
+                isActiveSelection: activeObjects.length > 1,
+                selectionCount: activeObjects.length,
+                imageCount: activeObjects.filter(o => 
+                    o.type === 'image' || o.type === 'fabricImage' || o.type?.toLowerCase().includes('image') || o.getSrc?.()
+                ).length,
                 isCurved: activeObject.isCurved || false,
                 curveRadius: activeObject.curveRadius || 50
             });
@@ -1904,6 +1990,39 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                                         <>
                                             <Sparkles size={14} className="text-biophilic-green dark:text-biophilic-dark-green" />
                                             <span>Remove BG</span>
+                                        </>
+                                    )}
+                                </button>
+                                {/* divider */}
+                                <div className="w-px h-6 mx-1 rounded-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border" />
+                            </>
+                        )}
+
+                        {/* ── AI Merge (2+ images only) ── */}
+                        {selectedObject?.imageCount >= 2 && (
+                            <>
+                                <button
+                                    onClick={handleAIMerge}
+                                    disabled={isMerging}
+                                    title="Merge with AI"
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-bold transition-all duration-150 ${
+                                        isMerging
+                                            ? 'bg-biophilic-green/20 dark:bg-biophilic-dark-green/20 text-biophilic-moss dark:text-biophilic-dark-green cursor-wait'
+                                            : 'text-[#2D3A30] dark:text-[#E0E8E1] hover:bg-biophilic-green/20 dark:hover:bg-biophilic-dark-green/20'
+                                    }`}
+                                >
+                                    {isMerging ? (
+                                        <>
+                                            <svg className="animate-spin" width={14} height={14} viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" stroke="#B8D4AF" strokeWidth="3" strokeOpacity="0.3" />
+                                                <path d="M12 2a10 10 0 0 1 10 10" stroke="#B8D4AF" strokeWidth="3" strokeLinecap="round" />
+                                            </svg>
+                                            <span>FLUX AI is harmonizing your layers...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Layers size={14} className="text-biophilic-green dark:text-biophilic-dark-green" />
+                                            <span>AI Merge</span>
                                         </>
                                     )}
                                 </button>

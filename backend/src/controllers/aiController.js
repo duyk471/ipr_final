@@ -703,3 +703,109 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const mergeImages = async (req, res) => {
+    try {
+        const { image, prompt, projectId, strength = 0.5, num_inference_steps = 4 } = req.body;
+
+        if (!image || !projectId) {
+            return res.status(400).json({ success: false, message: 'Missing image or projectId' });
+        }
+
+        const actualPrompt = prompt || "A seamless, professional photo-composite of the subjects placed in the background environment, matching lighting, consistent shadows, high resolution, 8k.";
+
+        console.log(`Merging AI images for project ${projectId} with prompt: "${actualPrompt}"`);
+
+        const hfToken = process.env.HUGGINGFACE_API_KEY;
+        if (!hfToken) {
+            return res.status(400).json({ success: false, message: 'Hugging Face API key is missing' });
+        }
+
+        // Prepare image data (strip base64 prefix if present)
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        
+        let imageBuffer = null;
+        let usedModel = "unknown";
+        let lastError = "";
+
+        const models = [
+            "black-forest-labs/FLUX.1-schnell",
+            "black-forest-labs/FLUX.1-dev"
+        ];
+
+        for (const modelId of models) {
+            try {
+                console.log(`Trying AI model for merge: ${modelId}...`);
+                const url = `https://router.huggingface.co/hf-inference/models/${modelId}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${hfToken}`,
+                        'Content-Type': 'application/json',
+                        'x-use-cache': 'false'
+                    },
+                    body: JSON.stringify({
+                        inputs: base64Data,
+                        parameters: {
+                            prompt: actualPrompt,
+                            strength: strength,
+                            num_inference_steps: num_inference_steps
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const arrayBuffer = await response.arrayBuffer();
+                    imageBuffer = Buffer.from(arrayBuffer);
+                    usedModel = modelId;
+                    break;
+                } else if (response.status === 503) {
+                    lastError = "503";
+                    break; // Specific handling for 503 requested by user
+                } else {
+                    const err = await response.json().catch(() => ({ error: 'Unknown' }));
+                    lastError = err.error || `Request failed with status ${response.status}`;
+                    console.error(`Merge failed on ${modelId}:`, lastError);
+                }
+            } catch (err) {
+                lastError = err.message;
+                console.error(`Merge fetch error on ${modelId}:`, lastError);
+            }
+        }
+
+        if (lastError === "503") {
+            return res.status(503).json({ success: false, message: "AI Server is busy. Please try again in a few seconds." });
+        }
+
+        if (!imageBuffer) {
+            throw new Error(`All AI models failed to merge. Last error: ${lastError}`);
+        }
+
+        // Save result
+        const projectPath = path.join(STORAGE_ROOT, 'projects', projectId);
+        const assetsPath = path.join(projectPath, 'assets');
+        await fs.ensureDir(assetsPath);
+
+        const filename = `ai_merged_${Date.now()}.png`;
+        const filePath = path.join(assetsPath, filename);
+        await fs.writeFile(filePath, imageBuffer);
+
+        res.json({
+            success: true,
+            asset: {
+                relativePath: `assets/${filename}`,
+                displayUrl: `/storage/projects/${projectId}/assets/${filename}`
+            },
+            metadata: {
+                source: "huggingface-ai-merge",
+                model: usedModel,
+                prompt: actualPrompt
+            }
+        });
+
+    } catch (error) {
+        console.error('AI Merge Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
