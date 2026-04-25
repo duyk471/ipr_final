@@ -714,23 +714,52 @@ export const mergeImages = async (req, res) => {
 
         const actualPrompt = prompt || "A seamless, professional photo-composite of the subjects placed in the background environment, matching lighting, consistent shadows, high resolution, 8k.";
 
-        console.log(`Merging AI images for project ${projectId} with prompt: "${actualPrompt}"`);
+        console.log(`Merging AI images for project ${projectId}...`);
 
         const hfToken = process.env.HUGGINGFACE_API_KEY;
         if (!hfToken) {
             return res.status(400).json({ success: false, message: 'Hugging Face API key is missing' });
         }
 
+        const geminiToken = process.env.GEMINI_API_KEY;
+        if (!geminiToken) {
+            return res.status(400).json({ success: false, message: 'Gemini API key is missing' });
+        }
+
         // Prepare image data (strip base64 prefix if present)
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+
+        // 1. Use Gemini Vision to understand the composition and generate a perfect prompt
+        console.log("Analyzing composite with Gemini Vision...");
+        const genAI = new GoogleGenerativeAI(geminiToken);
+        const geminiModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         
+        const visionPrompt = `Analyze this composite image containing multiple layers. Write a highly detailed, descriptive prompt suitable for a text-to-image AI (like FLUX) to recreate this exact composition as a single, photorealistic, seamless image. Describe the main subjects, their exact positions, the background environment, and the lighting. Ensure the prompt starts with: "A seamless, professional photo-composite of...". Context: ${actualPrompt}`;
+        
+        let enhancedPrompt = actualPrompt;
+        try {
+            const result = await geminiModel.generateContent([
+                visionPrompt,
+                {
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: "image/png"
+                    }
+                }
+            ]);
+            enhancedPrompt = result.response.text().trim();
+            console.log("Enhanced Prompt from Gemini:", enhancedPrompt);
+        } catch (geminiErr) {
+            console.error("Gemini Vision failed, falling back to original prompt:", geminiErr.message);
+        }
+
         let imageBuffer = null;
         let usedModel = "unknown";
         let lastError = "";
 
+        // FLUX.1-schnell on HF Free Tier is strictly Text-to-Image.
         const models = [
-            "black-forest-labs/FLUX.1-schnell",
-            "black-forest-labs/FLUX.1-dev"
+            "black-forest-labs/FLUX.1-schnell"
         ];
 
         for (const modelId of models) {
@@ -746,12 +775,7 @@ export const mergeImages = async (req, res) => {
                         'x-use-cache': 'false'
                     },
                     body: JSON.stringify({
-                        inputs: base64Data,
-                        parameters: {
-                            prompt: actualPrompt,
-                            strength: strength,
-                            num_inference_steps: num_inference_steps
-                        }
+                        inputs: enhancedPrompt // strictly pass as text-to-image to avoid __call__ prompt error
                     })
                 });
 

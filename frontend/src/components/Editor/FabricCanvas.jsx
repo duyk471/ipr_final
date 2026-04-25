@@ -182,10 +182,12 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
     const handleAIMerge = async () => {
         const activeObject = fabricCanvas.current?.getActiveObject();
-        if (!activeObject || activeObject.type !== 'activeSelection') return;
+        const activeObjects = fabricCanvas.current?.getActiveObjects();
+
+        if (!activeObject || !activeObjects || activeObjects.length < 2) return;
         
-        const imageObjects = activeObject.getObjects().filter(o => 
-            o.type === 'image' || o.type === 'fabricImage' || o.type?.toLowerCase().includes('image')
+        const imageObjects = activeObjects.filter(o => 
+            o.type === 'image' || o.type === 'fabricImage' || o.type?.toLowerCase().includes('image') || o.getSrc?.()
         );
         if (imageObjects.length < 2) return;
         
@@ -223,7 +225,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                             }
                         });
                         
-                        const objectsToRemove = activeObject.getObjects();
+                        const objectsToRemove = activeObject.getObjects ? activeObject.getObjects() : activeObjects;
                         canvas.discardActiveObject();
                         canvas.remove(...objectsToRemove);
                         
