@@ -102,8 +102,15 @@ const PropertiesPanel = ({ canvasRef }) => {
                     <span className="text-[10px] font-black text-biophilic-moss/40 dark:text-biophilic-dark-text-muted uppercase">A</span>
                     <input
                         type="number"
+                        min="-360"
+                        max="360"
                         value={selectedObject.angle || 0}
-                        onChange={(e) => handleChange('angle', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                            let val = parseFloat(e.target.value) || 0;
+                            if (val > 360) val = 360;
+                            if (val < -360) val = -360;
+                            handleChange('angle', val);
+                        }}
                         className="w-16 px-2 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all"
                     />
                 </div>

@@ -33,6 +33,13 @@ const useCanvasStore = create((set, get) => ({
     canvasData: null,
     history: { undoStack: [], redoStack: [] },
     selectedObject: null,
+    
+    // UI State for Editor
+    contextMenu: null,
+    toolbarPos: null,
+    setContextMenu: (pos) => set({ contextMenu: pos }),
+    setToolbarPos: (pos) => set({ toolbarPos: pos }),
+
     isLoading: false,
     error: null,
     hasBrokenAssets: false, // Flag for projects with missing image paths

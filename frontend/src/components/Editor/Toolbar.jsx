@@ -88,8 +88,8 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
                         onClick={tool.action}
                         className={`flex flex-col items-center justify-center p-3.5 gap-1.5 rounded-2xl transition-all duration-300 ease-out w-full select-none relative group/btn ${
                             activeLeftPanel === tool.id
-                                ? 'bg-biophilic-green dark:bg-[#A8C69F] text-white dark:text-[#2D3A30] shadow-lg dark:shadow-dark-green-glow scale-[1.05] font-black'
-                                : 'text-slate-500 dark:text-biophilic-dark-text-muted hover:bg-biophilic-green/10 dark:hover:bg-[#A8C69F]/10 hover:text-biophilic-green dark:hover:text-[#A8C69F]'
+                                ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg shadow-lg dark:shadow-dark-green-glow scale-[1.05] font-black'
+                                : 'text-slate-500 dark:text-biophilic-dark-text-muted hover:bg-biophilic-green/10 dark:hover:bg-biophilic-dark-green/10 hover:text-biophilic-green dark:hover:text-biophilic-dark-green'
                         }`}
                         title={tool.label}
                     >
@@ -105,7 +105,7 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
                         </span>
                         
                         {activeLeftPanel === tool.id && (
-                            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-biophilic-green dark:bg-[#A8C69F] rounded-full shadow-glow-green" />
+                            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-biophilic-green dark:bg-biophilic-dark-green rounded-full shadow-glow-green" />
                         )}
                     </button>
                     {/* Tooltip */}

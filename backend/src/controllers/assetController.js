@@ -1,134 +1,77 @@
 import fs from 'fs-extra';
+import { catchAsync } from '../utils/catchAsync.js';
+import AppError from '../utils/AppError.js';
+import { saveAssetBase64, resolveAssetLocalPath, STORAGE_ROOT } from '../services/assetService.js';
+import { removeBackgroundAI } from '../services/imageProcessingService.js';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { removeBackground } from '@imgly/background-removal-node';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const STORAGE_ROOT = path.join(__dirname, '../../../storage');
-
-export const uploadAsset = async (req, res) => {
-    try {
-        const { id: projectId } = req.params;
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
-        }
-
-        const projectAssetsPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets');
-        await fs.ensureDir(projectAssetsPath);
-
-        const filename = `upload_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-        const filePath = path.join(projectAssetsPath, filename);
-
-        await fs.writeFile(filePath, req.file.buffer);
-
-        // Required path in index.json should be relative to project root
-        const relativePath = `assets/${filename}`;
-        // The display URL for frontend to load
-        const displayUrl = `/storage/projects/${projectId}/assets/${filename}`;
-
-        res.json({ success: true, asset: { relativePath, displayUrl } });
-    } catch (error) {
-        console.error('Upload asset error:', error);
-        res.status(500).json({ success: false, message: 'Failed to upload asset' });
+export const uploadAsset = catchAsync(async (req, res) => {
+    const { id: projectId } = req.params;
+    
+    if (!req.file) {
+        throw new AppError('No file uploaded', 400);
     }
-};
 
-export const handlePastedImage = async (req, res) => {
-    try {
-        const { id: projectId } = req.params;
-        const { imageBase64 } = req.body;
+    const projectAssetsPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets');
+    await fs.ensureDir(projectAssetsPath);
 
-        if (!imageBase64) {
-            return res.status(400).json({ success: false, message: 'No image data provided' });
-        }
+    const filename = `upload_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const filePath = path.join(projectAssetsPath, filename);
 
-        const projectAssetsPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets');
-        await fs.ensureDir(projectAssetsPath);
+    await fs.writeFile(filePath, req.file.buffer);
 
-        // Expected format: data:image/png;base64,...
-        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-        const filename = `paste_${Date.now()}.png`;
-        const filePath = path.join(projectAssetsPath, filename);
+    const relativePath = `assets/${filename}`;
+    const displayUrl = `/storage/projects/${projectId}/assets/${filename}`;
 
-        await fs.writeFile(filePath, base64Data, 'base64');
+    res.json({ success: true, asset: { relativePath, displayUrl } });
+});
 
-        const relativePath = `assets/${filename}`;
-        const displayUrl = `/storage/projects/${projectId}/assets/${filename}`;
+export const handlePastedImage = catchAsync(async (req, res) => {
+    const { id: projectId } = req.params;
+    const { imageBase64 } = req.body;
 
-        res.json({ success: true, asset: { relativePath, displayUrl } });
-    } catch (error) {
-        console.error('Handle pasted image error:', error);
-        res.status(500).json({ success: false, message: 'Failed to process pasted image' });
+    if (!imageBase64) {
+        throw new AppError('No image data provided', 400);
     }
-};
 
-export const removeAssetBackground = async (req, res) => {
+    const filename = `paste_${Date.now()}.png`;
+    const asset = await saveAssetBase64(projectId, filename, imageBase64);
+
+    res.json({ success: true, asset: { relativePath: asset.relativePath, displayUrl: asset.displayUrl } });
+});
+
+export const removeAssetBackground = catchAsync(async (req, res) => {
+    const { id: projectId } = req.params;
+    const { imagePath } = req.body; 
+    
+    let inputSource;
+    let filenameBase = `nobg_${Date.now()}`;
+    let tempFilePath = null;
+
     try {
-        const { id: projectId } = req.params;
-        const { imagePath } = req.body; 
-        
-        let inputSource;
-        let filenameBase = `nobg_${Date.now()}`;
-        let tempFilePath = null;
-
-        // Case 1: File is uploaded directly (local-first asset)
         if (req.file) {
-            console.log(`[AI] Processing uploaded file for background removal`);
             const projectAssetsPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets');
             await fs.ensureDir(projectAssetsPath);
             
-            // Save to temp file to ensure library can read it correctly
             const tempName = `temp_${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
             tempFilePath = path.join(projectAssetsPath, tempName);
             await fs.writeFile(tempFilePath, req.file.buffer);
             
             inputSource = tempFilePath;
             filenameBase = `nobg_${Date.now()}_${req.file.originalname.split('.')[0]}`;
-        } 
-        // Case 2: Reference to an existing server-side asset
-        else if (imagePath) {
-            console.log(`[AI] Received request to remove background for path: ${imagePath}`);
-
-            let cleanPath = imagePath;
-            try {
-                const urlObj = new URL(imagePath);
-                cleanPath = urlObj.pathname;
-            } catch(e) {
-                cleanPath = imagePath.split('?')[0];
-            }
-
-            let fullPath;
-            if (cleanPath.startsWith('/storage')) {
-                const relativeToStorage = cleanPath.replace(/^\/storage\//, '');
-                fullPath = path.resolve(STORAGE_ROOT, relativeToStorage);
-            } else {
-                fullPath = path.resolve(STORAGE_ROOT, 'projects', projectId, cleanPath);
-            }
-
-            if (!(await fs.pathExists(fullPath))) {
-                console.error(`[AI] Image not found at resolved path: ${fullPath}`);
-                return res.status(404).json({ success: false, message: `Image not found at ${fullPath}` });
-            }
-
-            console.log(`[AI] Removing background from resolved local path: ${fullPath}`);
-            inputSource = fullPath;
+        } else if (imagePath) {
+            inputSource = await resolveAssetLocalPath(projectId, imagePath);
         } else {
-            return res.status(400).json({ success: false, message: 'No image provided (either file or path)' });
+            throw new AppError('No image provided (either file or path)', 400);
         }
         
-        // Use Node.js version of the library
-        const blob = await removeBackground(inputSource);
-        const resultBuffer = Buffer.from(await blob.arrayBuffer());
+        const fileUri = `file://${inputSource.replace(/\\/g, '/')}`;
+        const resultBuffer = await removeBackgroundAI(fileUri);
 
-        // Clean up temp file if created
         if (tempFilePath) {
-            await fs.remove(tempFilePath).catch(err => console.warn('Failed to remove temp file:', err));
+            await fs.remove(tempFilePath).catch(() => {});
         }
 
-        console.log(`[AI] Background removed successfully. Saving new asset...`);
-
-        // Save as a new PNG asset
         const filename = `${filenameBase}.png`;
         const projectAssetsPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets');
         await fs.ensureDir(projectAssetsPath);
@@ -136,19 +79,17 @@ export const removeAssetBackground = async (req, res) => {
         const newPath = path.join(projectAssetsPath, filename);
         await fs.writeFile(newPath, resultBuffer);
 
-        const relativePath = `assets/${filename}`;
-        const displayUrl = `/storage/projects/${projectId}/assets/${filename}`;
-
         res.json({ 
             success: true, 
-            asset: { relativePath, displayUrl } 
+            asset: { 
+                relativePath: `assets/${filename}`, 
+                displayUrl: `/storage/projects/${projectId}/assets/${filename}` 
+            } 
         });
     } catch (error) {
-        // Clean up temp file if created
         if (tempFilePath) {
-            await fs.remove(tempFilePath).catch(err => console.warn('Failed to remove temp file in error block:', err));
+            await fs.remove(tempFilePath).catch(() => {});
         }
-        console.error('Background removal error stack:', error.stack || error);
-        res.status(500).json({ success: false, message: 'AI Background Removal failed: ' + (error.message || String(error)) });
+        throw new AppError('AI Background Removal failed: ' + error.message, 500);
     }
-};
+});

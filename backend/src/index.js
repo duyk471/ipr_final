@@ -2,19 +2,18 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
+import { config } from './config/env.js';
 import projectRoutes from './routes/projectRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import { handleImageSearch } from './controllers/imageSearchController.js';
-
-dotenv.config();
+import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.PORT;
 
 // Connect to frontend over localhost
 app.use(cors({ origin: 'http://localhost:5173' }));
@@ -30,6 +29,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:id/assets', assetRoutes);
 app.get('/api/assets/search', handleImageSearch);
 app.use('/api/ai', aiRoutes);
+
+// Global Error Handler
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
