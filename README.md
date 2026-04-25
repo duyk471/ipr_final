@@ -53,17 +53,6 @@ ai-image-editor/
 └── README.md
 ```
 
-## 3.5 Local-First Storage (New!)
-
-**As of latest refactoring**: This application now uses **Web File System Access API** for local-first storage. All projects are saved directly to the user's filesystem, eliminating dependency on backend storage.
-
-- **Storage Location**: User-selected directory (no server-side storage)
-- **Data Persistence**: Browser IndexedDB for workspace handle
-- **Asset Handling**: Direct local file I/O
-- **Backend Role**: AI processing and stateless operations only
-
-See [LOCAL_FIRST_MIGRATION.md](guide/src/LOCAL_FIRST_MIGRATION.md) for detailed migration information.
-
 ## 4. Hướng dẫn cài đặt (Setup Guide)
 
 ### Bước 1: Clone dự án và cài đặt dependencies
@@ -126,11 +115,3 @@ Mỗi dự án được lưu tại `backend/storage/projects/[uuid]/`:
 
 - Khi Import dự án từ file `.zip`, hệ thống sẽ tự động ánh xạ (remap) lại các đường dẫn ảnh để đảm bảo ảnh hiển thị đúng ngay cả khi Project ID thay đổi.
 - Tính năng **AI Assist** yêu cầu ảnh chụp màn hình Canvas và JSON state để Gemini có thể phân tích chính xác nhất.
-
-## 7. Build Documentation
-
-Chạy lệnh sau
-
-```bash
-cd guide/ && mdbook build
-```
