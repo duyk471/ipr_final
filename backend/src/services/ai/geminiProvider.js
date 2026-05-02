@@ -3,7 +3,7 @@ import { config } from '../../config/env.js';
 
 export const analyzeDesignWithVision = async (base64Image, canvasJson, userPrompt) => {
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
-    
+
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
@@ -46,7 +46,7 @@ export const analyzeDesignWithVision = async (base64Image, canvasJson, userPromp
 
 export const generateLayoutFromPrompt = async (prompt) => {
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
-    
+
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
@@ -135,12 +135,12 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
 
 export const enhanceMergePrompt = async (base64Image, basePrompt) => {
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
-    
+
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-    
+
     const visionPrompt = `Analyze this composite image containing multiple layers. Write a highly detailed, descriptive prompt suitable for a text-to-image AI (like FLUX) to recreate this exact composition as a single, photorealistic, seamless image. Describe the main subjects, their exact positions, the background environment, and the lighting. Ensure the prompt starts with: "A seamless, professional photo-composite of...". Context: ${basePrompt}`;
-    
+
     try {
         const result = await model.generateContent([
             visionPrompt,
@@ -150,5 +150,102 @@ export const enhanceMergePrompt = async (base64Image, basePrompt) => {
     } catch (err) {
         console.error("Gemini Vision failed, falling back to original prompt:", err.message);
         return basePrompt;
+    }
+};
+export const describeImageWithGemini = async (base64Image) => {
+    if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
+
+    const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
+    // User requested specific model: gemma-4-26b-a4b-it
+    const model = genAI.getGenerativeModel({ model: "gemma-4-26b-a4b-it" });
+
+    const prompt = "Describe this image in detail. Provide a creative, evocative description including style, colors, subjects, and mood. Ensure the output is a concise paragraph suitable for a designer.";
+
+    try {
+        const result = await model.generateContent([
+            { text: prompt },
+            { inlineData: { data: base64Image, mimeType: "image/png" } }
+        ]);
+        return result.response.text().trim();
+    } catch (err) {
+        console.error("Gemini Vision Description failed:", err.message);
+        throw err;
+    }
+};
+
+export const generateThemePaletteWithGemini = async (mood, canvasJson = null) => {
+    if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
+
+    const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
+    // Use the standard model for fast, reliable JSON text generation
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
+
+    const systemPrompt = `You are a master color theorist and UI/UX designer.
+Your task is to curate a theme and apply it to a user's design project.
+
+USER MOOD/VIBE: "${mood}"
+
+${canvasJson ? `EXISTING PROJECT JSON: 
+${JSON.stringify(canvasJson)}
+
+TASKS:
+1. Analyze the existing elements (text, shapes, backgrounds).
+2. Curate a 5-color palette that perfectly reflects the requested mood while maintaining maximum legibility.
+3. MODIFY the provided Project JSON:
+   - Update 'fill' and 'stroke' properties of all text and shapes.
+   - Update the canvas 'backgroundColor' (or the largest background rectangle if one exists).
+   - Ensure excellent contrast (Light on Dark or Dark on Light).
+   - DO NOT MODIFY image filters or image sources.` : 'No project context provided. Just generate a palette.'}
+
+=== RESPONSE FORMAT ===
+Return a raw JSON object with NO MARKDOWN:
+{
+  "palette_name": "Creative Palette Name",
+  "hex_codes": ["#color1", "#color2", "#color3", "#color4", "#color5"],
+  "updatedJson": ${canvasJson ? "{ ...the modified project JSON structure... }" : "null"}
+}`;
+
+    try {
+        const result = await model.generateContent(systemPrompt);
+        let responseText = result.response.text();
+        // Clean up markdown if model still included it
+        responseText = responseText.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
+        return JSON.parse(responseText);
+    } catch (err) {
+        console.error("Gemini Theme Generation failed:", err.message);
+        throw new Error("Failed to generate theme palette. Please try another mood.");
+    }
+};
+
+export const extractStylesWithGemini = async (base64Image) => {
+    if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
+
+    const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+    const systemPrompt = `You are a world-class Art Director and Style Analyst.
+Analyze the provided image and extract 4 DISTINCT technical design styles that could be used to recreate this aesthetic or variations of it in an AI Image Generator.
+Each style should have a catchy 'name' and a 'tags' string containing a comma-separated list of highly effective, technical prompt keywords (e.g., lighting, camera angle, color grading, art movement, texture).
+
+Return EXACTLY a raw JSON array of 4 objects with NO MARKDOWN formatting:
+[
+  {
+    "name": "Cinematic Realism",
+    "tags": "8k resolution, cinematic lighting, photorealistic, volumetric fog, dramatic shadows, 35mm lens"
+  },
+  ...
+]`;
+
+    try {
+        const result = await model.generateContent([
+            { text: systemPrompt },
+            { inlineData: { data: base64Image, mimeType: "image/png" } }
+        ]);
+        let responseText = result.response.text();
+        responseText = responseText.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
+        return JSON.parse(responseText);
+    } catch (err) {
+        console.error("Gemini Style Extraction failed:", err.message);
+        throw new Error("Failed to extract styles from the image.");
     }
 };

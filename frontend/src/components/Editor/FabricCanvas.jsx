@@ -146,6 +146,30 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         // Update src to the blob URL for immediate display
                         activeObject.set('src', assetInfo.url);
                         
+                        // ─── NEW: Trim transparent edges to refit bounding box ───
+                        try {
+                            const boundaries = getVisualBoundaries(imgEl);
+                            if (boundaries) {
+                                // Calculate position offset to keep content centered correctly
+                                const oldWidth = activeObject.width * activeObject.scaleX;
+                                const oldHeight = activeObject.height * activeObject.scaleY;
+                                
+                                // Set new dimensions (source dimensions)
+                                activeObject.set({
+                                    width: boundaries.width,
+                                    height: boundaries.height,
+                                    // Adjust position based on the trim
+                                    left: activeObject.left + (boundaries.left * activeObject.scaleX),
+                                    top: activeObject.top + (boundaries.top * activeObject.scaleY),
+                                    // Set the crop properties (Fabric v6 uses cropX/cropY)
+                                    cropX: boundaries.left,
+                                    cropY: boundaries.top
+                                });
+                            }
+                        } catch (trimErr) {
+                            console.warn('Failed to trim transparent edges:', trimErr);
+                        }
+
                         fabricCanvas.current.renderAll();
                         updateSelectedState();
                         queueSave();
@@ -406,13 +430,15 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         canvas: fabricCanvas.current,
         addText: (options = {}) => {
             if (!fabricCanvas.current) return;
-            const text = new fabric.IText(options.text || 'Hello World', {
+            const text = new fabric.Textbox(options.text || 'Hello World', {
                 left: options.left || 100,
                 top: options.top || 100,
+                width: options.width || 400, // Default width for wrapping
                 fontFamily: options.fontFamily || 'Inter',
                 fill: options.fill || '#000000',
                 fontSize: options.fontSize || 40,
-                fontWeight: options.fontWeight || 'normal'
+                fontWeight: options.fontWeight || 'normal',
+                splitByGrapheme: true // Better wrapping for various languages
             });
             fabricCanvas.current.add(text);
             fabricCanvas.current.bringObjectToFront(text);
@@ -450,8 +476,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 ], commonProps);
                 frame.set({ scaleX: 3, scaleY: 3 });
             } else if (type === 'text') {
-                frame = new fabric.IText(textValue, {
-                    ...commonProps, fontSize: 300, fontFamily: 'Inter', fontWeight: 'bold'
+                frame = new fabric.Textbox(textValue, {
+                    ...commonProps, fontSize: 300, fontFamily: 'Inter', fontWeight: 'bold', width: 300
                 });
             }
             if (frame) {
@@ -1503,6 +1529,21 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             // During scaling: update properties panel but DO NOT push undo
             fabricCanvas.current.on('object:scaling', (e) => {
                 isScalingObj.current = true;
+                const obj = e.target;
+                
+                // ─── NEW: Fix Text Resizing (Wrap vs Scale) ───
+                // If it's a Textbox, convert scale to width change to force wrapping
+                if (obj && obj.type === 'textbox') {
+                    const newWidth = obj.width * obj.scaleX;
+                    const newHeight = obj.height * obj.scaleY;
+                    
+                    obj.set({
+                        width: Math.max(newWidth, 10), // minimum width
+                        scaleX: 1,
+                        scaleY: 1
+                    });
+                }
+                
                 updateSelectedState();
             });
 
@@ -1885,3 +1926,41 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 });
 
 export default FabricCanvas;
+
+/**
+ * Utility to calculate the visual boundaries of an image (non-transparent pixels)
+ */
+function getVisualBoundaries(imgEl) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = imgEl.width;
+    canvas.height = imgEl.height;
+    ctx.drawImage(imgEl, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+    let found = false;
+
+    for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+            const alpha = data[(y * canvas.width + x) * 4 + 3];
+            if (alpha > 0) {
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x > maxX) maxX = x;
+                if (y > maxY) maxY = y;
+                found = true;
+            }
+        }
+    }
+
+    if (!found) return null;
+
+    return {
+        left: minX,
+        top: minY,
+        width: maxX - minX + 1,
+        height: maxY - minY + 1
+    };
+}

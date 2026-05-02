@@ -1,5 +1,5 @@
-import { analyzeDesignWithVision, generateLayoutFromPrompt, enhanceMergePrompt } from './ai/geminiProvider.js';
-import { generateImageWithHF } from './ai/huggingfaceProvider.js';
+import { analyzeDesignWithVision, generateLayoutFromPrompt, enhanceMergePrompt, describeImageWithGemini, generateThemePaletteWithGemini, extractStylesWithGemini } from './ai/geminiProvider.js';
+import { generateImageWithHF, describeImageWithHF, generateTextWithHF } from './ai/huggingfaceProvider.js';
 import { generateImageWithPollinations } from './ai/pollinationsProvider.js';
 import { removeWhiteBackgroundSmart } from './imageProcessingService.js';
 import { saveAssetBuffer } from './assetService.js';
@@ -259,4 +259,32 @@ export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
         asset: assetInfo,
         metadata: { model: usedModel, enhancedPrompt }
     };
+};
+
+export const describeImage = async (base64Image) => {
+    // Switching to Gemini as requested
+    const description = await describeImageWithGemini(base64Image);
+    return { description };
+};
+
+export const generateContent = async (keyword) => {
+    const systemInstruction = "You are a creative copywriter. Generate a catchy slogan or short description based on the keyword provided by the user. Keep it concise, engaging, and professional.";
+    const text = await generateTextWithHF(keyword, systemInstruction);
+    return { text };
+};
+
+export const enhancePrompt = async (simplePrompt) => {
+    const systemInstruction = "You are an expert AI prompt engineer. The user will give you a simple idea for an image. Your job is to expand it into a highly detailed, descriptive prompt suitable for a text-to-image AI (like FLUX or Midjourney). Add details about lighting, camera angle, texture, environment, and mood. Ensure the final result is a single paragraph. Only output the enhanced prompt, do not add any conversational text.";
+    const text = await generateTextWithHF(simplePrompt, systemInstruction);
+    return { text };
+};
+
+export const generateTheme = async (mood, canvasJson = null) => {
+    const paletteData = await generateThemePaletteWithGemini(mood, canvasJson);
+    return paletteData; // { palette_name, hex_codes: [] }
+};
+
+export const extractStyles = async (base64Image) => {
+    const styles = await extractStylesWithGemini(base64Image);
+    return styles;
 };

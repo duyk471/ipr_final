@@ -1,9 +1,11 @@
 import React, { useRef } from 'react';
-import { Type, Upload, Shapes, Sparkles, Wand2, Image } from 'lucide-react';
+import { Type, Upload, Shapes, Sparkles, Wand2, Image, Wand } from 'lucide-react';
 import { api } from '../../store/useCanvasStore';
+import useCanvasStore from '../../store/useCanvasStore';
 import { uploadLocalAsset } from '../../services/localAssetService';
 
-const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) => {
+const Toolbar = ({ canvasRef, projectId }) => {
+    const { activeLeftPanel, setActiveLeftPanel } = useCanvasStore();
     const fileInputRef = useRef(null);
 
     const handleUploadClick = () => {
@@ -59,10 +61,10 @@ const Toolbar = ({ canvasRef, projectId, activeLeftPanel, setActiveLeftPanel }) 
             action: () => setActiveLeftPanel(activeLeftPanel === 'assistant' ? null : 'assistant') 
         },
         { 
-            id: 'images', 
-            icon: <Image size={22} />, 
-            label: "Images", 
-            action: () => setActiveLeftPanel(activeLeftPanel === 'images' ? null : 'images') 
+            id: 'magic', 
+            icon: <Wand size={22} />, 
+            label: "Magic", 
+            action: () => setActiveLeftPanel(activeLeftPanel === 'magic' ? null : 'magic') 
         },
         { 
             id: 'upload', 

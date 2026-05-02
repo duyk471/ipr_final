@@ -4,7 +4,12 @@ import {
     analyzeDesignAndGenerateAssets,
     generateSingleImage,
     createProjectLayout,
-    mergeLayerImages
+    mergeLayerImages,
+    describeImage,
+    generateContent,
+    enhancePrompt,
+    generateTheme,
+    extractStyles
 } from '../services/aiService.js';
 
 export const analyzeDesign = catchAsync(async (req, res) => {
@@ -76,5 +81,81 @@ export const mergeImages = catchAsync(async (req, res) => {
     res.json({
         success: true,
         ...result
+    });
+});
+
+export const handleDescribeImage = catchAsync(async (req, res) => {
+    const { image } = req.body;
+    
+    if (!image) {
+        throw new AppError('Missing image data', 400);
+    }
+
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+    const result = await describeImage(base64Data);
+
+    res.json({
+        success: true,
+        ...result
+    });
+});
+
+export const handleGenerateText = catchAsync(async (req, res) => {
+    const { keyword } = req.body;
+    
+    if (!keyword) {
+        throw new AppError('Missing keyword', 400);
+    }
+
+    const result = await generateContent(keyword);
+
+    res.json({
+        success: true,
+        ...result
+    });
+});
+
+export const handleEnhancePrompt = catchAsync(async (req, res) => {
+    const { prompt } = req.body;
+    
+    if (!prompt) {
+        throw new AppError('Missing prompt', 400);
+    }
+
+    const result = await enhancePrompt(prompt);
+
+    res.json({
+        success: true,
+        ...result
+    });
+});
+
+export const handleGenerateTheme = catchAsync(async (req, res) => {
+    const { mood, canvasJson } = req.body;
+    
+    if (!mood) {
+        throw new AppError('Missing mood description', 400);
+    }
+
+    const result = await generateTheme(mood, canvasJson);
+
+    res.json({
+        success: true,
+        ...result
+    });
+});
+
+export const handleExtractStyles = catchAsync(async (req, res) => {
+    const { base64Image } = req.body;
+    
+    if (!base64Image) {
+        throw new AppError('Missing image data', 400);
+    }
+
+    const styles = await extractStyles(base64Image);
+
+    res.json({
+        success: true,
+        styles
     });
 });

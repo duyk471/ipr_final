@@ -14,7 +14,8 @@ import ConfirmModal from '../components/UI/ConfirmModal';
 import ExportModal from '../components/UI/ExportModal';
 import ElementsPanel from '../components/Editor/ElementsPanel';
 import TextPanel from '../components/Editor/TextPanel';
-import ImageLibraryPanel from '../components/Editor/ImageLibraryPanel';
+import MagicToolsPanel from '../components/Editor/MagicToolsPanel';
+
 import VersionModal from '../components/UI/VersionModal';
 
 const Editor = () => {
@@ -37,13 +38,14 @@ const Editor = () => {
         repairStatus,
         pendingRepairs,
         applyPendingRepair,
-        skipPendingRepair
+        skipPendingRepair,
+        activeLeftPanel,
+        setActiveLeftPanel
     } = useCanvasStore();
     const { isDark, toggle } = useTheme();
     const { notify } = useNotificationStore();
 
     const [activeTab, setActiveTab] = useState('properties');
-    const [activeLeftPanel, setActiveLeftPanel] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [showVersionModal, setShowVersionModal] = useState(false);
@@ -399,7 +401,8 @@ const Editor = () => {
                                     {activeLeftPanel === 'text' && 'Text Elements'}
                                     {activeLeftPanel === 'ai' && 'AI Generator'}
                                     {activeLeftPanel === 'assistant' && 'Design Assistant'}
-                                    {activeLeftPanel === 'images' && 'Image Library'}
+                                    {activeLeftPanel === 'magic' && 'Magic Tools'}
+
                                 </h3>
                                 <button
                                     onClick={() => setActiveLeftPanel(null)}
@@ -416,7 +419,8 @@ const Editor = () => {
                                 {activeLeftPanel === 'text' && <TextPanel canvasRef={canvasRef} />}
                                 {activeLeftPanel === 'ai' && <AIPrompt canvasRef={canvasRef} projectId={id} />}
                                 {activeLeftPanel === 'assistant' && <AIDesignAssistant canvasRef={canvasRef} projectId={id} />}
-                                {activeLeftPanel === 'images' && <ImageLibraryPanel canvasRef={canvasRef} />}
+                                {activeLeftPanel === 'magic' && <MagicToolsPanel canvasRef={canvasRef} selectedObject={selectedObject} />}
+
                             </div>
                         </aside>
                     )}

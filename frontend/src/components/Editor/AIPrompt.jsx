@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { Sparkles, Loader2, Info } from 'lucide-react';
 import { api } from '../../store/useCanvasStore';
+import useCanvasStore from '../../store/useCanvasStore';
+import { X } from 'lucide-react';
 
 const AIPrompt = ({ canvasRef, projectId }) => {
     const [prompt, setPrompt] = useState('');
     const [generating, setGenerating] = useState(false);
     const [transparent, setTransparent] = useState(false);
+    const [magicPrompt, setMagicPrompt] = useState(false);
     const [error, setError] = useState('');
+
+    const globalStyleTags = useCanvasStore(state => state.globalStyleTags);
+    const setGlobalStyleTags = useCanvasStore(state => state.setGlobalStyleTags);
 
     const handleGenerate = async () => {
         if (!prompt.trim()) return;
@@ -15,8 +21,38 @@ const AIPrompt = ({ canvasRef, projectId }) => {
         setError('');
 
         try {
+            let finalPrompt = prompt;
+
+            if (magicPrompt) {
+                try {
+                    // Enhance the prompt first
+                    const enhanceRes = await api.post('/ai/enhance-prompt', { prompt: finalPrompt });
+                    if (enhanceRes.data.success && enhanceRes.data.text) {
+                        finalPrompt = enhanceRes.data.text;
+                        setPrompt(finalPrompt); // Update UI so user sees the enhanced prompt
+                    }
+                } catch (enhanceErr) {
+                    console.warn('Prompt enhancement failed, using original:', enhanceErr);
+                    // We don't stop here, just proceed with the original prompt
+                }
+            }
+
+            // Apply Smart Prompting for aesthetic
+            finalPrompt = `${finalPrompt}, high quality, highly detailed`;
+            
+            // Append global style tags if present, otherwise default to biophilic
+            if (globalStyleTags) {
+                finalPrompt = `${finalPrompt}, ${globalStyleTags}`;
+            } else {
+                finalPrompt = `${finalPrompt}, biophilic aesthetic, organic lighting`;
+            }
+            
+            if (transparent) {
+                finalPrompt = `${finalPrompt}, isolated on a plain white background`;
+            }
+
             const res = await api.post('/ai/generate', {
-                prompt: transparent ? `${prompt}, isolated on a plain white background` : prompt,
+                prompt: finalPrompt,
                 projectId,
                 removeBackground: transparent
             });
@@ -41,7 +77,8 @@ const AIPrompt = ({ canvasRef, projectId }) => {
             }
         } catch (err) {
             console.error('AI Gen Error:', err);
-            setError(err.response?.data?.message || 'Error communicating with AI service. Make sure your GEMINI_API_KEY is valid and the model supports Image Generation.');
+            const msg = err.response?.data?.message || err.message || 'Error communicating with AI service.';
+            setError(`${msg} (Ensure your API keys are valid in the backend .env file)`);
         } finally {
             setGenerating(false);
         }
@@ -71,6 +108,26 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                             className="w-full h-40 p-4 bg-white dark:bg-biophilic-dark-card border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-2xl resize-none focus:outline-none focus:ring-4 focus:ring-biophilic-green/10 focus:border-biophilic-green text-sm text-slate-700 dark:text-biophilic-dark-text transition-all shadow-sm placeholder:text-slate-300 dark:placeholder:text-biophilic-dark-text-muted/40"
                             disabled={generating}
                         />
+                        
+                        {globalStyleTags && (
+                            <div className="mt-3 flex items-start gap-2 bg-biophilic-green/10 dark:bg-biophilic-dark-green/20 p-3 rounded-xl border border-biophilic-green/20 dark:border-biophilic-dark-green/30 relative">
+                                <div className="flex-1">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-biophilic-moss dark:text-biophilic-dark-green block mb-1">
+                                        Applied Style Reference
+                                    </span>
+                                    <p className="text-xs text-slate-600 dark:text-biophilic-dark-text-muted leading-relaxed italic pr-6">
+                                        "{globalStyleTags}"
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={() => setGlobalStyleTags('')}
+                                    className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors"
+                                    title="Remove Style"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-white dark:bg-biophilic-dark-card rounded-2xl border border-biophilic-cream-dark dark:border-biophilic-dark-border shadow-sm">
@@ -85,6 +142,21 @@ const AIPrompt = ({ canvasRef, projectId }) => {
                             className={`w-11 h-6 rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out flex items-center ${transparent ? 'bg-biophilic-green' : 'bg-slate-200 dark:bg-biophilic-dark-border'}`}
                         >
                             <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${transparent ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-white dark:bg-biophilic-dark-card rounded-2xl border border-biophilic-cream-dark dark:border-biophilic-dark-border shadow-sm">
+                        <div className="flex flex-col">
+                            <label htmlFor="magic-prompt" className="text-sm font-bold text-slate-700 dark:text-biophilic-dark-text cursor-pointer select-none flex items-center gap-1.5">   
+                                <Sparkles size={14} className="text-biophilic-green" /> Magic Prompt
+                            </label>
+                            <span className="text-[10px] text-slate-400 dark:text-biophilic-dark-text-muted">Auto-enhance short ideas into detailed prompts</span>
+                        </div>
+                        <div 
+                            onClick={() => setMagicPrompt(!magicPrompt)}
+                            className={`w-11 h-6 rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out flex items-center ${magicPrompt ? 'bg-biophilic-green' : 'bg-slate-200 dark:bg-biophilic-dark-border'}`}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${magicPrompt ? 'translate-x-5' : 'translate-x-0'}`} />
                         </div>
                     </div>
                 </div>

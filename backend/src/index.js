@@ -6,7 +6,7 @@ import { config } from './config/env.js';
 import projectRoutes from './routes/projectRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
-import { handleImageSearch } from './controllers/imageSearchController.js';
+
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,7 +27,7 @@ app.use('/storage', (req, res, next) => {
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:id/assets', assetRoutes);
-app.get('/api/assets/search', handleImageSearch);
+
 app.use('/api/ai', aiRoutes);
 
 // Global Error Handler

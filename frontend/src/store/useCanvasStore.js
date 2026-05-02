@@ -40,8 +40,14 @@ const useCanvasStore = create((set, get) => ({
     setContextMenu: (pos) => set({ contextMenu: pos }),
     setToolbarPos: (pos) => set({ toolbarPos: pos }),
 
+    // AI Features State
+    globalStyleTags: '',
+    setGlobalStyleTags: (tags) => set({ globalStyleTags: tags }),
+
     isLoading: false,
     error: null,
+    activeLeftPanel: null,
+    setActiveLeftPanel: (panel) => set({ activeLeftPanel: panel }),
     hasBrokenAssets: false, // Flag for projects with missing image paths
     repairVersion: 0,       // Used to trigger canvas remounting after repair
     repairStatus: {
