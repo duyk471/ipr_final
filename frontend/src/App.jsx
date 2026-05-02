@@ -12,7 +12,7 @@ function App() {
     return (
       <div className="fixed inset-0 bg-[#121A13] flex items-center justify-center p-8 z-[9999] text-center font-sans">
         <div className="max-w-md space-y-6">
-          <div className="text-6xl mb-4 animate-pulse">🌿</div>
+          <img src="/logo.svg" className="w-20 h-20 mx-auto mb-4 animate-pulse object-contain" alt="Canvee" />
           <h1 className="text-2xl font-black text-[#E0E8E1] tracking-tight">Desktop Only</h1>
           <p className="text-[#8BA890] text-lg leading-relaxed">
             Our editor is optimized for desktop browsers only. Please switch to a PC or Laptop for the best experience.

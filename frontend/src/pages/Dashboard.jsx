@@ -425,9 +425,9 @@ const Dashboard = () => {
                     shadow-organic dark:shadow-dark-md 
                     flex items-center justify-between mb-12 transition-all duration-300">
 
-                    <h1 className="text-xl font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight flex items-center gap-2">
-                        <span className="dark:glow-green text-2xl">🌿</span>
-                        <span className="hidden xs:inline">AI Image Editor</span>
+                    <h1 className="text-xl font-black text-biophilic-moss dark:text-biophilic-dark-text tracking-tight flex items-center gap-3">
+                        <img src="/logo.svg" className="w-8 h-8 object-contain dark:drop-shadow-[0_0_15px_rgba(168,198,159,0.4)]" alt="Canvee" />
+                        <span className="hidden xs:inline">Canvee</span>
                     </h1>
 
                     <div className="flex items-center gap-2">

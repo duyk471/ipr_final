@@ -78,7 +78,13 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
 
     const handleRemoveBackgroundActiveObject = async () => {
         const activeObject = fabricCanvas.current?.getActiveObject();
-        if (!activeObject || activeObject.type !== 'image') return;
+        // Support both old 'image' and new Fabric v6 'fabricImage' types
+        const isImage = activeObject && (
+            activeObject.type === 'image' || 
+            activeObject.type === 'fabricImage' || 
+            activeObject.type?.toLowerCase().includes('image')
+        );
+        if (!isImage) return;
         if (isRemovingBg) return; // prevent double-click
 
         setIsRemovingBg(true);
@@ -260,6 +266,11 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         updateSelectedState();
                         queueSave();
                         setIsMerging(false);
+
+                        // ── NEW: Automatically remove background after merge ──
+                        setTimeout(() => {
+                            handleRemoveBackgroundActiveObject();
+                        }, 300);
                     };
                     imgEl.onerror = () => {
                         throw new Error('Failed to load merged image');
