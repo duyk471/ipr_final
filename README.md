@@ -14,13 +14,11 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![Unlicense License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
-
 
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/duykhanh471/ipr_final">
+  <a href="https://github.com/duyk471/ipr_final">
     <img src="images/logo.png" alt="Canvee Logo" width="80" height="80">
   </a>
 
@@ -114,7 +112,7 @@ This is an example of how to list things you need to use the software and how to
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/duykhanh471/ipr_final.git
+   git clone https://github.com/duyk471/ipr_final.git
    cd ipr_final
    ```
 2. Install backend dependencies
@@ -177,7 +175,7 @@ _For more examples, please refer to the project documentation or issue tracker._
 - [ ] Enhanced theme engine and palette mapping
 - [ ] Desktop wrapper and offline-first packaging
 
-See the [open issues](https://github.com/duykhanh471/ipr_final/issues) for a full list of proposed features and known issues.
+See the [open issues](https://github.com/duyk471/ipr_final/issues) for a full list of proposed features and known issues.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -198,8 +196,8 @@ If you have a suggestion that would make this better, please fork the repo and c
 
 ### Top contributors:
 
-<a href="https://github.com/duykhanh471/ipr_final/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=duykhanh471/ipr_final" alt="contrib.rocks image" />
+<a href="https://github.com/duyk471/ipr_final/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=duyk471/ipr_final" alt="contrib.rocks image" />
 </a>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -218,22 +216,22 @@ Distributed under the Unlicense License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Project Link: [https://github.com/duykhanh471/ipr_final](https://github.com/duykhanh471/ipr_final)
+Project Link: [https://github.com/duyk471/ipr_final](https://github.com/duyk471/ipr_final)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/duykhanh471/ipr_final.svg?style=for-the-badge
-[contributors-url]: https://github.com/duykhanh471/ipr_final/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/duykhanh471/ipr_final.svg?style=for-the-badge
-[forks-url]: https://github.com/duykhanh471/ipr_final/network/members
-[stars-shield]: https://img.shields.io/github/stars/duykhanh471/ipr_final.svg?style=for-the-badge
-[stars-url]: https://github.com/duykhanh471/ipr_final/stargazers
-[issues-shield]: https://img.shields.io/github/issues/duykhanh471/ipr_final.svg?style=for-the-badge
-[issues-url]: https://github.com/duykhanh471/ipr_final/issues
-[license-shield]: https://img.shields.io/github/license/duykhanh471/ipr_final.svg?style=for-the-badge
-[license-url]: https://github.com/duykhanh471/ipr_final/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/duyk471/ipr_final.svg?style=for-the-badge
+[contributors-url]: https://github.com/duyk471/ipr_final/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/duyk471/ipr_final.svg?style=for-the-badge
+[forks-url]: https://github.com/duyk471/ipr_final/network/members
+[stars-shield]: https://img.shields.io/github/stars/duyk471/ipr_final.svg?style=for-the-badge
+[stars-url]: https://github.com/duyk471/ipr_final/stargazers
+[issues-shield]: https://img.shields.io/github/issues/duyk471/ipr_final.svg?style=for-the-badge
+[issues-url]: https://github.com/duyk471/ipr_final/issues
+[license-shield]: https://img.shields.io/github/license/duyk471/ipr_final.svg?style=for-the-badge
+[license-url]: https://github.com/duyk471/ipr_final/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/your_username
 [product-screenshot]: images/screenshot.png

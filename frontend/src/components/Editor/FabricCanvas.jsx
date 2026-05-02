@@ -7,6 +7,68 @@ import { uploadLocalAsset, uploadPastedImage, persistBackendAsset } from '../../
 import SelectionToolbar from './SelectionToolbar';
 import ContextMenu from './ContextMenu';
 
+/**
+ * Validate and clean layers before loading into Fabric
+ * Removes or fixes broken blob URLs that would cause Fabric render errors
+ * @param {Array} layers - Layer objects from canvas data
+ * @returns {Array} Cleaned layers safe for Fabric rendering
+ */
+function validateAndCleanLayers(layers) {
+    if (!Array.isArray(layers)) {
+        console.warn('Layers is not an array:', layers);
+        return [];
+    }
+
+    return layers.map((layer, index) => {
+        try {
+            // Check if layer has a broken blob URL (blob: prefix without valid session)
+            if (layer.src && typeof layer.src === 'string' && layer.src.startsWith('blob:')) {
+                // Blob URLs are session-specific and expire on page reload
+                // If we're here and the blob URL is broken, we need to handle it
+                // For now, we clear the src to prevent Fabric from crashing
+                // The asset will show as empty/transparent in the canvas
+                console.warn(`Layer ${index} has session-dependent blob URL:`,  layer.src);
+                
+                // Keep metadata for potential recovery, but clear the src
+                if (!layer.metadata?.originalPath) {
+                    // No recovery path available, clear the src
+                    console.warn(`  No recovery path available (metadata.originalPath missing)`);
+                    return {
+                        ...layer,
+                        src: '',  // Clear broken blob URL
+                        // Keep other properties to maintain layer state
+                    };
+                }
+                // If metadata.originalPath exists, it should have been resolved during project load
+                // This shouldn't happen in normal flow, but keep the layer as-is
+            }
+
+            // Validate layer has required properties for Fabric
+            if (layer.type === 'image' && !layer.src) {
+                console.warn(`Layer ${index} has no src, removing from render`);
+                return {
+                    ...layer,
+                    src: '',
+                };
+            }
+
+            return layer;
+        } catch (error) {
+            console.error(`Error validating layer ${index}:`, error);
+            // Return layer as-is if validation fails
+            return layer;
+        }
+    }).filter(layer => {
+        // Filter out any layers that would definitely cause rendering issues
+        // (e.g., layers with invalid type)
+        if (!layer || typeof layer !== 'object') {
+            console.warn('Skipping invalid layer object:', layer);
+            return false;
+        }
+        return true;
+    });
+}
+
 const FabricCanvas = forwardRef(({ projectId }, ref) => {
     const { notify } = useNotificationStore();
     const canvasEl = useRef(null);
@@ -1812,7 +1874,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 }
 
                         await fabricCanvas.current.loadFromJSON({
-                            objects: cleanLayers,
+                            objects: validateAndCleanLayers(cleanLayers),
                             background: (canvasData.canvas && canvasData.canvas.backgroundColor) || '#ffffff'
                         });
                         if (fabricCanvas.current) {

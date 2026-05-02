@@ -110,6 +110,24 @@ export class AbstractDirectoryHandle {
     }
 
     /**
+     * List all values (handles) in the directory
+     */
+    async *values() {
+        for await (const [name, entry] of this.entries()) {
+            yield entry;
+        }
+    }
+
+    /**
+     * List all keys (names) in the directory
+     */
+    async *keys() {
+        for await (const [name, entry] of this.entries()) {
+            yield name;
+        }
+    }
+
+    /**
      * List all entries in the directory
      * On native: uses native iteration
      * On fallback: returns filtered file list
@@ -117,8 +135,12 @@ export class AbstractDirectoryHandle {
     async *entries() {
         if (this.isNative && this.nativeHandle) {
             // Native: yield from async iterator
-            for await (const entry of this.nativeHandle.entries()) {
-                yield entry;
+            for await (const [name, nativeHandle] of this.nativeHandle.entries()) {
+                if (nativeHandle.kind === 'directory') {
+                    yield [name, new AbstractDirectoryHandle(nativeHandle, null, true)];
+                } else {
+                    yield [name, new AbstractFileHandle(nativeHandle, null, true)];
+                }
             }
         } else {
             // Fallback: construct entries from file list (top-level only)
@@ -177,11 +199,17 @@ export class AbstractDirectoryHandle {
         const filePath = this.basePath ? `${this.basePath}/${name}` : name;
         if (options.recursive) {
             const prefix = `${filePath}/`;
-            this.files = this.files.filter(f => 
-                f.path !== filePath && !f.path?.startsWith(prefix)
-            );
+            for (let i = this.files.length - 1; i >= 0; i--) {
+                const f = this.files[i];
+                if (f.path === filePath || (f.path && f.path.startsWith(prefix))) {
+                    this.files.splice(i, 1);
+                }
+            }
         } else {
-            this.files = this.files.filter(f => f.path !== filePath);
+            const idx = this.files.findLastIndex(f => f.path === filePath);
+            if (idx !== -1) {
+                this.files.splice(idx, 1);
+            }
         }
     }
 
@@ -241,7 +269,7 @@ export class AbstractFileHandle {
         }
 
         // Fallback: return a buffered writable
-        return new MockWritable(this.file);
+        return new MockWritable(this.file, this.files);
     }
 }
 
@@ -250,8 +278,9 @@ export class AbstractFileHandle {
  * Buffers writes and updates the underlying File object
  */
 class MockWritable {
-    constructor(file) {
+    constructor(file, filesArray) {
         this.file = file;
+        this.filesArray = filesArray;
         this.buffer = [];
     }
 
@@ -263,7 +292,6 @@ class MockWritable {
         if (size === 0) {
             this.buffer = [];
         } else {
-            // Buffer is an array of Blobs/Strings/ArrayBuffers
             const currentBlob = new Blob(this.buffer);
             const truncatedBlob = currentBlob.slice(0, size);
             this.buffer = [truncatedBlob];
@@ -271,17 +299,22 @@ class MockWritable {
     }
 
     async close() {
-        // Combine buffered data into a single blob
         const blob = new Blob(this.buffer, { type: this.file?.type || 'application/octet-stream' });
         const newFile = new File([blob], this.file?.name || 'file', { type: blob.type });
         
-        // Copy path if it exists
         if (this.file?.path) {
             newFile.path = this.file.path;
         }
 
-        // Update the original file reference
-        Object.assign(this.file, newFile);
+        // Update the original file reference in the shared array
+        if (this.filesArray && this.file?.path) {
+            const idx = this.filesArray.findIndex(f => f.path === this.file.path);
+            if (idx !== -1) {
+                this.filesArray[idx] = newFile;
+            } else {
+                this.filesArray.push(newFile);
+            }
+        }
     }
 
     async abort() {
@@ -307,7 +340,7 @@ export async function exportProjectAsZip(dirHandle, projectName = 'project') {
 
     // Collect all files
     async function collectFiles(handle, prefix = '') {
-        for await (const [name, entry] of await handle.entries()) {
+        for await (const [name, entry] of handle.entries()) {
             const fullPath = prefix ? `${prefix}/${name}` : name;
             
             if (entry.kind === 'file') {

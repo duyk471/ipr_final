@@ -4,8 +4,9 @@
  */
 
 const DB_NAME = 'photo-editor-workspace';
-const DB_VERSION = 2; // Bumped for new schema
+const DB_VERSION = 3; // Bumped for write locks support
 const STORE_NAME = 'workspace';
+const LOCKS_STORE = 'write-locks';
 
 let db = null;
 
@@ -34,6 +35,9 @@ export const initIndexedDB = () => {
             const database = event.target.result;
             if (!database.objectStoreNames.contains(STORE_NAME)) {
                 database.createObjectStore(STORE_NAME);
+            }
+            if (!database.objectStoreNames.contains(LOCKS_STORE)) {
+                database.createObjectStore(LOCKS_STORE);
             }
         };
     });
@@ -229,6 +233,156 @@ export const clearWorkspaceMetadata = async () => {
 
         request.onerror = () => {
             reject(new Error('Failed to clear workspace metadata'));
+        };
+
+        request.onsuccess = () => {
+            resolve();
+        };
+    });
+};
+
+/**
+ * Write lock mechanism to prevent race conditions during concurrent file writes
+ * Stores lock state: { projectId, locked: boolean, lockTime: ISO timestamp }
+ */
+
+/**
+ * Ensure locks store exists
+ */
+const ensureLocksStore = () => {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject(new Error('Database not initialized'));
+            return;
+        }
+
+        // If the store exists, resolve. Otherwise, retry after upgrade
+        if (!db.objectStoreNames.contains(LOCKS_STORE)) {
+            db.close();
+            db = null;
+            
+            const request = indexedDB.open(DB_NAME, DB_VERSION + 1);
+            request.onupgradeneeded = (event) => {
+                const database = event.target.result;
+                if (!database.objectStoreNames.contains(LOCKS_STORE)) {
+                    database.createObjectStore(LOCKS_STORE);
+                }
+                if (!database.objectStoreNames.contains(STORE_NAME)) {
+                    database.createObjectStore(STORE_NAME);
+                }
+            };
+            
+            request.onsuccess = () => {
+                db = request.result;
+                resolve();
+            };
+            
+            request.onerror = () => {
+                reject(new Error('Failed to upgrade database'));
+            };
+        } else {
+            resolve();
+        }
+    });
+};
+
+/**
+ * Acquire a write lock for a project (blocks until lock is acquired)
+ * @param {string} projectId - Project identifier
+ * @param {number} timeout - Timeout in milliseconds (default: 10000)
+ * @returns {Promise<void>}
+ */
+export const acquireWriteLock = async (projectId, timeout = 10000) => {
+    if (!db) {
+        await initIndexedDB();
+    }
+
+    const startTime = Date.now();
+    const LOCK_TIMEOUT = 30000; // 30 seconds - consider lock stale after this
+    
+    while (Date.now() - startTime < timeout) {
+        try {
+            const lock = await getWriteLock(projectId);
+            
+            // Check if lock exists and is still valid
+            if (lock && lock.locked) {
+                const lockAge = Date.now() - new Date(lock.lockTime).getTime();
+                if (lockAge < LOCK_TIMEOUT) {
+                    // Lock is held by another process, wait and retry
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    continue;
+                }
+                // Lock is stale, override it
+                console.warn(`Overriding stale write lock for project '${projectId}' (${lockAge}ms old)`);
+            }
+
+            // Acquire the lock
+            await setWriteLock(projectId, true);
+            return;
+        } catch (error) {
+            console.error(`Error acquiring write lock for project '${projectId}':`, error);
+            throw error;
+        }
+    }
+
+    throw new Error(`Failed to acquire write lock for project '${projectId}' within ${timeout}ms`);
+};
+
+/**
+ * Release a write lock for a project
+ * @param {string} projectId - Project identifier
+ * @returns {Promise<void>}
+ */
+export const releaseWriteLock = async (projectId) => {
+    if (!db) {
+        await initIndexedDB();
+    }
+
+    return setWriteLock(projectId, false);
+};
+
+/**
+ * Get current write lock state
+ * @param {string} projectId - Project identifier
+ * @returns {Promise<Object|null>} Lock object or null
+ */
+const getWriteLock = async (projectId) => {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([LOCKS_STORE], 'readonly');
+        const store = transaction.objectStore(LOCKS_STORE);
+        const request = store.get(`lock-${projectId}`);
+
+        request.onerror = () => {
+            reject(new Error(`Failed to get write lock for project '${projectId}'`));
+        };
+
+        request.onsuccess = () => {
+            resolve(request.result || null);
+        };
+    });
+};
+
+/**
+ * Set write lock state
+ * @param {string} projectId - Project identifier
+ * @param {boolean} locked - Lock state
+ * @returns {Promise<void>}
+ */
+const setWriteLock = async (projectId, locked) => {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([LOCKS_STORE], 'readwrite');
+        const store = transaction.objectStore(LOCKS_STORE);
+        
+        const lockData = {
+            projectId,
+            locked,
+            lockTime: new Date().toISOString(),
+        };
+
+        const request = store.put(lockData, `lock-${projectId}`);
+
+        request.onerror = () => {
+            reject(new Error(`Failed to set write lock for project '${projectId}'`));
         };
 
         request.onsuccess = () => {

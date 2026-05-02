@@ -300,7 +300,8 @@ const useCanvasStore = create((set, get) => ({
                 
                 // Save back to disk
                 const dataToSave = stripObjectUrlsFromProject(updatedData);
-                await writeJSONFile(currentProjectHandle, 'index.json', dataToSave);
+                const projectId = get().currentProject?.id || currentProject?.id;
+                await writeJSONFile(currentProjectHandle, 'index.json', dataToSave, projectId);
             }
 
             // 4. Final state update
@@ -366,7 +367,8 @@ const useCanvasStore = create((set, get) => ({
 
             // Auto-save
             const dataToSave = stripObjectUrlsFromProject(updatedData);
-            await writeJSONFile(currentProjectHandle, 'index.json', dataToSave);
+            const projectId = get().currentProject?.id;
+            await writeJSONFile(currentProjectHandle, 'index.json', dataToSave, projectId);
 
             notify({ message: 'Asset re-linked successfully.', type: 'success' });
         } catch (error) {
@@ -410,7 +412,8 @@ const useCanvasStore = create((set, get) => ({
             // 3. Save to history folder
             const historyDir = await getSubdirectory(currentProjectHandle, 'history', true);
             const fileName = `${timestamp}_${safeName}.json`;
-            await writeJSONFile(historyDir, fileName, processedData);
+            const projectId = get().currentProject?.id;
+            await writeJSONFile(historyDir, fileName, processedData, projectId);
 
             return { fileName, versionName };
         } catch (error) {
@@ -449,10 +452,11 @@ const useCanvasStore = create((set, get) => ({
             // 1. Backup current state before restoring
             const backupName = `rollback_${Date.now()}.json`;
             const currentProcessed = stripObjectUrlsFromProject(canvasData);
-            await writeJSONFile(historyDir, backupName, currentProcessed);
+            const projectId = get().currentProject?.id;
+            await writeJSONFile(historyDir, backupName, currentProcessed, projectId);
 
             // 2. Restore snapshot
-            await writeJSONFile(currentProjectHandle, 'index.json', snapshotData);
+            await writeJSONFile(currentProjectHandle, 'index.json', snapshotData, projectId);
 
             // 3. Reload the project in the store
             const processedData = await resolveAssetUrlsInProject(currentProjectHandle, snapshotData);
@@ -486,7 +490,8 @@ const useCanvasStore = create((set, get) => ({
             } catch {
                 // File doesn't exist, create a snapshot of the current state
                 const currentIndexData = await readJSONFile(currentProjectHandle, 'index.json');
-                await writeJSONFile(historyDir, historyFile, currentIndexData);
+                const projectId = get().currentProject?.id;
+                await writeJSONFile(historyDir, historyFile, currentIndexData, projectId);
             }
 
             // Update project metadata
@@ -496,7 +501,8 @@ const useCanvasStore = create((set, get) => ({
             }
 
             // Save index.json
-            await writeJSONFile(currentProjectHandle, 'index.json', processedData);
+            const projectId = get().currentProject?.id;
+            await writeJSONFile(currentProjectHandle, 'index.json', processedData, projectId);
 
             // Save preview if provided
             if (previewBase64) {
@@ -546,46 +552,33 @@ const useCanvasStore = create((set, get) => ({
             }
             const zip = new window.JSZip();
 
-            // 2. Add index.json
+            // 2. Recursive function to add folder contents
+            const addFolderToZip = async (handle, folderZip) => {
+                for await (const entry of handle.values()) {
+                    if (entry.kind === 'file') {
+                        const file = await entry.getFile();
+                        folderZip.file(entry.name, file);
+                    } else if (entry.kind === 'directory') {
+                        const subFolderZip = folderZip.folder(entry.name);
+                        await addFolderToZip(entry, subFolderZip);
+                    }
+                }
+            };
+
+            // 3. Start recursion from project root
+            await addFolderToZip(currentProjectHandle, zip);
+
+            // 4. Double check index.json is up to date (optional but good for consistency)
             const processedData = stripObjectUrlsFromProject(canvasData);
             zip.file('index.json', JSON.stringify(processedData, null, 2));
 
-            // 3. Add preview.png (if exists)
-            try {
-                const previewFile = await currentProjectHandle.getFileHandle('preview.png');
-                const previewBlob = await previewFile.getFile();
-                zip.file('preview.png', previewBlob);
-            } catch (err) {
-                console.warn('preview.png not found during export');
-            }
-
-            // 4. Add Assets
-            try {
-                const assetsDir = await currentProjectHandle.getDirectoryHandle('assets');
-                const assetFiles = [];
-                for await (const entry of assetsDir.values()) {
-                    if (entry.kind === 'file') {
-                        assetFiles.push(entry);
-                    }
-                }
-
-                if (assetFiles.length > 0) {
-                    const assetsFolder = zip.folder('assets');
-                    for (const entry of assetFiles) {
-                        const file = await entry.getFile();
-                        assetsFolder.file(entry.name, file);
-                    }
-                }
-            } catch (err) {
-                console.warn('assets directory not found during export');
-            }
-
             // 5. Generate and Download
+            const projectName = processedData.projectInfo?.name || 'project';
             const content = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(content);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${processedData.projectInfo.name || 'project'}.zip`;
+            link.download = `${projectName}.zip`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -611,19 +604,28 @@ const useCanvasStore = create((set, get) => ({
 
             // 1. Save Assets
             if (assets && Array.isArray(assets)) {
-                const assetsDir = await getSubdirectory(projectHandle, 'assets', true);
+                console.log(`Saving ${assets.length} assets to project ${projectId}...`);
                 for (const asset of assets) {
                     const binaryString = atob(asset.base64);
                     const bytes = new Uint8Array(binaryString.length);
                     for (let i = 0; i < binaryString.length; i++) {
                         bytes[i] = binaryString.charCodeAt(i);
                     }
-                    await writeFile(assetsDir, asset.fileName, bytes);
+                    // Ensure the asset is saved in the assets/ folder
+                    // Sanitize fileName: remove leading slashes and extra 'assets/' prefixes
+                    let cleanFileName = asset.fileName.replace(/^\/+/, '');
+                    if (cleanFileName.startsWith('assets/')) {
+                        cleanFileName = cleanFileName.substring(7);
+                    }
+                    const fullPath = `assets/${cleanFileName}`;
+                    
+                    console.log(`  Writing asset: ${fullPath} (${bytes.length} bytes)`);
+                    await writeFile(projectHandle, fullPath, bytes);
                 }
             }
 
             // 2. Save index.json
-            await writeJSONFile(projectHandle, 'index.json', projectData);
+            await writeJSONFile(projectHandle, 'index.json', projectData, projectId);
 
             // 3. Update state
             set({
@@ -648,14 +650,20 @@ const useCanvasStore = create((set, get) => ({
         if (!currentProjectHandle) throw new Error('No active project');
 
         try {
-            const assetsDir = await getSubdirectory(currentProjectHandle, 'assets', true);
             for (const asset of assets) {
                 const binaryString = atob(asset.base64);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) {
                     bytes[i] = binaryString.charCodeAt(i);
                 }
-                await writeFile(assetsDir, asset.fileName, bytes);
+                // Ensure the asset is saved in the assets/ folder
+                // Sanitize fileName: remove leading slashes and extra 'assets/' prefixes
+                let cleanFileName = asset.fileName.replace(/^\/+/, '');
+                if (cleanFileName.startsWith('assets/')) {
+                    cleanFileName = cleanFileName.substring(7);
+                }
+                const fullPath = `assets/${cleanFileName}`;
+                await writeFile(currentProjectHandle, fullPath, bytes);
             }
         } catch (error) {
             console.error('Failed to save base64 assets:', error);
@@ -701,7 +709,7 @@ const useCanvasStore = create((set, get) => ({
                 }
             };
 
-            await writeJSONFile(projectHandle, 'index.json', projectData);
+            await writeJSONFile(projectHandle, 'index.json', projectData, projectId);
 
             set({
                 currentProject: projectData.projectInfo,
@@ -938,7 +946,8 @@ const useCanvasStore = create((set, get) => ({
             // First, save the project locally
             const processedData = stripObjectUrlsFromProject(canvasData);
             processedData.projectInfo.updatedAt = new Date().toISOString();
-            await writeJSONFile(currentProjectHandle, 'index.json', processedData);
+            const projectId = currentProject?.id;
+            await writeJSONFile(currentProjectHandle, 'index.json', processedData, projectId);
 
             if (previewBase64) {
                 const base64Data = previewBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -1030,7 +1039,9 @@ export async function resolveAssetUrlsInProject(projectHandle, projectData) {
 
                 if (layer.src && typeof layer.src === 'string' && !isExternal && (!isBlob || hasOriginalPath)) {
                     try {
-                        const originalPath = hasOriginalPath ? layer.metadata.originalPath : layer.src;
+                        let originalPath = hasOriginalPath ? layer.metadata.originalPath : layer.src;
+                        // Sanitize: remove leading slashes
+                        originalPath = originalPath.replace(/^\/+/, '');
                         // Get Object URL from local file
                         const objectUrl = await getFileAsObjectURL(projectHandle, originalPath);
                         layer.src = objectUrl;

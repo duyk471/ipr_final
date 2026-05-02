@@ -4,6 +4,7 @@
  */
 
 import { listDirectory, readJSONFile, fileExists, getFileAsObjectURL } from './localFilesystemService';
+import { validateProjectStructure, sanitizeProjectData, logValidationResult } from '../utils/projectValidation';
 
 /**
  * Scan a directory for valid projects
@@ -83,14 +84,31 @@ export const loadProjectMetadata = async (projectHandle) => {
         const projectData = await readJSONFile(projectHandle, 'index.json');
 
         // Validate structure
-        if (!projectData || !projectData.projectInfo) {
-            console.warn(`Invalid project structure in '${projectHandle.name}': Missing projectInfo`);
-            return null;
+        const validation = validateProjectStructure(projectData);
+        
+        if (!validation.valid) {
+            console.warn(`Invalid project structure in '${projectHandle.name}':`);
+            logValidationResult(validation, projectHandle.name);
+            
+            // Attempt to sanitize and recover
+            try {
+                console.info(`Attempting to repair project '${projectHandle.name}'...`);
+                const sanitized = sanitizeProjectData(projectData);
+                console.info(`Project '${projectHandle.name}' has been repaired with default values`);
+                return sanitized;
+            } catch (sanitizeError) {
+                console.error(`Failed to repair project '${projectHandle.name}':`, sanitizeError);
+                return null;
+            }
         }
 
         return projectData;
     } catch (error) {
-        console.warn(`Failed to load project metadata from '${projectHandle.name}':`, error);
+        if (error.message.includes('Corrupted JSON')) {
+            console.error(`Project corruption detected in '${projectHandle.name}': JSON parsing failed`, error);
+        } else {
+            console.warn(`Failed to load project metadata from '${projectHandle.name}':`, error);
+        }
         return null;
     }
 };
@@ -106,8 +124,24 @@ export const getProjectByIdLocal = async (workspaceHandle, projectId) => {
         const projectHandle = await workspaceHandle.getDirectoryHandle(projectId);
         const projectData = await readJSONFile(projectHandle, 'index.json');
 
-        if (!projectData || !projectData.projectInfo) {
-            throw new Error('Invalid project structure: Missing projectInfo');
+        // Validate structure
+        const validation = validateProjectStructure(projectData);
+        
+        if (!validation.valid) {
+            console.warn(`Project '${projectId}' validation failed:`);
+            logValidationResult(validation, projectId);
+            
+            // Attempt recovery
+            try {
+                console.info(`Attempting to repair project '${projectId}'...`);
+                const sanitized = sanitizeProjectData(projectData);
+                return {
+                    ...sanitized,
+                    handle: projectHandle,
+                };
+            } catch (error) {
+                throw new Error(`Failed to load project '${projectId}': ${error.message}`);
+            }
         }
 
         return {
