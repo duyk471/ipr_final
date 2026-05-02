@@ -1,117 +1,251 @@
-# AI Image Editor
+<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
+<a id="readme-top"></a>
+<!--
+*** Thanks for checking out the Best-README-Template. If you have a suggestion
+*** that would make this better, please fork the repo and create a pull request
+*** or simply open an issue with the tag "enhancement".
+*** Don't forget to give the project a star!
+*** Thanks again! Now go create something AMAZING! :D
+-->
 
-- 📖 **[Kiến trúc hệ thống](guide/other/ARCHITECTURE.md)**
-- 📋 **[SRS](guide/other/srs.md)**: yêu cầu phần mềm.
+<!-- PROJECT SHIELDS -->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![Unlicense License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
 
-## 1. Tính năng chính (Key Features)
 
-- **Canvas Editor Chuyên Nghiệp**: Hỗ trợ Text, Hình khối (Shape), Ảnh, Undo/Redo, Layering (Fabric.js).
-- **AI Image Generation**: Tạo ảnh nghệ thuật từ văn bản (Hugging Face - Flux/SDXL).
-- **Auto Background Removal**: Tách nền ảnh AI tự động bằng thư viện `sharp`.
-- **AI Design Assistant**:
-  - Review bản thiết kế và đưa ra 3 lời khuyên cải thiện (Gemini 2.0 Flash).
-  - Tự động áp dụng cải thiện (Auto-fix) trực tiếp lên Canvas.
-- **Quản lý Dự án**: Lưu trữ cục bộ (Local Storage System), xem danh sách dự án với Thumbnail.
-- **Import/Export**: Xuất dự án ra file `.zip` và nhập ngược lại vào hệ thống một cách dễ dàng.
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/duykhanh471/ipr_final">
+    <img src="images/logo.png" alt="Canvee Logo" width="80" height="80">
+  </a>
 
-## 2. Kiến trúc & Công nghệ (Tech Stack)
+  <h3 align="center">Canvee - Synthetic Stylist AI</h3>
 
-### Frontend
+  <p align="center">
+    A professional, local-first image editor with biophilic design and AI-powered creativity.
+    <br />
+    <br />
+    <a href="#usage"><strong>Explore the features »</strong></a>
+    <br />
+    <br />
+    <a href="#getting-started">Get Started</a>
+    &middot;
+    <a href="#roadmap">Roadmap</a>
+    &middot;
+    <a href="#contact">Contact</a>
+  </p>
+</div>
 
-- **Framework**: React (Vite)
-- **Styling**: Vanilla CSS & Tailwind CSS
-- **Canvas Engine**: Fabric.js (v7.x)
-- **State Management**: Zustand
-- **Icons**: Lucide React
 
-### Backend
 
-- **Runtime**: Node.js (Express.js)
-- **File System**: `fs-extra` (Quản lý dự án theo cấu trúc folder)
-- **Xử lý ảnh**: `sharp` (Tách nền, tạo preview)
-- **AI SDK**: `@google/generative-ai` (Gemini API)
-- **ZIP Handling**: `archiver`, `adm-zip`
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
-## 3. Cấu trúc thư mục (Project Structure)
 
-```text
-ai-image-editor/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/    # Xử lý logic AI, Project, Assets
-│   │   ├── routes/         # Định nghĩa API endpoints
-│   │   ├── services/       # Storage logic & AI integration
-│   │   └── index.js        # Khởi tạo server (Port 5000)
-│   ├── storage/            # Nơi lưu trữ thực tế các dự án
-│   └── .env                # Chứa API Keys (Gemini & HuggingFace)
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # Editor, Sidebar, Dashboard components
-│   │   ├── pages/          # Dashboard & Editor pages
-│   │   └── store/          # Zustand store cho Canvas & API
-│   └── index.html
-└── README.md
-```
 
-## 4. Hướng dẫn cài đặt (Setup Guide)
+<!-- ABOUT THE PROJECT -->
+## About The Project
 
-### Bước 1: Clone dự án và cài đặt dependencies
+[![Canvee Screen Shot][product-screenshot]](https://example.com)
 
-**Cài đặt cho Backend:**
+Canvee is a local-first, biophilic image editor designed for professional creators who need privacy, speed, and AI-assisted design workflows. The application stores project state in a single `index.json` file while delivering advanced canvas controls, multi-model AI features, and a serene Sage Green / Creamy interface.
 
-```bash
-cd backend
-npm install
-```
+Canvee combines a Fabric.js-based canvas engine with a Node backend for AI services such as Gemini, FLUX, BLIP, and local background removal.
 
-**Cài đặt cho Frontend:**
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
-cd frontend
-npm install
-```
 
-### Bước 2: Cấu hình biến môi trường (.env)
 
-Tạo file `.env` bên trong thư mục `backend/` với nội dung sau:
+### Built With
 
-```env
-PORT=5000
-GEMINI_API_KEY=your_gemini_api_key_here
-HUGGINGFACE_API_KEY=your_huggingface_api_key_here
-```
+* [![React][React.js]][React-url]
+* [![Vite][Vite]][Vite-url]
+* [![Tailwind CSS][TailwindCSS]][TailwindCSS-url]
+* [![Express][Express.js]][Express-url]
+* [![Fabric.js][Fabric.js]][Fabric-url]
+* [![Node.js][Node.js]][Node-url]
 
-*Lưu ý: Bạn cần có API Key từ Google AI Studio và Hugging Face để sử dụng các tính năng AI.*
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Bước 3: Chạy ứng dụng
 
-Bạn cần chạy đồng thời cả Backend và Frontend.
 
-**Chạy Backend (Port 5000):**
+<!-- GETTING STARTED -->
+## Getting Started
 
-```bash
-cd backend
-npm run dev
-```
+This is an example of how you may give instructions on setting up your project locally.
+To get a local copy up and running follow these simple example steps.
 
-**Chạy Frontend (Thường là Port 5173):**
+### Prerequisites
 
-```bash
-cd frontend
-npm run dev
-```
+This is an example of how to list things you need to use the software and how to install them.
+* Node.js 18+ and npm
+* A modern browser with File System Access API support
+* Optional AI provider API keys for Gemini, Hugging Face, and Pollinations services
 
-Sau khi chạy cả hai, hãy truy cập vào địa chỉ URL hiển thị ở terminal (ví dụ: `http://localhost:5173`).
+### Installation
 
-## 5. Cấu trúc một dự án (Project Storage)
+1. Clone the repo
+   ```sh
+   git clone https://github.com/duykhanh471/ipr_final.git
+   cd ipr_final
+   ```
+2. Install backend dependencies
+   ```sh
+   cd backend
+   npm install
+   ```
+3. Install frontend dependencies
+   ```sh
+   cd ../frontend
+   npm install
+   ```
+4. Configure AI environment variables
+   ```sh
+   cp ../backend/.env.example ../backend/.env
+   ```
+   Update the `.env` file with your provider keys and any local AI configuration.
+5. Start the backend service
+   ```sh
+   cd ../backend
+   npm run dev
+   ```
+6. Start the frontend app
+   ```sh
+   cd ../frontend
+   npm run dev
+   ```
+7. Open the app in the browser at the URL shown by Vite.
 
-Mỗi dự án được lưu tại `backend/storage/projects/[uuid]/`:
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-- `index.json`: Chứa metadata, thông tin canvas và danh sách layers (JSON).
-- `preview.png`: Thumbnail của dự án hiển thị ở Dashboard.
-- `assets/`: Thư mục lưu trữ các hình ảnh được tải lên hoặc tạo ra bởi AI.
 
-## 6. Lưu ý quan trọng
 
-- Khi Import dự án từ file `.zip`, hệ thống sẽ tự động ánh xạ (remap) lại các đường dẫn ảnh để đảm bảo ảnh hiển thị đúng ngay cả khi Project ID thay đổi.
-- Tính năng **AI Assist** yêu cầu ảnh chụp màn hình Canvas và JSON state để Gemini có thể phân tích chính xác nhất.
+<!-- USAGE EXAMPLES -->
+## Usage
+
+Canvee is designed to support a privacy-first image editing workflow with AI-powered creative tools.
+
+* Open or create a project and store the complete state in `index.json`
+* Use Fabric.js canvas controls for smooth panning, zooming, and layer management
+* Adjust layer filters including brightness, contrast, hue, and blur
+* Use snapping and alignment guides for precise layout work
+* Invoke AI features for layout improvement, prompt expansion, and image generation
+* Remove backgrounds locally with `@imgly/background-removal-node` and clean alpha transparency with Sharp
+* Generate compositions using FLUX image-to-image and curate palettes with Gemini Flash Lite
+
+_For more examples, please refer to the project documentation or issue tracker._
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ROADMAP -->
+## Roadmap
+
+- [x] Local-first editor and `index.json` project state
+- [x] Fabric.js canvas engine with panning, zooming, and undo/redo
+- [x] AI Design Assistant and prompt expansion
+- [ ] Full Gemini/FLUX model integration in production
+- [ ] Enhanced theme engine and palette mapping
+- [ ] Desktop wrapper and offline-first packaging
+
+See the [open issues](https://github.com/duykhanh471/ipr_final/issues) for a full list of proposed features and known issues.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Top contributors:
+
+<a href="https://github.com/duykhanh471/ipr_final/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=duykhanh471/ipr_final" alt="contrib.rocks image" />
+</a>
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- LICENSE -->
+## License
+
+Distributed under the Unlicense License. See `LICENSE.txt` for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Project Link: [https://github.com/duykhanh471/ipr_final](https://github.com/duykhanh471/ipr_final)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/duykhanh471/ipr_final.svg?style=for-the-badge
+[contributors-url]: https://github.com/duykhanh471/ipr_final/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/duykhanh471/ipr_final.svg?style=for-the-badge
+[forks-url]: https://github.com/duykhanh471/ipr_final/network/members
+[stars-shield]: https://img.shields.io/github/stars/duykhanh471/ipr_final.svg?style=for-the-badge
+[stars-url]: https://github.com/duykhanh471/ipr_final/stargazers
+[issues-shield]: https://img.shields.io/github/issues/duykhanh471/ipr_final.svg?style=for-the-badge
+[issues-url]: https://github.com/duykhanh471/ipr_final/issues
+[license-shield]: https://img.shields.io/github/license/duykhanh471/ipr_final.svg?style=for-the-badge
+[license-url]: https://github.com/duykhanh471/ipr_final/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/your_username
+[product-screenshot]: images/screenshot.png
+[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
+[React-url]: https://reactjs.org/
+[Vite]: https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white
+[Vite-url]: https://vitejs.dev/
+[TailwindCSS]: https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white
+[TailwindCSS-url]: https://tailwindcss.com/
+[Express.js]: https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white
+[Express-url]: https://expressjs.com/
+[Fabric.js]: https://img.shields.io/badge/Fabric.js-3A4F99?style=for-the-badge&logo=fabric.js&logoColor=white
+[Fabric-url]: https://fabricjs.com/
+[Node.js]: https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white
+[Node-url]: https://nodejs.org/
