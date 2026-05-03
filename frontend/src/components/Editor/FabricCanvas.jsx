@@ -287,6 +287,14 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         setIsMerging(true);
         
         try {
+            // 1. Preserve original coordinates
+            const origLeft = activeObject.left;
+            const origTop = activeObject.top;
+            const origWidth = activeObject.width * activeObject.scaleX;
+            const origHeight = activeObject.height * activeObject.scaleY;
+            const origOriginX = activeObject.originX;
+            const origOriginY = activeObject.originY;
+
             const dataUrl = activeObject.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
             const prompt = "A seamless, professional photo-composite of the subjects placed in the background environment, matching lighting, consistent shadows, high resolution, 8k.";
             
@@ -304,22 +312,49 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     imgEl.crossOrigin = 'anonymous';
                     imgEl.onload = () => {
                         const canvas = fabricCanvas.current;
+                        
+                        // Backend already removed background and cropped back to original proportions
+                        const scaleX = origWidth / imgEl.width;
+                        const scaleY = origHeight / imgEl.height;
+
                         const fabricImg = new fabric.FabricImage(imgEl, {
-                            left: activeObject.left,
-                            top: activeObject.top,
-                            scaleX: activeObject.width / imgEl.width * activeObject.scaleX,
-                            scaleY: activeObject.height / imgEl.height * activeObject.scaleY,
-                            originX: activeObject.originX,
-                            originY: activeObject.originY,
+                            left: origLeft,
+                            top: origTop,
+                            scaleX: scaleX,
+                            scaleY: scaleY,
+                            originX: origOriginX,
+                            originY: origOriginY,
                             metadata: {
                                 originalPath: assetInfo.path,
                                 source: "ai-merge"
                             }
                         });
                         
+                        // 4. Visual Boundary Refitting
+                        try {
+                            const boundaries = getVisualBoundaries(imgEl);
+                            if (boundaries) {
+                                fabricImg.set({
+                                    width: boundaries.width,
+                                    height: boundaries.height,
+                                    left: fabricImg.left + (boundaries.left * fabricImg.scaleX),
+                                    top: fabricImg.top + (boundaries.top * fabricImg.scaleY),
+                                    cropX: boundaries.left,
+                                    cropY: boundaries.top
+                                });
+                            }
+                        } catch (trimErr) {
+                            console.warn('Failed to trim transparent edges after merge:', trimErr);
+                        }
+
+                        // 5. Cleanup & Layer Management: Hide original layers
                         const objectsToRemove = activeObject.getObjects ? activeObject.getObjects() : activeObjects;
                         canvas.discardActiveObject();
-                        canvas.remove(...objectsToRemove);
+                        
+                        objectsToRemove.forEach(obj => {
+                            obj.set('visible', false);
+                            obj.set('metadata', { ...obj.metadata, hidden: true, mergedTarget: fabricImg.id });
+                        });
                         
                         canvas.add(fabricImg);
                         canvas.setActiveObject(fabricImg);
@@ -328,11 +363,6 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         updateSelectedState();
                         queueSave();
                         setIsMerging(false);
-
-                        // ── NEW: Automatically remove background after merge ──
-                        setTimeout(() => {
-                            handleRemoveBackgroundActiveObject();
-                        }, 300);
                     };
                     imgEl.onerror = () => {
                         throw new Error('Failed to load merged image');

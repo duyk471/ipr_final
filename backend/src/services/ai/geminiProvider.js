@@ -158,25 +158,35 @@ Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
     return JSON.parse(responseText);
 };
 
-export const enhanceMergePrompt = async (base64Image, basePrompt) => {
+export const enhanceMergePrompt = async (base64Image, basePrompt, aspectRatio = "1:1") => {
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
 
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro" }); // High capability model for structural analysis
 
-    const visionPrompt = `Analyze this composite image containing multiple layers. Write a highly detailed, descriptive prompt suitable for a text-to-image AI (like FLUX) to recreate this exact composition as a single, photorealistic, seamless image. Describe the main subjects, their exact positions, the background environment, and the lighting. Ensure the prompt starts with: "A seamless, professional photo-composite of...". Context: ${basePrompt}`;
+    const visionPrompt = `Task: Act as a Visual Identity Specialist. 
+1. Analyze the uploaded composite image and identify each distinct layer/subject.
+2. For each subject, describe its exact form, material, and unique identifying features (e.g., 'a weathered oak wood texture', 'matte sage green fabric', 'specific geometric silhouette').
+3. Detect the Global Light Source (e.g., 'soft ambient light from the top-left') to ensure unified shadowing.
+4. Generate a final technical prompt for FLUX.1. CRITICAL: Use a 'Literal Descriptive' style. Focus on: 'seamless physical interaction between objects', 'unified cinematic lighting', 'consistent surface micro-textures', and 'strict isolation on a flat, solid white background'. 
+Strictly avoid describing any background elements from the original photos to prevent AI hallucination.
+Ensure the prompt starts with: "A seamless, professional photo-composite of...". Context: ${basePrompt}`;
 
     try {
         const result = await model.generateContent([
             visionPrompt,
             { inlineData: { data: base64Image, mimeType: "image/png" } }
         ]);
-        return result.response.text().trim();
+        let finalPrompt = result.response.text().trim();
+        // Append AR and background instructions as requested
+        finalPrompt = `${finalPrompt} --ar ${aspectRatio} --no background, environment`;
+        return finalPrompt;
     } catch (err) {
         console.error("Gemini Vision failed, falling back to original prompt:", err.message);
-        return basePrompt;
+        return `${basePrompt} --ar ${aspectRatio} --no background, environment`;
     }
 };
+
 export const describeImageWithGemini = async (base64Image) => {
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
 
@@ -272,5 +282,23 @@ Return EXACTLY a raw JSON array of 4 objects with NO MARKDOWN formatting:
     } catch (err) {
         console.error("Gemini Style Extraction failed:", err.message);
         throw new Error("Failed to extract styles from the image.");
+    }
+};
+
+export const generateTextWithGemini = async (prompt, systemInstruction = "") => {
+    if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
+
+    const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash", // Use 1.5 flash for fast text generation
+        systemInstruction: systemInstruction 
+    });
+
+    try {
+        const result = await model.generateContent(prompt);
+        return result.response.text().trim();
+    } catch (err) {
+        console.error("Gemini Text Generation failed:", err.message);
+        throw err;
     }
 };

@@ -1,5 +1,5 @@
-import { analyzeDesignWithVision, generateLayoutFromPrompt, enhanceMergePrompt, describeImageWithGemini, generateThemePaletteWithGemini, extractStylesWithGemini } from './ai/geminiProvider.js';
-import { generateImageWithHF, describeImageWithHF, generateTextWithHF } from './ai/huggingfaceProvider.js';
+import { analyzeDesignWithVision, generateLayoutFromPrompt, enhanceMergePrompt, describeImageWithGemini, generateThemePaletteWithGemini, extractStylesWithGemini, generateTextWithGemini } from './ai/geminiProvider.js';
+import { generateImageWithHF, describeImageWithHF } from './ai/huggingfaceProvider.js';
 import { generateImageWithPollinations } from './ai/pollinationsProvider.js';
 import { removeWhiteBackgroundSmart } from './imageProcessingService.js';
 import { saveAssetBuffer } from './assetService.js';
@@ -267,9 +267,49 @@ export const createProjectLayout = async (prompt, magicPrompt = false) => {
 };
 
 export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
-    const enhancedPrompt = await enhanceMergePrompt(base64Image, basePrompt);
+    // Decode base64
+    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+    const imgBuffer = Buffer.from(base64Data, 'base64');
     
-    // We strictly use HF here according to the original logic
+    // Get metadata
+    const metadata = await sharp(imgBuffer).metadata();
+    const origWidth = metadata.width;
+    const origHeight = metadata.height;
+    
+    const TARGET_SIZE = 1024;
+    
+    // Calculate aspect ratio string for prompt
+    const aspectRatio = origWidth / origHeight;
+    let arStr = "1:1";
+    if (aspectRatio > 1.2) arStr = "16:9";
+    else if (aspectRatio < 0.8) arStr = "9:16";
+
+    // Calculate scale to fit 1024x1024
+    const scale = Math.min(TARGET_SIZE / origWidth, TARGET_SIZE / origHeight);
+    const scaledWidth = Math.round(origWidth * scale);
+    const scaledHeight = Math.round(origHeight * scale);
+    
+    // Resize image
+    const resizedBuffer = await sharp(imgBuffer)
+        .resize(scaledWidth, scaledHeight, { fit: 'inside' })
+        .toBuffer();
+    
+    // Pad to 1024x1024 with white background
+    const top = Math.floor((TARGET_SIZE - scaledHeight) / 2);
+    const bottom = TARGET_SIZE - scaledHeight - top;
+    const left = Math.floor((TARGET_SIZE - scaledWidth) / 2);
+    const right = TARGET_SIZE - scaledWidth - left;
+    
+    const paddedBuffer = await sharp(resizedBuffer)
+        .extend({ top, bottom, left, right, background: { r: 255, g: 255, b: 255, alpha: 1 } })
+        .png()
+        .toBuffer();
+    
+    const paddedBase64 = `data:image/png;base64,${paddedBuffer.toString('base64')}`;
+
+    // Pass padded image and aspect ratio to prompt enhancer
+    const enhancedPrompt = await enhanceMergePrompt(paddedBase64, basePrompt, arStr);
+    
     let imageBuffer = null;
     let usedModel = "unknown";
     try {
@@ -279,6 +319,15 @@ export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
     } catch (err) {
         throw new Error(err.message === "503" ? "Model is currently loading (503). Try again." : err.message);
     }
+
+    // Auto-remove background
+    imageBuffer = await removeWhiteBackgroundSmart(imageBuffer);
+    
+    // Crop back to scaled dimensions
+    imageBuffer = await sharp(imageBuffer)
+        .extract({ left, top, width: scaledWidth, height: scaledHeight })
+        .png()
+        .toBuffer();
 
     const filename = `merge_${Date.now()}.png`;
     const assetInfo = await saveAssetBuffer(projectId, filename, imageBuffer);
@@ -297,13 +346,13 @@ export const describeImage = async (base64Image) => {
 
 export const generateContent = async (keyword) => {
     const systemInstruction = "You are a creative copywriter. Generate a catchy slogan or short description based on the keyword provided by the user. Keep it concise, engaging, and professional.";
-    const text = await generateTextWithHF(keyword, systemInstruction);
+    const text = await generateTextWithGemini(keyword, systemInstruction);
     return { text };
 };
 
 export const enhancePrompt = async (simplePrompt) => {
     const systemInstruction = "You are an expert AI prompt engineer. The user will give you a simple idea for an image. Your job is to expand it into a highly detailed, descriptive prompt suitable for a text-to-image AI (like FLUX or Midjourney). Add details about lighting, camera angle, texture, environment, and mood. Ensure the final result is a single paragraph. Only output the enhanced prompt, do not add any conversational text.";
-    const text = await generateTextWithHF(simplePrompt, systemInstruction);
+    const text = await generateTextWithGemini(simplePrompt, systemInstruction);
     return { text };
 };
 
