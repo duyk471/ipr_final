@@ -13,6 +13,8 @@ export const saveAssetBuffer = async (projectId, filename, buffer) => {
     const filePath = path.join(projectAssetsPath, filename);
     await fs.writeFile(filePath, buffer);
     
+    console.log(`✓ Asset saved: ${filePath} (${buffer.length} bytes)`);
+    
     return {
         relativePath: `assets/${filename}`,
         displayUrl: `/storage/projects/${projectId}/assets/${filename}`,

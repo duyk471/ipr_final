@@ -19,7 +19,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/duyk471/ipr_final">
-    <img src="images/logo.png" alt="Canvee Logo" width="80" height="80">
+    <img src="images/logo.svg" alt="Canvee Logo" width="80" height="80">
   </a>
 
   <h3 align="center">Canvee - Synthetic Stylist AI</h3>
@@ -72,7 +72,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Canvee Screen Shot][product-screenshot]](https://example.com)
+[![Canvee Screen Shot][product-screenshot]]()
 
 Canvee is a local-first, biophilic image editor designed for professional creators who need privacy, speed, and AI-assisted design workflows. The application stores project state in a single `index.json` file while delivering advanced canvas controls, multi-model AI features, and a serene Sage Green / Creamy interface.
 

@@ -13,7 +13,7 @@ import {
 } from '../services/aiService.js';
 
 export const analyzeDesign = catchAsync(async (req, res) => {
-    const { canvasJson, screenshot, userPrompt } = req.body;
+    const { canvasJson, screenshot, userPrompt, projectId } = req.body;
 
     if (!canvasJson) {
         throw new AppError('Missing canvas JSON data', 400);
@@ -28,7 +28,7 @@ export const analyzeDesign = catchAsync(async (req, res) => {
         throw new AppError('No visual design data found (screenshot required)', 400);
     }
 
-    const result = await analyzeDesignAndGenerateAssets(base64Image, canvasJson, userPrompt);
+    const result = await analyzeDesignAndGenerateAssets(base64Image, canvasJson, userPrompt, projectId);
 
     res.json({
         success: true,
@@ -62,7 +62,8 @@ export const generateProjectFromPrompt = catchAsync(async (req, res) => {
 
     res.json({
         success: true,
-        ...result
+        ...result,
+        message: result.projectId ? `Project ${result.projectId} created with ${result.savedAssets?.length || 0} assets saved server-side` : undefined
     });
 });
 

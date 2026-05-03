@@ -28,7 +28,8 @@ const AIDesignAssistant = ({ canvasRef, projectId }) => {
             const res = await api.post('/ai/analyze-design', {
                 screenshot: snapshot.screenshot,
                 canvasJson: snapshot.json,
-                userPrompt: assistantPrompt.trim()
+                userPrompt: assistantPrompt.trim(),
+                projectId: projectId // Pass projectId so backend can save assets
             });
 
             if (res.data.success) {

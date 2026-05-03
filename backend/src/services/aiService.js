@@ -6,10 +6,11 @@ import { saveAssetBuffer } from './assetService.js';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 
-export const analyzeDesignAndGenerateAssets = async (base64Image, canvasJson, userPrompt) => {
+export const analyzeDesignAndGenerateAssets = async (base64Image, canvasJson, userPrompt, projectId = null) => {
     // Get recommendations and JSON from Gemini
     const assistantRes = await analyzeDesignWithVision(base64Image, canvasJson, userPrompt);
     const assetsToReturn = [];
+    const savedAssets = []; // Track saved asset info
 
     // Post-process to generate new images if the AI suggested any
     if (assistantRes.updatedJson && Array.isArray(assistantRes.updatedJson.layers)) {
@@ -32,6 +33,17 @@ export const analyzeDesignAndGenerateAssets = async (base64Image, canvasJson, us
                     const filename = `assistant_gen_${Date.now()}_${i}.png`;
                     assetsToReturn.push({ fileName: filename, base64: imgBuf.toString('base64') });
 
+                    // Save to backend storage if projectId is provided
+                    if (projectId) {
+                        try {
+                            const assetInfo = await saveAssetBuffer(projectId, filename, imgBuf);
+                            savedAssets.push(assetInfo);
+                            console.log(`Saved assistant-generated asset: ${filename}`);
+                        } catch (saveErr) {
+                            console.warn(`Failed to save assistant asset ${filename} to backend:`, saveErr);
+                        }
+                    }
+
                     layer.src = `assets/${filename}`;
                     layer.width = w; 
                     layer.height = h;
@@ -48,7 +60,8 @@ export const analyzeDesignAndGenerateAssets = async (base64Image, canvasJson, us
     return {
         suggestions: assistantRes.suggestions,
         updatedJson: assistantRes.updatedJson,
-        assets: assetsToReturn
+        assets: assetsToReturn,
+        savedAssets: savedAssets // Include backend-saved asset info if available
     };
 };
 
@@ -95,7 +108,7 @@ export const generateSingleImage = async (prompt, projectId, removeBgFlag) => {
 export const createProjectLayout = async (prompt) => {
     const projectPlan = await generateLayoutFromPrompt(prompt);
     
-    const projectId = `ai_${Date.now()}`;
+    const projectId = uuidv4();
     const now = new Date().toISOString();
     const projectData = {
         version: "1.0",
@@ -120,6 +133,7 @@ export const createProjectLayout = async (prompt) => {
 
     const generatedLayers = [];
     const assetsToReturn = [];
+    const savedAssets = []; // Track backend-saved assets
 
     // Helper functions
     const buildShadow = (s) => s ? { color: s.color || 'rgba(0,0,0,0.3)', blur: s.blur || 10, offsetX: s.offsetX || 0, offsetY: s.offsetY || 0 } : undefined;
@@ -222,6 +236,15 @@ export const createProjectLayout = async (prompt) => {
             const filename = `layer_${asset.id}_${Date.now()}.png`;
             assetsToReturn.push({ fileName: filename, base64: imageBuffer.toString('base64') });
 
+            // Save to backend storage
+            try {
+                const assetInfo = await saveAssetBuffer(projectId, filename, imageBuffer);
+                savedAssets.push(assetInfo);
+                console.log(`Saved AI-generated layer asset: ${filename}`);
+            } catch (saveErr) {
+                console.warn(`Failed to save layer asset ${filename} to backend:`, saveErr);
+            }
+
             generatedLayers.push({
                 ...baseLayerProps,
                 type: "image",
@@ -235,7 +258,7 @@ export const createProjectLayout = async (prompt) => {
 
     projectData.layers = generatedLayers;
 
-    return { projectData, assetsToReturn };
+    return { projectData, assetsToReturn, projectId, savedAssets };
 };
 
 export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
