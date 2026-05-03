@@ -1,7 +1,7 @@
 import { analyzeDesignWithVision, generateLayoutFromPrompt, enhanceMergePrompt, describeImageWithGemini, generateThemePaletteWithGemini, extractStylesWithGemini, generateTextWithGemini } from './ai/geminiProvider.js';
 import { generateImageWithHF, describeImageWithHF } from './ai/huggingfaceProvider.js';
 import { generateImageWithPollinations } from './ai/pollinationsProvider.js';
-import { removeWhiteBackgroundSmart } from './imageProcessingService.js';
+import { removeWhiteBackgroundSmart, removeBackgroundAI } from './imageProcessingService.js';
 import { saveAssetBuffer } from './assetService.js';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
@@ -328,8 +328,23 @@ export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
         throw new Error(err.message === "503" ? "Model is currently loading (503). Try again." : err.message);
     }
 
-    // Auto-remove background
-    imageBuffer = await removeWhiteBackgroundSmart(imageBuffer);
+    // Auto-remove background using AI for better quality
+    try {
+        // We need a temporary file for the AI BG removal library
+        const tempFilename = `temp_merge_${Date.now()}.png`;
+        const tempPath = path.join(STORAGE_ROOT, 'projects', projectId, 'assets', tempFilename);
+        await fs.ensureDir(path.dirname(tempPath));
+        await fs.writeFile(tempPath, imageBuffer);
+        
+        const fileUri = `file://${tempPath.replace(/\\/g, '/')}`;
+        imageBuffer = await removeBackgroundAI(fileUri);
+        
+        // Cleanup temp file
+        await fs.remove(tempPath).catch(() => {});
+    } catch (bgErr) {
+        console.warn("[AI Merge] AI Background Removal failed, falling back to smart white removal:", bgErr.message);
+        imageBuffer = await removeWhiteBackgroundSmart(imageBuffer);
+    }
     
     // Crop back to scaled dimensions
     imageBuffer = await sharp(imageBuffer)
