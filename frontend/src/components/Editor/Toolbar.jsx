@@ -88,7 +88,7 @@ const Toolbar = ({ canvasRef, projectId }) => {
                 <div key={tool.id} className="relative group w-full">
                     <button
                         onClick={tool.action}
-                        className={`flex flex-col items-center justify-center p-3.5 gap-1.5 rounded-2xl transition-all duration-300 ease-out w-full select-none relative group/btn ${
+                        className={`flex flex-col items-center justify-center px-2 py-3.5 gap-1.5 rounded-2xl transition-all duration-300 ease-out w-full select-none relative group/btn ${
                             activeLeftPanel === tool.id
                                 ? 'bg-biophilic-green dark:bg-biophilic-dark-green text-white dark:text-biophilic-dark-bg shadow-lg dark:shadow-dark-green-glow scale-[1.05] font-black'
                                 : 'text-slate-500 dark:text-biophilic-dark-text-muted hover:bg-biophilic-green/10 dark:hover:bg-biophilic-dark-green/10 hover:text-biophilic-green dark:hover:text-biophilic-dark-green'
@@ -102,7 +102,7 @@ const Toolbar = ({ canvasRef, projectId }) => {
                                 color: 'currentColor'
                             })}
                         </div>
-                        <span className={`text-[9px] uppercase tracking-[0.12em] font-black transition-colors ${activeLeftPanel === tool.id ? 'opacity-100' : 'opacity-70 group-hover/btn:opacity-100'}`}>
+                        <span className={`text-[8px] uppercase tracking-[0.1em] font-black transition-colors ${activeLeftPanel === tool.id ? 'opacity-100' : 'opacity-70 group-hover/btn:opacity-100'}`}>
                             {tool.label}
                         </span>
                         

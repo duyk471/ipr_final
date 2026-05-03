@@ -100,12 +100,12 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                             <span className="text-xs font-black text-slate-400 dark:text-biophilic-dark-text-muted uppercase tracking-widest">Popular Presets</span>
                             <div className="w-8 h-px bg-biophilic-cream-dark dark:bg-biophilic-dark-border flex-1 mx-4" />
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+
+                        <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto px-2 py-2 custom-scrollbar">
                             {[
                                 { label: 'Instagram (1:1)', w: 1080, h: 1080 },
                                 { label: 'Instagram Story', w: 1080, h: 1920 },
-                                { label: 'FB Cover', w: 851, h: 315 },
+                                { label: 'Facebook Cover', w: 851, h: 315 },
                                 { label: 'YouTube Thumb', w: 1280, h: 720 },
                                 { label: 'Twitter Post', w: 1200, h: 675 },
                                 { label: 'LinkedIn Banner', w: 1584, h: 396 },
@@ -121,7 +121,7 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                 >
                                     <span className="text-xs font-bold leading-tight">{preset.label}</span>
                                     <span className={`text-[10px] font-medium ${width === preset.w && height === preset.h ? 'text-biophilic-green' : 'text-slate-400 dark:text-biophilic-dark-text-muted'}`}>{preset.w} × {preset.h}</span>
-                                    
+
                                     {width === preset.w && height === preset.h && (
                                         <div className="absolute -right-2 -bottom-2 w-8 h-8 bg-biophilic-green rounded-full flex items-center justify-center text-white scale-75">
                                             <X size={14} className="rotate-45" />
