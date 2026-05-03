@@ -127,11 +127,11 @@ const PropertiesPanel = ({ canvasRef }) => {
                                     handleChange('fontFamily', font);
                                 });
                             }}
-                            className="px-3 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all appearance-none cursor-pointer max-w-[120px]"
+                            className="px-3 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all appearance-none cursor-pointer max-w-[120px] no-scrollbar"
                             style={{ fontFamily: selectedObject.fontFamily || 'Inter' }}
                         >
                             {Object.entries(fontsByCategory).map(([cat, fonts]) => (
-                                <optgroup key={cat} label={cat.toUpperCase()} className="text-[10px] font-black text-biophilic-green">
+                                <optgroup key={cat} label={cat.toUpperCase()} className="text-[10px] font-black text-biophilic-moss/60 dark:text-biophilic-dark-text-muted">
                                     {fonts.map(font => (
                                         <option key={font.family} value={font.family} style={{ fontFamily: font.family }} className="text-sm">
                                             {font.family}

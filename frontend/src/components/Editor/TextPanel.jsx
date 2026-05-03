@@ -121,7 +121,7 @@ const TextPanel = ({ canvasRef }) => {
 
                             return (
                                 <div key={catId} className="space-y-2">
-                                    <h4 className="text-[9px] font-black text-biophilic-green dark:text-biophilic-dark-green/60 uppercase tracking-widest pl-2">{categories[catId] || catId}</h4>
+                                    <h4 className="text-[9px] font-black text-biophilic-moss/60 dark:text-biophilic-dark-text-muted uppercase tracking-widest pl-2">{categories[catId] || catId}</h4>
                                     <div className="grid grid-cols-1 gap-1">
                                         {filteredFonts.map(font => (
                                             <button
