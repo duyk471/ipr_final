@@ -35,5 +35,6 @@ Thumbs.db
 
 # Project specific
 storage/projects/*/
+frontend/src/assets/fonts/*.woff2
 # You might want to keep the storage structure but ignore user-generated content
 # storage/projects/

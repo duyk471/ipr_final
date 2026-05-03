@@ -52,13 +52,13 @@ export const generateImage = catchAsync(async (req, res) => {
 });
 
 export const generateProjectFromPrompt = catchAsync(async (req, res) => {
-    const { prompt } = req.body;
+    const { prompt, magicPrompt } = req.body;
     
     if (!prompt) {
         throw new AppError('Missing prompt', 400);
     }
 
-    const result = await createProjectLayout(prompt);
+    const result = await createProjectLayout(prompt, magicPrompt);
 
     res.json({
         success: true,

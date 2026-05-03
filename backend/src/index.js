@@ -6,6 +6,8 @@ import { config } from './config/env.js';
 import projectRoutes from './routes/projectRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import fontRoutes from './routes/fontRoutes.js';
+
 
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -29,6 +31,8 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/projects/:id/assets', assetRoutes);
 
 app.use('/api/ai', aiRoutes);
+app.use('/api/fonts', fontRoutes);
+
 
 // Global Error Handler
 app.use(errorHandler);

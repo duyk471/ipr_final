@@ -105,11 +105,16 @@ export const generateSingleImage = async (prompt, projectId, removeBgFlag) => {
     };
 };
 
-export const createProjectLayout = async (prompt) => {
-    const projectPlan = await generateLayoutFromPrompt(prompt);
+export const createProjectLayout = async (prompt, magicPrompt = false) => {
+    const projectPlan = await generateLayoutFromPrompt(prompt, magicPrompt);
     
     const projectId = uuidv4();
     const now = new Date().toISOString();
+
+    const canvasWidth = projectPlan.canvas?.width || 1080;
+    const canvasHeight = projectPlan.canvas?.height || 1080;
+    const canvasBgColor = projectPlan.canvas?.backgroundColor || projectPlan.canvasBackground || "#ffffff";
+
     const projectData = {
         version: "1.0",
         projectInfo: {
@@ -120,9 +125,9 @@ export const createProjectLayout = async (prompt) => {
             previewUrl: "preview.png"
         },
         canvas: {
-            width: 1080,
-            height: 1080,
-            backgroundColor: projectPlan.canvasBackground || "#ffffff",
+            width: canvasWidth,
+            height: canvasHeight,
+            backgroundColor: canvasBgColor,
             backgroundImage: null,
             zoom: 1,
             viewportTransform: [1, 0, 0, 1, 0, 0]
@@ -145,8 +150,8 @@ export const createProjectLayout = async (prompt) => {
             version: "5.3.0",
             originX: "center",
             originY: "center",
-            left: asset.left || 540,
-            top: asset.top || 540,
+            left: asset.left || (canvasWidth / 2),
+            top: asset.top || (canvasHeight / 2),
             visible: true,
             selectable: true,
             metadata: { source: "gemini-ai" }
@@ -258,7 +263,7 @@ export const createProjectLayout = async (prompt) => {
 
     projectData.layers = generatedLayers;
 
-    return { projectData, assetsToReturn, projectId, savedAssets };
+    return { projectData, assets: assetsToReturn, projectId, savedAssets };
 };
 
 export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {

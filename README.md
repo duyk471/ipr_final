@@ -1,12 +1,4 @@
-<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <a id="readme-top"></a>
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
 
 <!-- PROJECT SHIELDS -->
 [![Contributors][contributors-shield]][contributors-url]
@@ -125,22 +117,26 @@ This is an example of how to list things you need to use the software and how to
    cd ../frontend
    npm install
    ```
-4. Configure AI environment variables
+4. **Download local fonts** (Required for the editor)
+   ```sh
+   npm run download-fonts
+   ```
+5. Configure AI environment variables
    ```sh
    cp ../backend/.env.example ../backend/.env
    ```
    Update the `.env` file with your provider keys and any local AI configuration.
-5. Start the backend service
+6. Start the backend service
    ```sh
    cd ../backend
    npm run dev
    ```
-6. Start the frontend app
+7. Start the frontend app
    ```sh
    cd ../frontend
    npm run dev
    ```
-7. Open the app in the browser at the URL shown by Vite.
+8. Open the app in the browser at the URL shown by Vite.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -164,15 +160,14 @@ _For more examples, please refer to the project documentation or issue tracker._
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
 <!-- ROADMAP -->
 ## Roadmap
 
 - [x] Local-first editor and `index.json` project state
 - [x] Fabric.js canvas engine with panning, zooming, and undo/redo
 - [x] AI Design Assistant and prompt expansion
-- [ ] Full Gemini/FLUX model integration in production
-- [ ] Enhanced theme engine and palette mapping
+- [x] Full Gemini/FLUX model integration in production
+- [x] Enhanced theme engine and palette mapping
 - [ ] Desktop wrapper and offline-first packaging
 
 See the [open issues](https://github.com/duyk471/ipr_final/issues) for a full list of proposed features and known issues.

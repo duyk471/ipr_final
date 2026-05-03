@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import useCanvasStore from '../../store/useCanvasStore';
 import { Lock, Unlock, ArrowUp, ArrowDown, BringToFront, SendToBack } from 'lucide-react';
+import { useFonts } from '../../hooks/useFonts';
 
-const FONTS = [
-    "Inter", "Roboto", "Open Sans", "Oswald", "Lora", "Merriweather", 
-    "Playfair Display", "Montserrat", "Pacifico", "Dancing Script", "Caveat", "Anton"
-];
 
 const PropertiesPanel = ({ canvasRef }) => {
+    const { fontsByCategory } = useFonts();
     const { selectedObject } = useCanvasStore();
     const [canvasSize, setCanvasSize] = useState({ width: 1080, height: 1080 });
     const [backgroundColor, setBackgroundColor] = useState('#ffffff');
@@ -33,7 +31,7 @@ const PropertiesPanel = ({ canvasRef }) => {
 
     if (!selectedObject) {
         return (
-            <div className="flex items-center gap-6 h-full px-4 w-full text-sm">
+            <div className="flex items-center gap-6 h-full px-4 w-full text-sm overflow-x-auto no-scrollbar">
                 <div className="flex items-center gap-4 shrink-0">
                     <span className="text-[10px] font-black text-biophilic-moss/60 dark:text-biophilic-dark-text-muted uppercase tracking-[0.15em]">Background</span>
                     <div className="relative group">
@@ -60,7 +58,7 @@ const PropertiesPanel = ({ canvasRef }) => {
     const isText = selectedObject.type.includes('text');
 
     return (
-        <div className="flex items-center gap-5 h-full px-2 w-full text-sm">
+        <div className="flex items-center gap-5 h-full px-2 w-full text-sm overflow-x-auto no-scrollbar">
             {/* Fill Color */}
             <div className="flex items-center gap-2 shrink-0">
                 <div className="relative group">
@@ -123,12 +121,23 @@ const PropertiesPanel = ({ canvasRef }) => {
                     <div className="flex items-center gap-2 shrink-0">
                         <select
                             value={selectedObject.fontFamily || 'Inter'}
-                            onChange={(e) => handleChange('fontFamily', e.target.value)}
-                            className="px-3 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all appearance-none cursor-pointer"
+                            onChange={(e) => {
+                                const font = e.target.value;
+                                document.fonts.load(`16px "${font}"`).then(() => {
+                                    handleChange('fontFamily', font);
+                                });
+                            }}
+                            className="px-3 py-1.5 text-xs bg-biophilic-cream/30 dark:bg-biophilic-dark-bg border border-biophilic-cream-dark dark:border-biophilic-dark-border rounded-lg focus:border-biophilic-green focus:outline-none font-bold text-biophilic-moss dark:text-biophilic-dark-text transition-all appearance-none cursor-pointer max-w-[120px]"
                             style={{ fontFamily: selectedObject.fontFamily || 'Inter' }}
                         >
-                            {FONTS.map(font => (
-                                <option key={font} value={font} style={{ fontFamily: font }}>{font}</option>
+                            {Object.entries(fontsByCategory).map(([cat, fonts]) => (
+                                <optgroup key={cat} label={cat.toUpperCase()} className="text-[10px] font-black text-biophilic-green">
+                                    {fonts.map(font => (
+                                        <option key={font.family} value={font.family} style={{ fontFamily: font.family }} className="text-sm">
+                                            {font.family}
+                                        </option>
+                                    ))}
+                                </optgroup>
                             ))}
                         </select>
                         <input
@@ -154,10 +163,17 @@ const PropertiesPanel = ({ canvasRef }) => {
                         <div className="w-px h-full bg-biophilic-cream-dark dark:bg-biophilic-dark-border"></div>
                         <button
                             onClick={() => {
+                                const nextStyle = selectedObject.fontStyle === 'italic' ? 'normal' : 'italic';
                                 canvasRef.current?.snapUndo();
-                                handleChange('fontStyle', selectedObject.fontStyle === 'italic' ? 'normal' : 'italic');
+                                if (nextStyle === 'italic') {
+                                    document.fonts.load(`italic 16px "${selectedObject.fontFamily}"`).then(() => {
+                                        handleChange('fontStyle', nextStyle);
+                                    });
+                                } else {
+                                    handleChange('fontStyle', nextStyle);
+                                }
                             }}
-                            className={`w-9 h-8 flex items-center justify-center font-serif italic text-xs transition-all ${selectedObject.fontStyle === 'italic' ? 'bg-biophilic-green text-white dark:bg-biophilic-dark-green dark:text-biophilic-dark-bg' : 'text-biophilic-moss/60 dark:text-biophilic-dark-text-muted hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface'}`}
+                            className={`w-9 h-8 flex items-center justify-center font-serif italic text-xs transition-all ${selectedObject.fontStyle === 'italic' ? 'bg-biophilic-green text-white dark:bg-biophilic-dark-green dark:text-biophilic-dark-bg' : 'text-biophilic-bark/60 dark:text-biophilic-dark-text-muted hover:bg-biophilic-cream dark:hover:bg-biophilic-dark-surface'}`}
                         >
                             I
                         </button>

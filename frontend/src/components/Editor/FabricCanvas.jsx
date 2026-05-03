@@ -689,17 +689,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 // Handle dynamic font loading
                 if (props.fontFamily && props.fontFamily !== activeObject.fontFamily) {
                     const fontName = props.fontFamily;
-                    const fontID = fontName.replace(/\s+/g, '+');
-                    const linkId = `font-${fontID}`;
-
-                    if (!document.getElementById(linkId) && fontName !== 'Inter') {
-                        const link = document.createElement('link');
-                        link.id = linkId;
-                        link.rel = 'stylesheet';
-                        link.href = `https://fonts.googleapis.com/css2?family=${fontID}:wght@400;700&display=swap`;
-                        document.head.appendChild(link);
-                    }
-
+                    
                     // Apply immediately 
                     activeObject.set('fontFamily', fontName);
                     fabricCanvas.current.renderAll();
@@ -988,6 +978,12 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 }
             };
 
+            const uniqueFonts = [...new Set(objects.filter(o => o.fontFamily).map(o => o.fontFamily))];
+            if (uniqueFonts.length > 0) {
+                console.log('Preloading fonts:', uniqueFonts);
+                await Promise.all(uniqueFonts.map(font => document.fonts.load(`16px "${font}"`)));
+            }
+
             const filteredLayers = await Promise.all(objects.map(async (obj) => {
                 const newObj = { ...obj };
                 
@@ -1116,6 +1112,9 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                 type: activeObject.type,
                 fill: activeObject.fill,
                 fontSize: activeObject.fontSize,
+                fontWeight: activeObject.fontWeight,
+                fontStyle: activeObject.fontStyle,
+                underline: activeObject.underline,
                 text: activeObject.text,
                 fontFamily: activeObject.fontFamily,
                 opacity: activeObject.opacity,

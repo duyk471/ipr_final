@@ -87,6 +87,7 @@ const Dashboard = () => {
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, action: null, title: '', message: '', isDestructive: true });
     const [aiPrompt, setAiPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isMagicPromptEnabled, setIsMagicPromptEnabled] = useState(false);
     const [workspaceInitLoading, setWorkspaceInitLoading] = useState(true);
     const [savedWorkspace, setSavedWorkspace] = useState(null);
 
@@ -195,7 +196,7 @@ const Dashboard = () => {
         if (!aiPrompt.trim()) return;
         setIsGenerating(true);
         try {
-            const res = await api.post('/ai/generate-project', { prompt: aiPrompt });
+            const res = await api.post('/ai/generate-project', { prompt: aiPrompt, magicPrompt: isMagicPromptEnabled });
             if (res.data.success) {
                 const { projectData, assets } = res.data;
                 const savedProject = await saveAIGeneratedProject(projectData, assets);
@@ -601,6 +602,26 @@ const Dashboard = () => {
                                         <span>{isGenerating ? 'Building' : 'Generate'}</span>
                                     </button>
                                 </div>
+                                
+                                <div className="mt-5 flex items-center justify-center">
+                                    <label className="flex items-center gap-3 cursor-pointer group/toggle">
+                                        <div className="relative">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only"
+                                                checked={isMagicPromptEnabled}
+                                                onChange={(e) => setIsMagicPromptEnabled(e.target.checked)}
+                                            />
+                                            <div className={`w-10 h-5 rounded-full transition-colors ${isMagicPromptEnabled ? 'bg-biophilic-green dark:bg-biophilic-dark-green shadow-organic-sm' : 'bg-biophilic-cream-dark dark:bg-biophilic-dark-border'}`}></div>
+                                            <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-transform shadow-sm ${isMagicPromptEnabled ? 'translate-x-5' : ''}`}></div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <Sparkles size={14} className={isMagicPromptEnabled ? 'text-biophilic-green glow-green' : 'text-biophilic-bark/40'} />
+                                            <span className={`text-[11px] font-black uppercase tracking-widest transition-colors ${isMagicPromptEnabled ? 'text-biophilic-moss dark:text-biophilic-dark-text' : 'text-biophilic-bark/50 dark:text-biophilic-dark-text-muted'}`}>Magic Prompt</span>
+                                        </div>
+                                    </label>
+                                </div>
+
                             </div>
                         </LockedFeature>
 
@@ -612,7 +633,7 @@ const Dashboard = () => {
                                     <div className="w-1.5 h-1.5 rounded-full bg-biophilic-green animate-bounce" />
                                 </div>
                                 <p className="text-xs font-black uppercase tracking-widest text-biophilic-green italic">
-                                    AI is weaving your masterpiece...
+                                    {isMagicPromptEnabled ? 'Designing your layout...' : 'AI is weaving your masterpiece...'}
                                 </p>
                             </div>
                         )}

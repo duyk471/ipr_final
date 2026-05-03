@@ -141,10 +141,10 @@
     @apply bg-biophilic-green-light dark:bg-biophilic-dark-border rounded-full;
   }
 
-  .custom-scrollbar-hide::-webkit-scrollbar {
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  .scrollbar-hide {
+  .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }

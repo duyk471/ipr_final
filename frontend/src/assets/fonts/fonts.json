@@ -1,0 +1,437 @@
+[
+  {
+    "family": "Inter",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "inter-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "inter-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "inter-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "inter-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Roboto",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "roboto-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "roboto-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "roboto-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "roboto-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Montserrat",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "montserrat-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "montserrat-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "montserrat-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "montserrat-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Poppins",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "poppins-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "poppins-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "poppins-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "poppins-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Open Sans",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "open-sans-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "open-sans-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "open-sans-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "open-sans-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Lato",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "lato-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "lato-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "lato-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "lato-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Raleway",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "raleway-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "raleway-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "raleway-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "raleway-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Nunito",
+    "category": "sans-serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "nunito-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "nunito-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "nunito-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "nunito-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Playfair Display",
+    "category": "serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "playfair-display-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "playfair-display-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "playfair-display-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "playfair-display-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Lora",
+    "category": "serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "lora-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "lora-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "lora-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "lora-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Merriweather",
+    "category": "serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "merriweather-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "merriweather-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "merriweather-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "merriweather-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "PT Serif",
+    "category": "serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "pt-serif-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "pt-serif-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "pt-serif-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "pt-serif-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Crimson Text",
+    "category": "serif",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "italic",
+        "file": "crimson-text-italic-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "italic",
+        "file": "crimson-text-italic-bold.woff2"
+      },
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "crimson-text-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "crimson-text-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Oswald",
+    "category": "display",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "oswald-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "oswald-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Syne",
+    "category": "display",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "syne-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "syne-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Anton",
+    "category": "display",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "anton-normal-normal.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Bebas Neue",
+    "category": "display",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "bebas-neue-normal-normal.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Pacifico",
+    "category": "handwriting",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "pacifico-normal-normal.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Dancing Script",
+    "category": "handwriting",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "dancing-script-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "dancing-script-normal-bold.woff2"
+      }
+    ]
+  },
+  {
+    "family": "Caveat",
+    "category": "handwriting",
+    "variants": [
+      {
+        "weight": "normal",
+        "style": "normal",
+        "file": "caveat-normal-normal.woff2"
+      },
+      {
+        "weight": "bold",
+        "style": "normal",
+        "file": "caveat-normal-bold.woff2"
+      }
+    ]
+  }
+]

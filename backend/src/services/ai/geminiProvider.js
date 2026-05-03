@@ -44,16 +44,33 @@ export const analyzeDesignWithVision = async (base64Image, canvasJson, userPromp
     return JSON.parse(jsonMatch[0]);
 };
 
-export const generateLayoutFromPrompt = async (prompt) => {
+export const generateLayoutFromPrompt = async (prompt, magicPrompt = false) => {
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
 
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-    const systemPrompt = `
-You are a world-class Art Director and a strict JSON API. Your job is to transform the user's prompt into a stunning, full-page, multi-layered design composition for a 1080x1080 canvas — like a professional Canva template.
+    let finalPrompt = prompt;
 
-The user wants to generate: "${prompt}".
+    if (magicPrompt) {
+        const magicSystemPrompt = `You are a world-class Art Director. The user has provided a short idea for a design layout: "${prompt}".
+Your task is to expand this into a highly detailed professional design specification.
+Describe the ideal layout hierarchy, the exact color palette to use, the types of typography (sans-serif, serif, display), the exact mood, and the visual assets (images, shapes) needed.
+Output a single detailed paragraph that will be used as the ultimate instruction to a design-generating AI.`;
+        
+        try {
+            const magicResult = await model.generateContent(magicSystemPrompt);
+            finalPrompt = magicResult.response.text().trim();
+            console.log("Magic Prompt Expanded:", finalPrompt);
+        } catch (err) {
+            console.error("Magic Prompt expansion failed, falling back to original prompt", err);
+        }
+    }
+
+    const systemPrompt = `
+You are a world-class Art Director and a strict JSON API. Your job is to transform the user's prompt into a stunning, full-page, multi-layered design composition — like a professional Canva template.
+
+The user wants to generate: "${finalPrompt}".
 
 === MANDATORY COMPLEXITY RULES ===
 - You MUST produce between 5 and 8 distinct elements in the "assets" array.
@@ -61,16 +78,24 @@ The user wants to generate: "${prompt}".
 - You MUST include ALL THREE text layers: a large HEADER, a SUBHEADER, and a BODY/CTA line.
 - Every text layer MUST have different fontSize, fontWeight, and a fontFamily that matches the design tone.
 - You MUST choose a coherent design palette. Do NOT use random colors. All colors must harmonize.
+- DO NOT create large rectangle "rect" layers just to act as the canvas background. Use the canvas background property instead.
+
+=== INTELLIGENT SIZING LOGIC ===
+Determine the optimal canvas size based on the user's intent:
+- "Portrait", "Story", "TikTok", "Reels" -> width: 1080, height: 1920
+- "Landscape", "YouTube", "Thumbnail", "Presentation" -> width: 1920, height: 1080
+- "Banner", "Cover", "Header" -> width: 1200, height: 630
+- "Post", "Square", "Instagram" -> width: 1080, height: 1080
+If unsure, default to 1080x1080.
 
 === ELEMENT TYPES ===
 
-1. TYPE "rect" — Rectangles (backgrounds, panels, accent bars):
+1. TYPE "rect" — Rectangles (panels, accent bars):
    Required: "id", "type": "rect", "width", "height", "left", "top"
    Optional (USE THESE for richness):
    - "fill": hex string (use for solid fills)
    - "gradient": a Fabric.js linear gradient object, e.g.:
        { "type": "linear", "coords": { "x1": 0, "y1": 0, "x2": 0, "y2": 1080 }, "colorStops": [{ "offset": 0, "color": "#1a1a2e" }, { "offset": 1, "color": "#16213e" }] }
-     Use gradient instead of fill for backgrounds. Do NOT set both fill and gradient.
    - "opacity": 0.0–1.0
    - "rx": number (border-radius, e.g. 16 for rounded panels)
    - "stroke": hex color
@@ -102,27 +127,27 @@ The user wants to generate: "${prompt}".
    - "shadow": { "color": "rgba(0,0,0,0.6)", "blur": 10, "offsetX": 2, "offsetY": 2 }
    - "stroke": hex
    - "strokeWidth": number
-   FontFamily guide by tone:
-     Modern/Tech: "Inter", "Helvetica", "Arial"
-     Corporate: "Georgia", "Times New Roman"
-     Elegant/Luxury: "Palatino", "Garamond"
-     Playful: "Comic Sans MS", "Verdana"
-     Bold/Impact: "Impact", "Arial Black"
+    FontFamily guide by category (ONLY use these exact names):
+      Sans-Serif (Modern): "Inter", "Roboto", "Montserrat", "Poppins", "Open Sans", "Lato", "Raleway", "Nunito"
+      Serif (Classic/Elegant): "Playfair Display", "Lora", "Merriweather", "PT Serif", "Crimson Text"
+      Display (Bold/Unique): "Oswald", "Syne", "Anton", "Bebas Neue"
+      Handwriting (Creative): "Pacifico", "Dancing Script", "Caveat"
 
 === COORDINATE RULES ===
 - "left" and "top" are the CENTER of the object.
-- Canvas is 1080x1080. Use rule-of-thirds: key content at ~360 or ~720 vertically.
-- Header text: top third (y ≈ 180–350)
-- Subheader: middle area (y ≈ 380–500)
-- Body/CTA: lower third (y ≈ 750–900)
+- Base your coordinates on the canvas size you chose. Use rule-of-thirds.
 - Decorative shapes can bleed off-canvas edges for dynamic feel.
 
 === YOUR RESPONSE FORMAT ===
 Return ONLY a raw JSON object — no markdown, no backticks, no explanation:
 {
   "palette": "<Modern|Corporate|Elegant|Playful|Bold>",
-  "canvasBackground": "<hex color — the dominant background color>",
-  "assets": [ ...ordered array of 5-8 elements, background first, text last... ]
+  "canvas": {
+    "width": <determined width>,
+    "height": <determined height>,
+    "backgroundColor": "<hex color — the dominant background color>"
+  },
+  "assets": [ ...ordered array of 5-8 elements, text last... ]
 }
 `;
 
