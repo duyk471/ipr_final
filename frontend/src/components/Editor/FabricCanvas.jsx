@@ -295,8 +295,8 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             const origOriginX = activeObject.originX;
             const origOriginY = activeObject.originY;
 
-            const dataUrl = activeObject.toDataURL({ format: 'png', quality: 1, multiplier: 2 });
-            const prompt = "A seamless, professional photo-composite of the subjects placed in the background environment, matching lighting, consistent shadows, high resolution, 8k.";
+            const dataUrl = activeObject.toDataURL({ format: 'jpeg', quality: 0.8, multiplier: 1.5 });
+            const prompt = "A clean, professional studio-quality composite of the subjects, matching lighting, realistic shadows, high resolution, 8k.";
             
             const res = await api.post(`/ai/merge`, {
                 image: dataUrl,

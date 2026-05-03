@@ -70,10 +70,9 @@ export const generateProjectFromPrompt = catchAsync(async (req, res) => {
 export const mergeImages = catchAsync(async (req, res) => {
     const { image, prompt, projectId } = req.body;
 
-    if (!image || !projectId) {
-        throw new AppError('Missing image or projectId', 400);
-    }
-
+    console.log(`[AI Controller] mergeImages request: prompt="${prompt}", projectId=${projectId}`);
+    console.log(`[AI Controller] Image data received (length: ${image?.length || 0} chars)`);
+    
     const actualPrompt = prompt || "A seamless, professional photo-composite of the subjects placed in the background environment, matching lighting, consistent shadows, high resolution, 8k.";
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
 

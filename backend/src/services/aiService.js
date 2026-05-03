@@ -268,6 +268,7 @@ export const createProjectLayout = async (prompt, magicPrompt = false) => {
 
 export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
     // Decode base64
+    console.log("[AI Merge] Starting merge process...");
     const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
     const imgBuffer = Buffer.from(base64Data, 'base64');
     
@@ -275,6 +276,7 @@ export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
     const metadata = await sharp(imgBuffer).metadata();
     const origWidth = metadata.width;
     const origHeight = metadata.height;
+    console.log(`[AI Merge] Metadata retrieved: ${origWidth}x${origHeight}`);
     
     const TARGET_SIZE = 1024;
     
@@ -283,6 +285,8 @@ export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
     let arStr = "1:1";
     if (aspectRatio > 1.2) arStr = "16:9";
     else if (aspectRatio < 0.8) arStr = "9:16";
+
+    console.log(`[AI Merge] Orig Size: ${origWidth}x${origHeight}, AR: ${arStr}`);
 
     // Calculate scale to fit 1024x1024
     const scale = Math.min(TARGET_SIZE / origWidth, TARGET_SIZE / origHeight);
@@ -305,14 +309,18 @@ export const mergeLayerImages = async (base64Image, basePrompt, projectId) => {
         .png()
         .toBuffer();
     
+    console.log("[AI Merge] Image resized and padded to 1024x1024.");
     const paddedBase64 = `data:image/png;base64,${paddedBuffer.toString('base64')}`;
 
     // Pass padded image and aspect ratio to prompt enhancer
+    console.log("[AI Merge] Calling Gemini for prompt enhancement...");
     const enhancedPrompt = await enhanceMergePrompt(paddedBase64, basePrompt, arStr);
+    console.log("[AI Merge] Enhanced Prompt:", enhancedPrompt);
     
     let imageBuffer = null;
     let usedModel = "unknown";
     try {
+        console.log("[AI Merge] Generating image with HF...");
         const result = await generateImageWithHF(enhancedPrompt);
         imageBuffer = result.buffer;
         usedModel = result.model;

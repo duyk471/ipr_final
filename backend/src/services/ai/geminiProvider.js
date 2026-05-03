@@ -31,9 +31,12 @@ export const analyzeDesignWithVision = async (base64Image, canvasJson, userPromp
         }
     `;
 
+    // Strip data URI header if present
+    const rawBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+
     const result = await model.generateContent([
         { text: systemPrompt },
-        { inlineData: { data: base64Image, mimeType: "image/png" } },
+        { inlineData: { data: rawBase64, mimeType: "image/png" } },
         { text: `SOURCE_PROJECT_JSON: ${JSON.stringify(canvasJson)}` }
     ]);
 
@@ -162,28 +165,42 @@ export const enhanceMergePrompt = async (base64Image, basePrompt, aspectRatio = 
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
 
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro" }); // High capability model for structural analysis
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-    const visionPrompt = `Task: Act as a Visual Identity Specialist. 
-1. Analyze the uploaded composite image and identify each distinct layer/subject.
-2. For each subject, describe its exact form, material, and unique identifying features (e.g., 'a weathered oak wood texture', 'matte sage green fabric', 'specific geometric silhouette').
-3. Detect the Global Light Source (e.g., 'soft ambient light from the top-left') to ensure unified shadowing.
-4. Generate a final technical prompt for FLUX.1. CRITICAL: Use a 'Literal Descriptive' style. Focus on: 'seamless physical interaction between objects', 'unified cinematic lighting', 'consistent surface micro-textures', and 'strict isolation on a flat, solid white background'. 
-Strictly avoid describing any background elements from the original photos to prevent AI hallucination.
-Ensure the prompt starts with: "A seamless, professional photo-composite of...". Context: ${basePrompt}`;
+    const visionPrompt = `Analyze this composite image containing multiple layers. Your task is to write a highly detailed, descriptive prompt for a text-to-image AI to recreate this EXACT composition as a single, photorealistic, seamless image.
+
+CRITICAL INSTRUCTIONS:
+1. FOCUS ON SUBJECTS: Identify the main subjects in the image. Do NOT invent unrelated objects, people, faces, hands, or human figures. If the input shows products or inanimate objects, the output MUST NOT contain any humans.
+2. COMPOSITION: Describe the exact placement, scale, and orientation of each subject as seen in the composite.
+3. BACKGROUND: The output must have a clean, neutral, minimal background (like a solid color or a simple studio surface) to make it easy to isolate. Do NOT describe complex environments, crowds, or busy scenes.
+4. STYLE: Professional product photography style, sharp focus, 8k, realistic lighting and shadows.
+5. NO HALLUCINATIONS: Do not add elements that are not present in the source layers unless requested by the goal.
+6. OUTPUT FORMAT: Output ONLY the final prompt string. No preamble.
+
+Goal/Creative Direction: ${basePrompt}`;
 
     try {
+        console.log("--- Gemini Vision Prompt ---");
+        console.log(visionPrompt);
+        console.log("----------------------------");
+
+        // Strip data URI header if present
+        const rawBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+
         const result = await model.generateContent([
             visionPrompt,
-            { inlineData: { data: base64Image, mimeType: "image/png" } }
+            { inlineData: { data: rawBase64, mimeType: "image/png" } }
         ]);
         let finalPrompt = result.response.text().trim();
-        // Append AR and background instructions as requested
-        finalPrompt = `${finalPrompt} --ar ${aspectRatio} --no background, environment`;
+
+        console.log("Gemini Raw Response:", finalPrompt);
+
+        // Use natural language for aspect ratio and background
+        finalPrompt = `${finalPrompt}. Aspect ratio ${aspectRatio}. High quality, isolated on a simple background.`;
         return finalPrompt;
     } catch (err) {
-        console.error("Gemini Vision failed, falling back to original prompt:", err.message);
-        return `${basePrompt} --ar ${aspectRatio} --no background, environment`;
+        console.error("Gemini Vision failed. Full Error:", err);
+        return `${basePrompt} --ar ${aspectRatio} --no background`;
     }
 };
 
@@ -197,9 +214,12 @@ export const describeImageWithGemini = async (base64Image) => {
     const prompt = "Describe this image in detail. Provide a creative, evocative description including style, colors, subjects, and mood. Ensure the output is a concise paragraph suitable for a designer.";
 
     try {
+        // Strip data URI header if present
+        const rawBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+
         const result = await model.generateContent([
             { text: prompt },
-            { inlineData: { data: base64Image, mimeType: "image/png" } }
+            { inlineData: { data: rawBase64, mimeType: "image/png" } }
         ]);
         return result.response.text().trim();
     } catch (err) {
@@ -215,10 +235,10 @@ export const generateThemePaletteWithGemini = async (mood, canvasJson = null) =>
     // Use the standard model for fast, reliable JSON text generation
     const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
 
-    const systemPrompt = `You are a master color theorist and UI/UX designer.
+    const systemPrompt = `You are a master color theorist and UI / UX designer.
 Your task is to curate a theme and apply it to a user's design project.
 
-USER MOOD/VIBE: "${mood}"
+USER MOOD / VIBE: "${mood}"
 
 ${canvasJson ? `EXISTING PROJECT JSON: 
 ${JSON.stringify(canvasJson)}
@@ -230,21 +250,22 @@ TASKS:
    - Update 'fill' and 'stroke' properties of all text and shapes.
    - Update the canvas 'backgroundColor' (or the largest background rectangle if one exists).
    - Ensure excellent contrast (Light on Dark or Dark on Light).
-   - DO NOT MODIFY image filters or image sources.` : 'No project context provided. Just generate a palette.'}
+   - DO NOT MODIFY image filters or image sources.` : 'No project context provided. Just generate a palette.'
+        }
 
 === RESPONSE FORMAT ===
-Return a raw JSON object with NO MARKDOWN:
-{
-  "palette_name": "Creative Palette Name",
-  "hex_codes": ["#color1", "#color2", "#color3", "#color4", "#color5"],
-  "updatedJson": ${canvasJson ? "{ ...the modified project JSON structure... }" : "null"}
-}`;
+            Return a raw JSON object with NO MARKDOWN:
+            {
+                "palette_name": "Creative Palette Name",
+                    "hex_codes": ["#color1", "#color2", "#color3", "#color4", "#color5"],
+                        "updatedJson": ${canvasJson ? "{ ...the modified project JSON structure... }" : "null"}
+            } `;
 
     try {
         const result = await model.generateContent(systemPrompt);
         let responseText = result.response.text();
         // Clean up markdown if model still included it
-        responseText = responseText.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
+        responseText = responseText.replace(/```json\n ? /, '').replace(/```\n?/, '').trim();
         return JSON.parse(responseText);
     } catch (err) {
         console.error("Gemini Theme Generation failed:", err.message);
@@ -258,17 +279,17 @@ export const extractStylesWithGemini = async (base64Image) => {
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-    const systemPrompt = `You are a world-class Art Director and Style Analyst.
+    const systemPrompt = `You are a world - class Art Director and Style Analyst.
 Analyze the provided image and extract 4 DISTINCT technical design styles that could be used to recreate this aesthetic or variations of it in an AI Image Generator.
-Each style should have a catchy 'name' and a 'tags' string containing a comma-separated list of highly effective, technical prompt keywords (e.g., lighting, camera angle, color grading, art movement, texture).
+Each style should have a catchy 'name' and a 'tags' string containing a comma - separated list of highly effective, technical prompt keywords(e.g., lighting, camera angle, color grading, art movement, texture).
 
 Return EXACTLY a raw JSON array of 4 objects with NO MARKDOWN formatting:
-[
-  {
-    "name": "Cinematic Realism",
-    "tags": "8k resolution, cinematic lighting, photorealistic, volumetric fog, dramatic shadows, 35mm lens"
-  },
-  ...
+        [
+            {
+                "name": "Cinematic Realism",
+                "tags": "8k resolution, cinematic lighting, photorealistic, volumetric fog, dramatic shadows, 35mm lens"
+            },
+            ...
 ]`;
 
     try {
@@ -277,7 +298,7 @@ Return EXACTLY a raw JSON array of 4 objects with NO MARKDOWN formatting:
             { inlineData: { data: base64Image, mimeType: "image/png" } }
         ]);
         let responseText = result.response.text();
-        responseText = responseText.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
+        responseText = responseText.replace(/```json\n ? /, '').replace(/```\n?/, '').trim();
         return JSON.parse(responseText);
     } catch (err) {
         console.error("Gemini Style Extraction failed:", err.message);
