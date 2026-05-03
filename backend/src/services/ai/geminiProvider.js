@@ -57,7 +57,7 @@ export const generateLayoutFromPrompt = async (prompt, magicPrompt = false) => {
 Your task is to expand this into a highly detailed professional design specification.
 Describe the ideal layout hierarchy, the exact color palette to use, the types of typography (sans-serif, serif, display), the exact mood, and the visual assets (images, shapes) needed.
 Output a single detailed paragraph that will be used as the ultimate instruction to a design-generating AI.`;
-        
+
         try {
             const magicResult = await model.generateContent(magicSystemPrompt);
             finalPrompt = magicResult.response.text().trim();
@@ -289,9 +289,9 @@ export const generateTextWithGemini = async (prompt, systemInstruction = "") => 
     if (!config.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is missing');
 
     const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash", // Use 1.5 flash for fast text generation
-        systemInstruction: systemInstruction 
+    const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash", // Use 1.5 flash for fast text generation
+        systemInstruction: systemInstruction
     });
 
     try {

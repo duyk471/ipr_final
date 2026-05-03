@@ -345,8 +345,22 @@ export const describeImage = async (base64Image) => {
 };
 
 export const generateContent = async (keyword) => {
-    const systemInstruction = "You are a creative copywriter. Generate a catchy slogan or short description based on the keyword provided by the user. Keep it concise, engaging, and professional.";
-    const text = await generateTextWithGemini(keyword, systemInstruction);
+    const systemInstruction = "You are a creative copywriter. Generate a catchy slogan or short description based on the keyword provided by the user. Keep it concise, engaging, and professional. IMPORTANT: Your output MUST be purely plaintext. Do NOT use any markdown formatting like bold, italics, headers, bullet points, or backticks. Just the raw text.";
+    let text = await generateTextWithGemini(keyword, systemInstruction);
+    
+    // Safety check: strip common markdown patterns just in case
+    text = text
+        .replace(/(\*\*|__)(.*?)\1/g, '$2')      // bold
+        .replace(/(\*|_)(.*?)\1/g, '$2')          // italic
+        .replace(/`{1,3}([\s\S]*?)`{1,3}/g, '$1') // inline code / code blocks
+        .replace(/^#+\s+/gm, '')                  // headers
+        .replace(/^>\s+/gm, '')                   // blockquotes
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')      // links
+        .replace(/^\s*[-*+]\s+/gm, '')            // unordered lists
+        .replace(/^\s*\d+\.\s+/gm, '')            // ordered lists
+        .replace(/\n{3,}/g, '\n\n')               // limit consecutive newlines
+        .trim();
+
     return { text };
 };
 
