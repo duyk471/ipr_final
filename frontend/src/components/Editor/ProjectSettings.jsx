@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, Layout, Type as TypeIcon } from 'lucide-react';
+import { X, Settings, Type as TypeIcon } from 'lucide-react';
 import useCanvasStore from '../../store/useCanvasStore';
 
 const ProjectSettings = ({ onClose }) => {
@@ -47,16 +47,7 @@ const ProjectSettings = ({ onClose }) => {
                         />
                     </div>
 
-                    <div className="flex flex-col gap-2.5">
-                        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-biophilic-moss/60 dark:text-biophilic-dark-text-muted flex items-center gap-2">
-                            <Layout size={14} />
-                            Canvas Size Info
-                        </label>
-                        <div className="p-5 bg-biophilic-blue-light/10 dark:bg-biophilic-dark-blue/5 rounded-[1.5rem] border border-biophilic-blue-light/30 dark:border-biophilic-dark-blue/20">
-                            <p className="text-sm text-biophilic-moss dark:text-biophilic-dark-text font-black tracking-tight">Fixed at 1080 x 1080px (Square)</p>
-                            <p className="text-[10px] text-biophilic-blue dark:text-biophilic-dark-blue mt-1.5 uppercase tracking-widest font-black italic opacity-70">Resizing coming soon</p>
-                        </div>
-                    </div>
+
                 </div>
 
                 {/* Footer */}

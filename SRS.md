@@ -1,8 +1,8 @@
 ## Software Requirements Specification for Canvee – Synthetic Stylist AI
 
 Version 0.1  
-Prepared by [Author Name]  
-[Organization Name]  
+Prepared by Khanh Duy
+IPR_G15  
 May 2, 2026
 
 ## Table of Contents
@@ -33,12 +33,6 @@ May 2, 2026
 - [5. Appendixes](#5-appendixes)
 <!-- TOC -->
 
-## Revision History
-
-| Name | Date | Reason For Changes | Version |
-| ---- | ---- | ------------------ | ------- |
-|      |      |                    |         |
-
 ## 1. Introduction
 
 ### 1.1 Document Purpose
@@ -54,7 +48,6 @@ Canvee is a next-generation image editor that combines a high-performance, priva
 | Term | Definition |
 |------|------------|
 | AI | Artificial Intelligence |
-| BLIP | Bootstrapped Language-Image Pretraining |
 | FLUX | High-fidelity text-to-image model (Hugging Face) |
 | Gemini | Google’s multimodal AI model family |
 | File System Access API | Web API for direct file system operations |
@@ -126,7 +119,7 @@ Canvee is a new, standalone product in the creative software domain, integrating
 ### 2.6 Apportioning of Requirements
 
 - Canvas engine and local-first features: Release 1.0
-- Core AI suite (Gemini, FLUX, BLIP): Release 1.1
+- Core AI suite (Gemini, FLUX): Release 1.1
 - Theme engine and advanced compositing: Release 1.2
 - Fallback and local AI: Release 1.3
 
@@ -193,7 +186,7 @@ Canvee is a new, standalone product in the creative software domain, integrating
 
 **AI Vision & Content**
 
-- Caption images and extract style keywords using BLIP-2 and Gemini.
+- Caption images and extract style keywords using Gemini.
 - Generate slogans and marketing copy using Gemini and Arch-Router-1.5B.
 
 **Theme Engine**
@@ -290,8 +283,6 @@ Canvee is a new, standalone product in the creative software domain, integrating
 - Gemma 2: Creative image descriptions and keyword analysis.
 - Gemini Flash Lite: Palette curation and mapping.
 - FLUX.1-schnell: Text-to-image and image-to-image generation.
-- Arch-Router-1.5B: Copywriting and prompt engineering.
-- BLIP: Image captioning (fallback).
 - Pollinations.ai: Fallback image generation.
 - @imgly/background-removal-node: Local background removal.
 - Sharp & custom flood-fill: Alpha transparency post-processing.
@@ -305,7 +296,6 @@ Canvee is a new, standalone product in the creative software domain, integrating
 #### 3.6.3 Guardrails
 
 - All AI prompts are sanitized to remove sensitive or inappropriate content.
-- Output filtering to prevent NSFW or unsafe imagery.
 - Action limits on AI requests to prevent abuse.
 
 #### 3.6.4 Ethics
