@@ -550,19 +550,245 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
         },
         addShape: (type) => {
             if (!fabricCanvas.current) return;
+            
+            const canvas = fabricCanvas.current;
+            const canvasWidth = canvas.getWidth();
+            const canvasHeight = canvas.getHeight();
+            
+            // Helper function to center shape on canvas
+            const centerShape = (shape) => {
+                shape.set({
+                    left: canvasWidth / 2 - shape.width / 2,
+                    top: canvasHeight / 2 - shape.height / 2
+                });
+            };
+            
             let shape;
             if (type === 'rect') {
-                shape = new fabric.Rect({ left: 100, top: 100, fill: '#FF5733', width: 100, height: 100, rx: 0, ry: 0 });
+                shape = new fabric.Rect({ fill: '#FF5733', width: 100, height: 100, rx: 0, ry: 0 });
+                centerShape(shape);
             } else if (type === 'circle') {
-                shape = new fabric.Circle({ left: 100, top: 100, fill: '#33FF57', radius: 50 });
+                shape = new fabric.Circle({ fill: '#33FF57', radius: 50 });
+                centerShape(shape);
             } else if (type === 'triangle') {
-                shape = new fabric.Triangle({ left: 100, top: 100, fill: '#3357FF', width: 100, height: 100 });
+                shape = new fabric.Triangle({ fill: '#3357FF', width: 100, height: 100 });
+                centerShape(shape);
+            } else if (type === 'ellipse') {
+                shape = new fabric.Ellipse({ fill: '#FF33A1', rx: 60, ry: 40 });
+                centerShape(shape);
+            } else if (type === 'star') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 61, y: 35 }, { x: 98, y: 35 }, { x: 68, y: 57 },
+                    { x: 79, y: 91 }, { x: 50, y: 70 }, { x: 21, y: 91 }, { x: 32, y: 57 },
+                    { x: 2, y: 35 }, { x: 39, y: 35 }
+                ], { fill: '#FFD700', scaleX: 1.5, scaleY: 1.5 });
+                centerShape(shape);
+            } else if (type === 'hexagon') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 93.3, y: 25 }, { x: 93.3, y: 75 },
+                    { x: 50, y: 100 }, { x: 6.7, y: 75 }, { x: 6.7, y: 25 }
+                ], { fill: '#FF8C00', scaleX: 1.2, scaleY: 1.2 });
+                centerShape(shape);
+            } else if (type === 'pentagon') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 95.1, y: 30.9 }, { x: 80.9, y: 90.5 },
+                    { x: 19.1, y: 90.5 }, { x: 4.9, y: 30.9 }
+                ], { fill: '#FF6347', scaleX: 1.2, scaleY: 1.2 });
+                centerShape(shape);
+            } else if (type === 'octagon') {
+                shape = new fabric.Polygon([
+                    { x: 30, y: 0 }, { x: 70, y: 0 }, { x: 100, y: 30 }, { x: 100, y: 70 },
+                    { x: 70, y: 100 }, { x: 30, y: 100 }, { x: 0, y: 70 }, { x: 0, y: 30 }
+                ], { fill: '#4682B4', scaleX: 1, scaleY: 1 });
+                centerShape(shape);
+            } else if (type === 'diamond') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 100, y: 50 }, { x: 50, y: 100 }, { x: 0, y: 50 }
+                ], { fill: '#9370DB', scaleX: 1.2, scaleY: 1.2 });
+                centerShape(shape);
+            } else if (type === 'heart') {
+                shape = new fabric.Path('M 50 85 C 50 85 10 50 10 25 C 10 10 25 0 40 0 C 50 0 55 10 55 10 C 55 10 60 0 70 0 C 85 0 100 10 100 25 C 100 50 60 85 60 85 L 50 95 L 40 85 Z', {
+                    fill: '#FF1493', scaleX: 0.8, scaleY: 0.8
+                });
+                centerShape(shape);
+            } else if (type === 'arrow') {
+                shape = new fabric.Path('M 0 50 L 100 50 L 100 30 L 150 60 L 100 90 L 100 70 L 0 70 Z', {
+                    fill: '#8A2BE2', scaleX: 0.8, scaleY: 0.8
+                });
+                centerShape(shape);
+            } else if (type === 'cross') {
+                shape = new fabric.Path('M 40 20 L 60 20 L 60 40 L 80 40 L 80 60 L 60 60 L 60 80 L 40 80 L 40 60 L 20 60 L 20 40 L 40 40 Z', {
+                    fill: '#DC143C', scaleX: 1, scaleY: 1
+                });
+                centerShape(shape);
+            } else if (type === 'lightning') {
+                shape = new fabric.Path('M 30 0 L 20 30 L 40 30 L 10 70 L 50 20 L 0 20 L 30 0 Z', {
+                    fill: '#FFD700', scaleX: 1.5, scaleY: 1.5
+                });
+                centerShape(shape);
+            } else if (type === 'search') {
+                shape = new fabric.Group([
+                    new fabric.Circle({ left: 0, top: 0, radius: 30, fill: 'transparent', stroke: '#2563eb', strokeWidth: 8 }),
+                    new fabric.Line([24, 24, 48, 48], { left: 0, top: 0, stroke: '#2563eb', strokeWidth: 8, strokeLinecap: 'round' })
+                ], { left: 0, top: 0 });
+                centerShape(shape);
+            } else if (type === 'home') {
+                shape = new fabric.Path('M 10 40 L 30 20 L 50 40 L 50 80 L 10 80 Z', {
+                    fill: '#38bdf8', scaleX: 1.2, scaleY: 1.2
+                });
+                centerShape(shape);
+            } else if (type === 'bell') {
+                shape = new fabric.Path('M 20 10 C12 10 6 16 6 24 L 6 30 C6 40 12 46 22 46 L24 46 C34 46 40 40 40 30 L40 24 C40 16 34 10 26 10 Z M22 46 A4 4 0 0 0 30 46', {
+                    fill: '#f59e0b', scaleX: 1.2, scaleY: 1.2
+                });
+                centerShape(shape);
+            } else if (type === 'cloud') {
+                shape = new fabric.Path('M20 30 C12 30 8 24 8 18 C8 12 12 8 18 8 C20 4 24 2 28 2 C34 2 38 6 38 12 C44 12 48 16 48 22 C48 28 44 32 38 32 Z', {
+                    fill: '#93c5fd', scaleX: 1.2, scaleY: 1.2
+                });
+                centerShape(shape);
+            } else if (type === 'lock') {
+                shape = new fabric.Group([
+                    new fabric.Rect({ left: 12, top: 24, width: 36, height: 28, rx: 6, fill: '#475569' }),
+                    new fabric.Path('M18 24 L18 18 C18 12 22 8 28 8 C34 8 38 12 38 18 L38 24', { left: 0, top: 0, stroke: '#f8fafc', strokeWidth: 6, fill: 'transparent' })
+                ], { left: 0, top: 0 });
+                centerShape(shape);
+            } else if (type === 'camera') {
+                shape = new fabric.Group([
+                    new fabric.Rect({ left: 4, top: 16, width: 52, height: 36, rx: 8, fill: '#8b5cf6' }),
+                    new fabric.Rect({ left: 10, top: 8, width: 16, height: 12, rx: 4, fill: '#7c3aed' }),
+                    new fabric.Circle({ left: 24, top: 28, radius: 10, fill: '#c7d2fe' })
+                ], { left: 0, top: 0 });
+                centerShape(shape);
+            } else if (type === 'sun') {
+                shape = new fabric.Group([
+                    new fabric.Circle({ left: 12, top: 12, radius: 20, fill: '#facc15' }),
+                    new fabric.Line([32, 0, 32, 12], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 }),
+                    new fabric.Line([32, 44, 32, 56], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 }),
+                    new fabric.Line([0, 32, 12, 32], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 }),
+                    new fabric.Line([52, 32, 64, 32], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 })
+                ], { left: 0, top: 0 });
+                centerShape(shape);
+            } else if (type === 'music') {
+                shape = new fabric.Path('M24 10 L24 36 C22 36 20 38 20 40 C20 42 22 44 24 44 C26 44 28 42 28 40 C28 38 26 36 24 36 L24 18 L48 14 L48 36 C46 36 44 38 44 40 C44 42 46 44 48 44 C50 44 52 42 52 40 C52 38 50 36 48 36 L48 14', {
+                    fill: '#0ea5e9', scaleX: 1.1, scaleY: 1.1
+                });
+                centerShape(shape);
+            } else if (type === 'line') {
+                shape = new fabric.Line([0, 0, 100, 0], { stroke: '#000000', strokeWidth: 5 });
+                centerShape(shape);
             }
             if (shape) {
-                fabricCanvas.current.add(shape);
-                fabricCanvas.current.bringObjectToFront(shape);
-                fabricCanvas.current.setActiveObject(shape);
-                fabricCanvas.current.renderAll();
+                canvas.add(shape);
+                canvas.bringObjectToFront(shape);
+                canvas.setActiveObject(shape);
+                canvas.renderAll();
+            }
+        },
+        addShapeAtPosition: (type, x, y) => {
+            if (!fabricCanvas.current) return;
+            
+            const canvas = fabricCanvas.current;
+            
+            let shape;
+            if (type === 'rect') {
+                shape = new fabric.Rect({ left: x - 50, top: y - 50, fill: '#FF5733', width: 100, height: 100, rx: 0, ry: 0 });
+            } else if (type === 'circle') {
+                shape = new fabric.Circle({ left: x - 50, top: y - 50, fill: '#33FF57', radius: 50 });
+            } else if (type === 'triangle') {
+                shape = new fabric.Triangle({ left: x - 50, top: y - 50, fill: '#3357FF', width: 100, height: 100 });
+            } else if (type === 'ellipse') {
+                shape = new fabric.Ellipse({ left: x - 60, top: y - 40, fill: '#FF33A1', rx: 60, ry: 40 });
+            } else if (type === 'star') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 61, y: 35 }, { x: 98, y: 35 }, { x: 68, y: 57 },
+                    { x: 79, y: 91 }, { x: 50, y: 70 }, { x: 21, y: 91 }, { x: 32, y: 57 },
+                    { x: 2, y: 35 }, { x: 39, y: 35 }
+                ], { left: x - 75, top: y - 75, fill: '#FFD700', scaleX: 1.5, scaleY: 1.5 });
+            } else if (type === 'hexagon') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 93.3, y: 25 }, { x: 93.3, y: 75 },
+                    { x: 50, y: 100 }, { x: 6.7, y: 75 }, { x: 6.7, y: 25 }
+                ], { left: x - 60, top: y - 60, fill: '#FF8C00', scaleX: 1.2, scaleY: 1.2 });
+            } else if (type === 'pentagon') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 95.1, y: 30.9 }, { x: 80.9, y: 90.5 },
+                    { x: 19.1, y: 90.5 }, { x: 4.9, y: 30.9 }
+                ], { left: x - 60, top: y - 60, fill: '#FF6347', scaleX: 1.2, scaleY: 1.2 });
+            } else if (type === 'octagon') {
+                shape = new fabric.Polygon([
+                    { x: 30, y: 0 }, { x: 70, y: 0 }, { x: 100, y: 30 }, { x: 100, y: 70 },
+                    { x: 70, y: 100 }, { x: 30, y: 100 }, { x: 0, y: 70 }, { x: 0, y: 30 }
+                ], { left: x - 50, top: y - 50, fill: '#4682B4', scaleX: 1, scaleY: 1 });
+            } else if (type === 'diamond') {
+                shape = new fabric.Polygon([
+                    { x: 50, y: 0 }, { x: 100, y: 50 }, { x: 50, y: 100 }, { x: 0, y: 50 }
+                ], { left: x - 60, top: y - 60, fill: '#9370DB', scaleX: 1.2, scaleY: 1.2 });
+            } else if (type === 'heart') {
+                shape = new fabric.Path('M 50 85 C 50 85 10 50 10 25 C 10 10 25 0 40 0 C 50 0 55 10 55 10 C 55 10 60 0 70 0 C 85 0 100 10 100 25 C 100 50 60 85 60 85 L 50 95 L 40 85 Z', {
+                    left: x - 40, top: y - 47.5, fill: '#FF1493', scaleX: 0.8, scaleY: 0.8
+                });
+            } else if (type === 'arrow') {
+                shape = new fabric.Path('M 0 50 L 100 50 L 100 30 L 150 60 L 100 90 L 100 70 L 0 70 Z', {
+                    left: x - 75, top: y - 40, fill: '#8A2BE2', scaleX: 0.8, scaleY: 0.8
+                });
+            } else if (type === 'cross') {
+                shape = new fabric.Path('M 40 20 L 60 20 L 60 40 L 80 40 L 80 60 L 60 60 L 60 80 L 40 80 L 40 60 L 20 60 L 20 40 L 40 40 Z', {
+                    left: x - 40, top: y - 40, fill: '#DC143C', scaleX: 1, scaleY: 1
+                });
+            } else if (type === 'lightning') {
+                shape = new fabric.Path('M 30 0 L 20 30 L 40 30 L 10 70 L 50 20 L 0 20 L 30 0 Z', {
+                    left: x - 37.5, top: y - 52.5, fill: '#FFD700', scaleX: 1.5, scaleY: 1.5
+                });
+            } else if (type === 'search') {
+                shape = new fabric.Group([
+                    new fabric.Circle({ left: 0, top: 0, radius: 30, fill: 'transparent', stroke: '#2563eb', strokeWidth: 8 }),
+                    new fabric.Line([24, 24, 48, 48], { left: 0, top: 0, stroke: '#2563eb', strokeWidth: 8, strokeLinecap: 'round' })
+                ], { left: x - 40, top: y - 40 });
+            } else if (type === 'home') {
+                shape = new fabric.Path('M 10 40 L 30 20 L 50 40 L 50 80 L 10 80 Z', {
+                    left: x - 25, top: y - 30, fill: '#38bdf8', scaleX: 1.2, scaleY: 1.2
+                });
+            } else if (type === 'bell') {
+                shape = new fabric.Path('M 20 10 C12 10 6 16 6 24 L 6 30 C6 40 12 46 22 46 L24 46 C34 46 40 40 40 30 L40 24 C40 16 34 10 26 10 Z M22 46 A4 4 0 0 0 30 46', {
+                    left: x - 26, top: y - 26, fill: '#f59e0b', scaleX: 1.2, scaleY: 1.2
+                });
+            } else if (type === 'cloud') {
+                shape = new fabric.Path('M20 30 C12 30 8 24 8 18 C8 12 12 8 18 8 C20 4 24 2 28 2 C34 2 38 6 38 12 C44 12 48 16 48 22 C48 28 44 32 38 32 Z', {
+                    left: x - 26, top: y - 22, fill: '#93c5fd', scaleX: 1.2, scaleY: 1.2
+                });
+            } else if (type === 'lock') {
+                shape = new fabric.Group([
+                    new fabric.Rect({ left: 12, top: 24, width: 36, height: 28, rx: 6, fill: '#475569' }),
+                    new fabric.Path('M18 24 L18 18 C18 12 22 8 28 8 C34 8 38 12 38 18 L38 24', { left: 0, top: 0, stroke: '#f8fafc', strokeWidth: 6, fill: 'transparent' })
+                ], { left: x - 28, top: y - 30 });
+            } else if (type === 'camera') {
+                shape = new fabric.Group([
+                    new fabric.Rect({ left: 4, top: 16, width: 52, height: 36, rx: 8, fill: '#8b5cf6' }),
+                    new fabric.Rect({ left: 10, top: 8, width: 16, height: 12, rx: 4, fill: '#7c3aed' }),
+                    new fabric.Circle({ left: 24, top: 28, radius: 10, fill: '#c7d2fe' })
+                ], { left: x - 32, top: y - 30 });
+            } else if (type === 'sun') {
+                shape = new fabric.Group([
+                    new fabric.Circle({ left: 12, top: 12, radius: 20, fill: '#facc15' }),
+                    new fabric.Line([32, 0, 32, 12], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 }),
+                    new fabric.Line([32, 44, 32, 56], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 }),
+                    new fabric.Line([0, 32, 12, 32], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 }),
+                    new fabric.Line([52, 32, 64, 32], { stroke: '#f59e0b', strokeWidth: 6, left: 0, top: 0 })
+                ], { left: x - 32, top: y - 32 });
+            } else if (type === 'music') {
+                shape = new fabric.Path('M24 10 L24 36 C22 36 20 38 20 40 C20 42 22 44 24 44 C26 44 28 42 28 40 C28 38 26 36 24 36 L24 18 L48 14 L48 36 C46 36 44 38 44 40 C44 42 46 44 48 44 C50 44 52 42 52 40 C52 38 50 36 48 36 L48 14', {
+                    left: x - 26, top: y - 32, fill: '#0ea5e9', scaleX: 1.1, scaleY: 1.1
+                });
+            } else if (type === 'line') {
+                shape = new fabric.Line([x - 50, y, x + 50, y], { stroke: '#000000', strokeWidth: 5 });
+            }
+            if (shape) {
+                canvas.add(shape);
+                canvas.bringObjectToFront(shape);
+                canvas.setActiveObject(shape);
+                canvas.renderAll();
+                queueSave();
             }
         },
         addFrame: (type, textValue = 'A') => {
@@ -1242,6 +1468,22 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                         fabricCanvas.current.uniformScaling = true;
                     }
                 }
+
+                // Zoom with space + and space -
+                if (isSpacePressed.current && (e.key === '=' || e.key === '+')) {
+                    e.preventDefault();
+                    const zoomFactor = 1.05; // Gradual zoom in
+                    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel.current * zoomFactor));
+                    zoomLevel.current = newZoom;
+                    updateContainerTransform();
+                }
+                if (isSpacePressed.current && e.key === '-') {
+                    e.preventDefault();
+                    const zoomFactor = 0.95; // Gradual zoom out
+                    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel.current * zoomFactor));
+                    zoomLevel.current = newZoom;
+                    updateContainerTransform();
+                }
                 // Copy with Ctrl+C
                 if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
                     const target = e.target;
@@ -1484,7 +1726,7 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
                     e.preventDefault();
 
                     const delta = e.deltaY;
-                    const zoomFactor = delta > 0 ? 0.9 : 1.1;
+                    const zoomFactor = delta > 0 ? 0.95 : 1.05; // Gradual zoom
 
                     const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel.current * zoomFactor));
                     zoomLevel.current = newZoom;
@@ -1997,6 +2239,83 @@ const FabricCanvas = forwardRef(({ projectId }, ref) => {
             }}
             onClick={() => {
                 if (useCanvasStore.getState().contextMenu) setContextMenu(null);
+            }}
+            onDragOver={(e) => {
+                e.preventDefault(); // Allow drop
+                e.dataTransfer.dropEffect = 'copy';
+            }}
+            onDrop={(e) => {
+                e.preventDefault();
+                const shapeType = e.dataTransfer.getData('shapeType');
+                if (shapeType && fabricCanvas.current) {
+                    const rect = containerRef.current.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / canvasScale;
+                    const y = (e.clientY - rect.top) / canvasScale;
+                    
+                    // Add shape at drop position
+                    const canvas = fabricCanvas.current;
+                    
+                    let shape;
+                    if (shapeType === 'rect') {
+                        shape = new fabric.Rect({ left: x - 50, top: y - 50, fill: '#FF5733', width: 100, height: 100, rx: 0, ry: 0 });
+                    } else if (shapeType === 'circle') {
+                        shape = new fabric.Circle({ left: x - 50, top: y - 50, fill: '#33FF57', radius: 50 });
+                    } else if (shapeType === 'triangle') {
+                        shape = new fabric.Triangle({ left: x - 50, top: y - 50, fill: '#3357FF', width: 100, height: 100 });
+                    } else if (shapeType === 'ellipse') {
+                        shape = new fabric.Ellipse({ left: x - 60, top: y - 40, fill: '#FF33A1', rx: 60, ry: 40 });
+                    } else if (shapeType === 'star') {
+                        shape = new fabric.Polygon([
+                            { x: 50, y: 0 }, { x: 61, y: 35 }, { x: 98, y: 35 }, { x: 68, y: 57 },
+                            { x: 79, y: 91 }, { x: 50, y: 70 }, { x: 21, y: 91 }, { x: 32, y: 57 },
+                            { x: 2, y: 35 }, { x: 39, y: 35 }
+                        ], { left: x - 75, top: y - 75, fill: '#FFD700', scaleX: 1.5, scaleY: 1.5 });
+                    } else if (shapeType === 'hexagon') {
+                        shape = new fabric.Polygon([
+                            { x: 50, y: 0 }, { x: 93.3, y: 25 }, { x: 93.3, y: 75 },
+                            { x: 50, y: 100 }, { x: 6.7, y: 75 }, { x: 6.7, y: 25 }
+                        ], { left: x - 60, top: y - 60, fill: '#FF8C00', scaleX: 1.2, scaleY: 1.2 });
+                    } else if (shapeType === 'pentagon') {
+                        shape = new fabric.Polygon([
+                            { x: 50, y: 0 }, { x: 95.1, y: 30.9 }, { x: 80.9, y: 90.5 },
+                            { x: 19.1, y: 90.5 }, { x: 4.9, y: 30.9 }
+                        ], { left: x - 60, top: y - 60, fill: '#FF6347', scaleX: 1.2, scaleY: 1.2 });
+                    } else if (shapeType === 'octagon') {
+                        shape = new fabric.Polygon([
+                            { x: 30, y: 0 }, { x: 70, y: 0 }, { x: 100, y: 30 }, { x: 100, y: 70 },
+                            { x: 70, y: 100 }, { x: 30, y: 100 }, { x: 0, y: 70 }, { x: 0, y: 30 }
+                        ], { left: x - 50, top: y - 50, fill: '#4682B4', scaleX: 1, scaleY: 1 });
+                    } else if (shapeType === 'diamond') {
+                        shape = new fabric.Polygon([
+                            { x: 50, y: 0 }, { x: 100, y: 50 }, { x: 50, y: 100 }, { x: 0, y: 50 }
+                        ], { left: x - 60, top: y - 60, fill: '#9370DB', scaleX: 1.2, scaleY: 1.2 });
+                    } else if (shapeType === 'heart') {
+                        shape = new fabric.Path('M 50 85 C 50 85 10 50 10 25 C 10 10 25 0 40 0 C 50 0 55 10 55 10 C 55 10 60 0 70 0 C 85 0 100 10 100 25 C 100 50 60 85 60 85 L 50 95 L 40 85 Z', {
+                            left: x - 40, top: y - 47.5, fill: '#FF1493', scaleX: 0.8, scaleY: 0.8
+                        });
+                    } else if (shapeType === 'arrow') {
+                        shape = new fabric.Path('M 0 50 L 100 50 L 100 30 L 150 60 L 100 90 L 100 70 L 0 70 Z', {
+                            left: x - 75, top: y - 40, fill: '#8A2BE2', scaleX: 0.8, scaleY: 0.8
+                        });
+                    } else if (shapeType === 'cross') {
+                        shape = new fabric.Path('M 40 20 L 60 20 L 60 40 L 80 40 L 80 60 L 60 60 L 60 80 L 40 80 L 40 60 L 20 60 L 20 40 L 40 40 Z', {
+                            left: x - 40, top: y - 40, fill: '#DC143C', scaleX: 1, scaleY: 1
+                        });
+                    } else if (shapeType === 'lightning') {
+                        shape = new fabric.Path('M 30 0 L 20 30 L 40 30 L 10 70 L 50 20 L 0 20 L 30 0 Z', {
+                            left: x - 37.5, top: y - 52.5, fill: '#FFD700', scaleX: 1.5, scaleY: 1.5
+                        });
+                    } else if (shapeType === 'line') {
+                        shape = new fabric.Line([x - 50, y, x + 50, y], { stroke: '#000000', strokeWidth: 5 });
+                    }
+                    if (shape) {
+                        canvas.add(shape);
+                        canvas.bringObjectToFront(shape);
+                        canvas.setActiveObject(shape);
+                        canvas.renderAll();
+                        queueSave();
+                    }
+                }
             }}
         >
             <canvas ref={canvasEl} />

@@ -102,7 +102,7 @@ const Toolbar = ({ canvasRef, projectId }) => {
                                 color: 'currentColor'
                             })}
                         </div>
-                        <span className={`text-[8px] uppercase tracking-[0.1em] font-black transition-colors ${activeLeftPanel === tool.id ? 'opacity-100' : 'opacity-70 group-hover/btn:opacity-100'}`}>
+                        <span className={`text-[7px] uppercase tracking-[0.1em] font-black transition-colors ${activeLeftPanel === tool.id ? 'opacity-100' : 'opacity-70 group-hover/btn:opacity-100'}`}>
                             {tool.label}
                         </span>
                         
