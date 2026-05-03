@@ -110,8 +110,13 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                 { label: 'Twitter Post', w: 1200, h: 675 },
                                 { label: 'LinkedIn Banner', w: 1584, h: 396 },
                                 { label: 'Pinterest Pin', w: 1000, h: 1500 },
+                                { label: 'Business Card', w: 1050, h: 600 },
+                                { label: '4:5 Portrait', w: 1080, h: 1350 },
+                                { label: '3:4 Portrait', w: 1080, h: 1440 },
+                                { label: 'A3 Document', w: 1123, h: 1587 },
                                 { label: 'A4 Document', w: 794, h: 1123 },
-                                { label: 'Business Card', w: 1050, h: 600 }
+                                { label: 'A5 Document', w: 559, h: 794 },
+                                { label: 'A6 Document', w: 397, h: 559 }
                             ].map((preset) => (
                                 <button
                                     key={preset.label}
@@ -122,11 +127,6 @@ const NewProjectModal = ({ isOpen, onClose, onCreate }) => {
                                     <span className="text-xs font-bold leading-tight">{preset.label}</span>
                                     <span className={`text-[10px] font-medium ${width === preset.w && height === preset.h ? 'text-biophilic-green' : 'text-slate-400 dark:text-biophilic-dark-text-muted'}`}>{preset.w} × {preset.h}</span>
 
-                                    {width === preset.w && height === preset.h && (
-                                        <div className="absolute -right-2 -bottom-2 w-8 h-8 bg-biophilic-green rounded-full flex items-center justify-center text-white scale-75">
-                                            <X size={14} className="rotate-45" />
-                                        </div>
-                                    )}
                                 </button>
                             ))}
                         </div>
