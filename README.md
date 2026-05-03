@@ -31,8 +31,6 @@
   </p>
 </div>
 
-
-
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
@@ -59,8 +57,6 @@
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
@@ -71,8 +67,6 @@ Canvee is a local-first, biophilic image editor designed for professional creato
 Canvee combines a Fabric.js-based canvas engine with a Node backend for AI services such as Gemini, FLUX, BLIP, and local background removal.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 ### Built With
 
@@ -85,17 +79,11 @@ Canvee combines a Fabric.js-based canvas engine with a Node backend for AI servi
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
 * Node.js 18+ and npm
 * A modern browser with File System Access API support
 * Optional AI provider API keys for Gemini, Hugging Face, and Pollinations services
@@ -103,44 +91,56 @@ This is an example of how to list things you need to use the software and how to
 ### Installation
 
 1. Clone the repo
+
    ```sh
    git clone https://github.com/duyk471/ipr_final.git
    cd ipr_final
    ```
+
 2. Install backend dependencies
+
    ```sh
    cd backend
    npm install
    ```
+
 3. Install frontend dependencies
+
    ```sh
    cd ../frontend
    npm install
    ```
+
 4. **Download local fonts** (Required for the editor)
+
    ```sh
    npm run download-fonts
    ```
+
 5. Configure AI environment variables
+
    ```sh
    cp ../backend/.env.example ../backend/.env
    ```
+
    Update the `.env` file with your provider keys and any local AI configuration.
 6. Start the backend service
+
    ```sh
    cd ../backend
    npm run dev
    ```
+
 7. Start the frontend app
+
    ```sh
    cd ../frontend
    npm run dev
    ```
+
 8. Open the app in the browser at the URL shown by Vite.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- USAGE EXAMPLES -->
 ## Usage
@@ -159,29 +159,26 @@ _For more examples, please refer to the project documentation or issue tracker._
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
 <!-- ROADMAP -->
 ## Roadmap
 
-- [x] Local-first editor and `index.json` project state
-- [x] Fabric.js canvas engine with panning, zooming, and undo/redo
-- [x] AI Design Assistant and prompt expansion
-- [x] Full Gemini/FLUX model integration in production
-- [x] Enhanced theme engine and palette mapping
-- [ ] Desktop wrapper and offline-first packaging
+* [x] Local-first editor and `index.json` project state
+* [x] Fabric.js canvas engine with panning, zooming, and undo/redo
+* [x] AI Design Assistant and prompt expansion
+* [x] Full Gemini/FLUX model integration in production
+* [x] Enhanced theme engine and palette mapping
+* [ ] Desktop wrapper and offline-first packaging
 
 See the [open issues](https://github.com/duyk471/ipr_final/issues) for a full list of proposed features and known issues.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTRIBUTING -->
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue.
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -189,7 +186,7 @@ If you have a suggestion that would make this better, please fork the repo and c
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### Top contributors:
+### Top contributors
 
 <a href="https://github.com/duyk471/ipr_final/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=duyk471/ipr_final" alt="contrib.rocks image" />
@@ -197,16 +194,12 @@ If you have a suggestion that would make this better, please fork the repo and c
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- LICENSE -->
 ## License
 
 Distributed under the Unlicense License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTACT -->
 ## Contact
@@ -227,8 +220,6 @@ Project Link: [https://github.com/duyk471/ipr_final](https://github.com/duyk471/
 [issues-url]: https://github.com/duyk471/ipr_final/issues
 [license-shield]: https://img.shields.io/github/license/duyk471/ipr_final.svg?style=for-the-badge
 [license-url]: https://github.com/duyk471/ipr_final/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/your_username
 [product-screenshot]: images/screenshot.png
 [React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
 [React-url]: https://reactjs.org/
