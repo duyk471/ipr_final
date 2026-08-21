@@ -79,6 +79,10 @@ Canvee combines a Fabric.js-based canvas engine with a Node backend for AI servi
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Preview (Youtube)
+
+[![Watch the video](https://img.youtube.com/vi/AvdfS3MtjCE/hqdefault.jpg)](https://www.youtube.com/embed/AvdfS3MtjCE)
+
 <!-- GETTING STARTED -->
 ## Getting Started
 
